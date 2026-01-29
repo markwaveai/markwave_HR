@@ -9,6 +9,7 @@ function EmployeeManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
+        employeeId: '',
         firstName: '',
         lastName: '',
         email: '',
@@ -60,6 +61,7 @@ function EmployeeManagement() {
 
         try {
             const payload = {
+                employee_id: formData.employeeId,
                 first_name: formData.firstName,
                 last_name: formData.lastName,
                 email: formData.email,
@@ -72,6 +74,7 @@ function EmployeeManagement() {
             await teamApi.addEmployee(payload);
             setMessage({ type: 'success', text: 'Employee added successfully!' });
             setFormData({
+                employeeId: '',
                 firstName: '',
                 lastName: '',
                 email: '',
@@ -143,6 +146,11 @@ function EmployeeManagement() {
                         </div>
 
                         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-[#636e72] uppercase mb-1">Employee ID</label>
+                                <input type="text" name="employeeId" required value={formData.employeeId} onChange={handleChange} className="w-full px-3 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:ring-2 focus:ring-[#48327d]/10 outline-none" placeholder="e.g. MWH-001" />
+                            </div>
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-[#636e72] uppercase mb-1">First Name</label>
@@ -223,6 +231,7 @@ function EmployeeManagement() {
                     <table className="w-full text-left">
                         <thead className="bg-[#f8f9fa] text-[#636e72] text-[10px] uppercase tracking-wider font-black">
                             <tr>
+                                <th className="px-6 py-4 truncate text-center">ID</th>
                                 <th className="px-6 py-4 truncate text-center">Emp ID</th>
                                 <th className="px-6 py-4 text-center">First Name</th>
                                 <th className="px-6 py-4 text-center">Last Name</th>
@@ -247,6 +256,9 @@ function EmployeeManagement() {
                                     <tr key={emp.id} className="hover:bg-[#f8f9fa] transition-all group">
                                         <td className="px-6 py-4 font-mono text-[#48327d] font-bold text-center">
                                             {emp.id || '----'}
+                                        </td>
+                                        <td className="px-6 py-4 font-mono text-[#48327d] font-bold text-center">
+                                            {emp.employee_id || '----'}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className="font-bold text-[#2d3436] whitespace-nowrap">{emp.first_name}</span>

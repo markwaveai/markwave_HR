@@ -9,7 +9,8 @@ from django.db import models
 
 
 class Attendance(models.Model):
-    employee = models.OneToOneField('Employees', models.DO_NOTHING, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey('Employees', models.DO_NOTHING)
     date = models.CharField(max_length=10)
     check_in = models.CharField(max_length=20, blank=True, null=True)
     check_out = models.CharField(max_length=20, blank=True, null=True)
@@ -22,10 +23,12 @@ class Attendance(models.Model):
     class Meta:
         managed = True
         db_table = 'core_attendance'
+        unique_together = (('employee', 'date'),)
 
 
 class AttendanceLogs(models.Model):
-    employee = models.OneToOneField('Employees', models.DO_NOTHING, primary_key=True)
+    id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey('Employees', models.DO_NOTHING)
     timestamp = models.DateTimeField()
     type = models.CharField(max_length=10, blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)

@@ -36,6 +36,7 @@ def login(request):
             'success': True,
             'user': {
                 'id': '0',
+                'employee_id': 'MW-ADMIN',
                 'first_name': 'Admin',
                 'last_name': 'User',
                 'email': 'admin@markwave.com',
@@ -64,6 +65,7 @@ def login(request):
             'success': True,
             'user': {
                 'id': employee.id,
+                'employee_id': employee.employee_id,
                 'first_name': employee.first_name,
                 'last_name': employee.last_name,
                 'email': employee.email,
@@ -142,6 +144,7 @@ def verify_otp(request):
                 'success': True,
                 'user': {
                     'id': '0',
+                    'employee_id': 'MW-ADMIN',
                     'first_name': 'Admin',
                     'last_name': 'User',
                     'email': 'admin@markwave.com',
@@ -157,6 +160,7 @@ def verify_otp(request):
                     'success': True,
                     'user': {
                         'id': emp.id,
+                        'employee_id': emp.employee_id,
                         'first_name': emp.first_name,
                         'last_name': emp.last_name,
                         'email': emp.email,
@@ -174,6 +178,7 @@ def get_profile(request, employee_id):
     if employee_id == '0' or employee_id == 'admin':
         return Response({
             'id': '0',
+            'employee_id': 'MW-ADMIN',
             'first_name': 'Admin',
             'last_name': 'User',
             'role': 'Administrator',
@@ -183,6 +188,7 @@ def get_profile(request, employee_id):
         emp = Employees.objects.get(id=employee_id)
         return Response({
             'id': emp.id,
+            'employee_id': emp.employee_id,
             'first_name': emp.first_name,
             'last_name': emp.last_name,
             'role': emp.role,

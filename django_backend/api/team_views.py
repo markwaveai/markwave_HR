@@ -65,6 +65,7 @@ def member_list(request):
             
         return Response([{
             'id': m.id,
+            'employee_id': m.employee_id,
             'name': f"{m.first_name} {m.last_name}",
             'role': m.role,
             'status': m.status or 'Active',
@@ -237,6 +238,7 @@ def dashboard_stats(request):
     
     absentees_list = [{
         'id': emp.id,
+        'employee_id': emp.employee_id,
         'name': f"{emp.first_name} {emp.last_name}",
         'role': emp.role,
         'location': emp.location

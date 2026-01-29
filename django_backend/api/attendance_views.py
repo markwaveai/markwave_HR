@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from core.models import Employees, Attendance, AttendanceLogs
 from datetime import datetime, timedelta
 from django.db.models import Q
+import pytz
 
 @api_view(['POST'])
 def clock(request):
@@ -20,8 +21,10 @@ def clock(request):
     except Employees.DoesNotExist:
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # India Time Adjustment
-    india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    # India Time Adjustment (timezone-aware)
+    utc_time = datetime.now(pytz.UTC)
+    india_tz = pytz.timezone('Asia/Kolkata')
+    india_time = utc_time.astimezone(india_tz)
     current_date_str = india_time.strftime('%Y-%m-%d')
     current_time_str = india_time.strftime('%I:%M %p')
 
@@ -54,6 +57,8 @@ def clock(request):
              attendance_summary.check_in = current_time_str
         elif last_log_today and last_log_today.type == 'OUT':
             break_duration = (india_time - last_log_today.timestamp).total_seconds() / 60
+            if attendance_summary.break_minutes is None:
+                attendance_summary.break_minutes = 0
             attendance_summary.break_minutes += int(round(break_duration))
 
     elif clock_type == 'OUT':
@@ -64,7 +69,8 @@ def clock(request):
             first_log = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str, type='IN').order_by('timestamp').first()
             if first_log:
                 total_duration_minutes = (india_time - first_log.timestamp).total_seconds() / 60
-                effective_minutes = max(0, total_duration_minutes - attendance_summary.break_minutes)
+                break_mins = attendance_summary.break_minutes or 0
+                effective_minutes = max(0, total_duration_minutes - break_mins)
                 eff_h = int(effective_minutes // 60)
                 eff_m = int(effective_minutes % 60)
                 attendance_summary.worked_hours = f"{eff_h}h {eff_m}m"
@@ -85,7 +91,9 @@ def clock(request):
 
 @api_view(['GET'])
 def get_status(request, employee_id):
-    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    utc_time = datetime.now(pytz.UTC)
+    india_tz = pytz.timezone('Asia/Kolkata')
+    now = utc_time.astimezone(india_tz)
     current_date_str = now.strftime('%Y-%m-%d')
     
     last_log = AttendanceLogs.objects.filter(employee_id=str(employee_id)).order_by('-timestamp').first()
@@ -105,7 +113,9 @@ def get_status(request, employee_id):
 
 @api_view(['GET'])
 def get_personal_stats(request, employee_id):
-    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    utc_time = datetime.now(pytz.UTC)
+    india_tz = pytz.timezone('Asia/Kolkata')
+    now = utc_time.astimezone(india_tz)
     current_date_str = now.strftime('%Y-%m-%d')
 
     def get_week_range(d):
