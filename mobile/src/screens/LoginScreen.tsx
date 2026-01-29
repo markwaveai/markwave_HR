@@ -1,0 +1,273 @@
+import React, { useState } from 'react';
+import {
+    View,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    StyleSheet,
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    Dimensions,
+    StatusBar
+} from 'react-native';
+import { API_BASE_URL } from '../config';
+
+interface LoginScreenProps {
+    onLogin: (user: any) => void;
+}
+
+const { width } = Dimensions.get('window');
+
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+    const [phone, setPhone] = useState('');
+    const [password, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleLogin = async () => {
+        setError('');
+        setIsLoading(true);
+
+        try {
+            // Using localhost with ADB Reverse (adb reverse tcp:5000 tcp:5000)
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ phone, password }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                onLogin(data.user);
+            } else {
+                setError(data.error || 'Invalid credentials');
+            }
+        } catch (err) {
+            console.error(err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setError(`Connection failed: ${errorMessage}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            style={styles.container}
+        >
+            <StatusBar barStyle="dark-content" backgroundColor="#f5f7fa" />
+
+            {/* Background decoration circles */}
+            <View style={[styles.circle, styles.circleTop]} />
+            <View style={[styles.circle, styles.circleBottom]} />
+
+            <View style={styles.contentContainer}>
+                <View style={styles.card}>
+                    <View style={styles.headerContainer}>
+                        <View style={styles.iconContainer}>
+                            <Text style={styles.lockIcon}>🔒</Text>
+                        </View>
+                        <Text style={styles.title}>Welcome Back</Text>
+                        <Text style={styles.subtitle}>Please sign in to MarkwaveHR</Text>
+                    </View>
+
+                    <View style={styles.formContainer}>
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>MOBILE NUMBER</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter your mobile number"
+                                placeholderTextColor="#b2bec3"
+                                value={phone}
+                                onChangeText={setPhone}
+                                keyboardType="phone-pad"
+                                autoCapitalize="none"
+                                underlineColorAndroid="transparent"
+                            />
+                        </View>
+
+                        <View style={styles.inputGroup}>
+                            <Text style={styles.label}>PASSWORD</Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter your password"
+                                placeholderTextColor="#b2bec3"
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry
+                                autoCapitalize="none"
+                                underlineColorAndroid="transparent"
+                            />
+                        </View>
+
+                        {error ? (
+                            <View style={styles.errorContainer}>
+                                <Text style={styles.errorText}>⚠️ {error}</Text>
+                            </View>
+                        ) : null}
+
+                        <TouchableOpacity
+                            style={[styles.button, isLoading && styles.buttonDisabled]}
+                            onPress={handleLogin}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.buttonText}>Sign In →</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                <View style={styles.footer}>
+                    <Text style={styles.footerText}>
+                        Don't have an account? <Text style={styles.linkText}>Contact Admin</Text>
+                    </Text>
+                </View>
+            </View>
+        </KeyboardAvoidingView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#f5f7fa',
+    },
+    circle: {
+        position: 'absolute',
+        width: width * 0.8,
+        height: width * 0.8,
+        borderRadius: (width * 0.8) / 2,
+        backgroundColor: 'rgba(72, 50, 125, 0.05)',
+    },
+    circleTop: {
+        top: -width * 0.2,
+        left: -width * 0.2,
+    },
+    circleBottom: {
+        bottom: -width * 0.2,
+        right: -width * 0.2,
+    },
+    contentContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        padding: 20,
+        zIndex: 1,
+    },
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 30,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
+        elevation: 5,
+        borderWidth: 1,
+        borderColor: '#dfe6e9',
+    },
+    headerContainer: {
+        alignItems: 'center',
+        marginBottom: 30,
+    },
+    iconContainer: {
+        width: 64,
+        height: 64,
+        backgroundColor: '#48327d',
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 16,
+        shadowColor: '#48327d',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    lockIcon: {
+        fontSize: 28,
+    },
+    title: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#2d3436',
+        marginBottom: 8,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#636e72',
+    },
+    formContainer: {
+        gap: 20,
+    },
+    inputGroup: {
+        gap: 8,
+    },
+    label: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: '#636e72',
+        letterSpacing: 0.5,
+    },
+    input: {
+        backgroundColor: '#fbfcff',
+        borderWidth: 1,
+        borderColor: '#dfe6e9',
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 14,
+        color: '#2d3436',
+        outlineStyle: 'none',
+    } as any,
+    errorContainer: {
+        backgroundColor: '#fff0f0',
+        padding: 12,
+        borderRadius: 8,
+    },
+    errorText: {
+        color: '#d63031',
+        fontSize: 12,
+        fontWeight: '500',
+    },
+    button: {
+        backgroundColor: '#48327d',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+        marginTop: 10,
+        shadowColor: '#48327d',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    buttonDisabled: {
+        opacity: 0.7,
+    },
+    buttonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    footer: {
+        marginTop: 20,
+        alignItems: 'center',
+    },
+    footerText: {
+        fontSize: 12,
+        color: '#636e72',
+    },
+    linkText: {
+        color: '#48327d',
+        fontWeight: 'bold',
+    },
+});
+
+export default LoginScreen;
