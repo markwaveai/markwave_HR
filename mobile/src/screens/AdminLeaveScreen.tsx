@@ -17,7 +17,7 @@ const AdminLeaveScreen = () => {
             const data = await leaveApi.getPending();
             setLeaves(data);
         } catch (error) {
-            console.error(error);
+            console.log(error);
             Alert.alert("Error", "Failed to fetch leave requests");
         } finally {
             setLoading(false);

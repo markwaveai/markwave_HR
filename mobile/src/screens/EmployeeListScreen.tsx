@@ -70,7 +70,7 @@ const EmployeeListScreen = () => {
             const data = await teamApi.getAttendanceRegistry();
             setEmployees(data);
         } catch (error) {
-            console.error('Error fetching employees:', error);
+            console.log('Error fetching employees:', error);
         } finally {
             setIsLoading(false);
         }
@@ -100,7 +100,7 @@ const EmployeeListScreen = () => {
             setFormData({ firstName: '', lastName: '', email: '', role: '', contact: '', aadhar: '', location: '' });
             fetchEmployees();
         } catch (error) {
-            console.error('Add employee error:', error);
+            console.log('Add employee error:', error);
             Alert.alert('Error', 'Failed to add employee');
         } finally {
             setIsSubmitting(false);

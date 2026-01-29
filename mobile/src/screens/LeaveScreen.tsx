@@ -70,7 +70,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
             const data = await leaveApi.getLeaves(EMPLOYEE_ID);
             setHistory(data);
         } catch (error) {
-            console.error("Failed to fetch leaves:", error);
+            console.log("Failed to fetch leaves:", error);
         } finally {
             setLoading(false);
         }

@@ -39,7 +39,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
             setTeamMembers(membersData);
             setStats(statsData);
         } catch (error) {
-            console.error("Failed to fetch team data:", error);
+            console.log("Failed to fetch team data:", error);
             Alert.alert("Error", "Could not load team data. Please try again.");
         } finally {
             setLoading(false);

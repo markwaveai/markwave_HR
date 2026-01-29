@@ -18,7 +18,7 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 
         return response.json();
     } catch (error) {
-        console.warn(`Fetch error for ${API_BASE_URL}${endpoint}:`, error instanceof Error ? error.message : JSON.stringify(error));
+        console.log(`Fetch error for ${API_BASE_URL}${endpoint}:`, error instanceof Error ? error.message : JSON.stringify(error));
         throw error;
     }
 };

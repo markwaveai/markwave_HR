@@ -30,7 +30,7 @@ const TeamManagementScreen = () => {
             const data = await teamApi.getTeams();
             setTeams(data);
         } catch (error) {
-            console.error(error);
+            console.log(error);
         } finally {
             setLoading(false);
         }
@@ -41,7 +41,7 @@ const TeamManagementScreen = () => {
             const data = await teamApi.getAttendanceRegistry();
             setManagers(data);
         } catch (error) {
-            console.error(error);
+            console.log(error);
         }
     };
 

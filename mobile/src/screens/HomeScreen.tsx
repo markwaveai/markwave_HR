@@ -54,10 +54,10 @@ const HomeScreen = ({ user }: { user: any }) => {
 
             // Parallel fetch for speed
             const [statusData, statsData, postsData, balanceData] = await Promise.all([
-                attendanceApi.getStatus(user.id).catch(e => { console.warn("Status fetch failed", e); return { status: 'OUT' }; }),
-                attendanceApi.getPersonalStats(user.id).catch(e => { console.warn("Stats fetch failed", e); return null; }),
-                feedApi.getPosts().catch(e => { console.warn("Posts fetch failed", e); return []; }),
-                leaveApi.getBalance(user.id).catch(e => { console.warn("Balance fetch failed", e); return null; })
+                attendanceApi.getStatus(user.id).catch(e => { console.log("Status fetch failed", e); return { status: 'OUT' }; }),
+                attendanceApi.getPersonalStats(user.id).catch(e => { console.log("Stats fetch failed", e); return null; }),
+                feedApi.getPosts().catch(e => { console.log("Posts fetch failed", e); return []; }),
+                leaveApi.getBalance(user.id).catch(e => { console.log("Balance fetch failed", e); return null; })
             ]);
 
             setIsClockedIn(statusData.status === 'IN');
@@ -65,7 +65,7 @@ const HomeScreen = ({ user }: { user: any }) => {
             setPosts(postsData || []); // Ensure posts is always an array
             setLeaveBalance(balanceData);
         } catch (error) {
-            console.warn("Failed to fetch dashboard data:", error);
+            console.log("Failed to fetch dashboard data:", error);
         } finally {
             setIsFeedLoading(false);
             setRefreshing(false);
@@ -97,7 +97,7 @@ const HomeScreen = ({ user }: { user: any }) => {
             const postsData = await feedApi.getPosts();
             setPosts(postsData);
         } catch (error) {
-            console.error("Like failed:", error);
+            console.log("Like failed:", error);
         }
     };
 
@@ -110,7 +110,7 @@ const HomeScreen = ({ user }: { user: any }) => {
             const postsData = await feedApi.getPosts();
             setPosts(postsData);
         } catch (error) {
-            console.error("Comment failed:", error);
+            console.log("Comment failed:", error);
         }
     };
 
@@ -228,7 +228,7 @@ const HomeScreen = ({ user }: { user: any }) => {
                         }
                     }
                 } catch (geoError) {
-                    console.warn("Reverse geocoding failed, using coordinates:", geoError);
+                    console.log("Reverse geocoding failed, using coordinates:", geoError);
                 }
 
                 try {

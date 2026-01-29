@@ -9,8 +9,11 @@ import {
   Platform,
   PermissionsAndroid,
   Alert,
-  Modal
+  Modal,
+  LogBox
 } from 'react-native';
+
+LogBox.ignoreAllLogs(); // Hide all warnings from the UI
 import EmployeeListScreen from './src/screens/EmployeeListScreen';
 import MyTeamScreen from './src/screens/MyTeamScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -138,7 +141,6 @@ function App() {
               isActive={activeTab === 'Home'}
               onPress={() => setActiveTab('Home')}
             />
-
             {/* Employee Only Tabs */}
             {/* Common Tabs for Employee & Admin */}
             <TabButton

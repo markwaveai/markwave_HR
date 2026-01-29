@@ -38,7 +38,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             await authApi.sendOTP(phone);
             setStep('otp');
         } catch (err) {
-            console.warn(err);
+            console.log("OTP Send Error:", err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage || 'Failed to send OTP');
         } finally {
@@ -62,7 +62,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 setError(data.error || 'Invalid OTP');
             }
         } catch (err) {
-            console.warn(err);
+            console.log("OTP Verify Error:", err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage || 'Verification failed');
         } finally {

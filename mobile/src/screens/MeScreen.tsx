@@ -87,7 +87,7 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
             setSelectedDayIndex(diff);
 
         } catch (error) {
-            console.error("Error fetching data:", error);
+            console.log("Error fetching data:", error);
         } finally {
             setLoading(false);
         }
@@ -142,7 +142,7 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                             }
                         }
                     } catch (geoError) {
-                        console.error("Reverse geocoding failed:", geoError);
+                        console.log("Reverse geocoding failed:", geoError);
                     }
 
                     try {
@@ -154,7 +154,7 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         });
                         await fetchData();
                     } catch (err) {
-                        console.error("Clock action failed:", err);
+                        console.log("Clock action failed:", err);
                         Alert.alert('Error', 'Failed to update attendance');
                     } finally {
                         setClockLoading(false);
@@ -168,7 +168,7 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
             );
 
         } catch (err) {
-            console.error("Unexpected error:", err);
+            console.log("Unexpected error:", err);
             setClockLoading(false);
         }
     };

@@ -29,16 +29,20 @@ class EmployeesSerializer(serializers.ModelSerializer):
 
 class LeavesSerializer(serializers.ModelSerializer):
     employee_name = serializers.SerializerMethodField()
+    employee_id = serializers.SerializerMethodField()
     fromDate = serializers.CharField(source='from_date')
     toDate = serializers.CharField(source='to_date')
     applied_on = serializers.SerializerMethodField()
 
     class Meta:
         model = Leaves
-        fields = ['id', 'employee', 'employee_name', 'type', 'fromDate', 'toDate', 'days', 'reason', 'status', 'applied_on']
+        fields = ['id', 'employee', 'employee_id', 'employee_name', 'type', 'fromDate', 'toDate', 'days', 'reason', 'status', 'applied_on']
 
     def get_employee_name(self, obj):
         return f"{obj.employee.first_name} {obj.employee.last_name}"
+
+    def get_employee_id(self, obj):
+        return obj.employee.employee_id
 
     def get_applied_on(self, obj):
         if obj.created_at:
