@@ -1,7 +1,20 @@
 # Python
+__pycache__/
+*.py[cod]
+*$py.class
 venv/
+.env
 
 # React frontend
 web/node_modules/
+web/dist/
 web/build/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
 
