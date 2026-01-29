@@ -80,10 +80,10 @@ WSGI_APPLICATION = 'keka_server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'markwavehr_db',
-        'USER': 'postgres',
-        'PASSWORD': 'scotttiger',
-        'HOST': 'localhost',
+        'NAME': 'keka_db',
+        'USER': 'dev_user',
+        'PASSWORD': 'StrongPassword@123',
+        'HOST': '34.14.209.166',
         'PORT': '5432',
     }
 }

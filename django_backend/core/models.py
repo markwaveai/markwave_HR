@@ -20,8 +20,8 @@ class Attendance(models.Model):
     is_holiday = models.BooleanField(blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'attendance'
+        managed = True
+        db_table = 'core_attendance'
 
 
 class AttendanceLogs(models.Model):
@@ -32,12 +32,13 @@ class AttendanceLogs(models.Model):
     date = models.CharField(max_length=10, blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'attendance_logs'
+        managed = True
+        db_table = 'core_attendancelog'
 
 
 class Employees(models.Model):
-    id = models.CharField(primary_key=True, max_length=20)
+    id = models.AutoField(primary_key=True)
+    employee_id = models.CharField(max_length=20, blank=True, null=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50, blank=True, null=True)
     role = models.CharField(max_length=100, blank=True, null=True)
@@ -50,8 +51,8 @@ class Employees(models.Model):
     team = models.ForeignKey('Teams', models.DO_NOTHING, blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'employees'
+        managed = True
+        db_table = 'core_employee'
 
 
 class Leaves(models.Model):
@@ -66,8 +67,8 @@ class Leaves(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'leaves'
+        managed = True
+        db_table = 'core_leaverequest'
 
 
 class Posts(models.Model):
@@ -80,8 +81,8 @@ class Posts(models.Model):
     created_at = models.DateTimeField(blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'posts'
+        managed = True
+        db_table = 'core_post'
 
 
 class Teams(models.Model):
@@ -90,5 +91,5 @@ class Teams(models.Model):
     manager = models.ForeignKey(Employees, models.DO_NOTHING, blank=True, null=True)
 
     class Meta:
-        managed = False
-        db_table = 'teams'
+        managed = True
+        db_table = 'core_team'
