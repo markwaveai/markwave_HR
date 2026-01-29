@@ -83,7 +83,7 @@ DATABASES = {
         'NAME': 'keka_db',
         'USER': 'keka_user',
         'PASSWORD': 'StrongPassword@123',
-        'HOST': 'postgres',
+        'HOST': '34.14.209.166',
         'PORT': '5432',
     }
 }
