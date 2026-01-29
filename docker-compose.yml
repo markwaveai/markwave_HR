@@ -1,0 +1,38 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: keka_postgres
+    restart: always
+    env_file:
+      - /home/intern1/keka_markwave/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  django:
+    build: ./django_backend
+    container_name: keka_django
+    restart: always
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./django_backend:/app
+    ports:
+      - "8000:8000"
+    env_file:
+      - /home/intern1/keka_markwave/.env
+    depends_on:
+      - postgres
+  frontend:
+    build: ./web
+    container_name: keka_frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    depends_on:
+      - django
+
+volumes:
+  postgres_data:

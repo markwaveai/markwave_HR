@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-p%0&lc+t4hlgk07*azekv9auu6z(j&tev$673)m)n!urq1!9r=
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -81,9 +81,9 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'keka_db',
-        'USER': 'dev_user',
+        'USER': 'keka_user',
         'PASSWORD': 'StrongPassword@123',
-        'HOST': '34.14.209.166',
+        'HOST': 'postgres',
         'PORT': '5432',
     }
 }
