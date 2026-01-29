@@ -11,7 +11,7 @@ import {
     Dimensions,
     StatusBar
 } from 'react-native';
-import { API_BASE_URL } from '../config';
+import { authApi } from '../services/api';
 
 interface LoginScreenProps {
     onLogin: (user: any) => void;
@@ -21,35 +21,50 @@ const { width } = Dimensions.get('window');
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const [phone, setPhone] = useState('');
-    const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
+    const [step, setStep] = useState<'phone' | 'otp'>('phone');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
-    const handleLogin = async () => {
+    const handleSendOTP = async () => {
+        if (!phone) {
+            setError('Please enter mobile number');
+            return;
+        }
         setError('');
         setIsLoading(true);
 
         try {
-            // Using localhost with ADB Reverse (adb reverse tcp:5000 tcp:5000)
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ phone, password }),
-            });
+            await authApi.sendOTP(phone);
+            setStep('otp');
+        } catch (err) {
+            console.warn(err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setError(errorMessage || 'Failed to send OTP');
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
-            const data = await response.json();
+    const handleVerifyOTP = async () => {
+        if (!otp || otp.length < 6) {
+            setError('Please enter a valid 6-digit OTP');
+            return;
+        }
+        setError('');
+        setIsLoading(true);
 
-            if (response.ok) {
+        try {
+            const data = await authApi.verifyOTP(phone, otp);
+            if (data.success) {
                 onLogin(data.user);
             } else {
-                setError(data.error || 'Invalid credentials');
+                setError(data.error || 'Invalid OTP');
             }
         } catch (err) {
-            console.error(err);
+            console.warn(err);
             const errorMessage = err instanceof Error ? err.message : String(err);
-            setError(`Connection failed: ${errorMessage}`);
+            setError(errorMessage || 'Verification failed');
         } finally {
             setIsLoading(false);
         }
@@ -70,40 +85,47 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 <View style={styles.card}>
                     <View style={styles.headerContainer}>
                         <View style={styles.iconContainer}>
-                            <Text style={styles.lockIcon}>🔒</Text>
+                            <Text style={styles.lockIcon}>{step === 'phone' ? '📱' : '🔒'}</Text>
                         </View>
-                        <Text style={styles.title}>Welcome Back</Text>
-                        <Text style={styles.subtitle}>Please sign in to MarkwaveHR</Text>
+                        <Text style={styles.title}>{step === 'phone' ? 'Welcome Back' : 'Verify Identity'}</Text>
+                        <Text style={styles.subtitle}>
+                            {step === 'phone'
+                                ? 'Sign in with your mobile number'
+                                : `Enter code sent to ${phone}`}
+                        </Text>
                     </View>
 
                     <View style={styles.formContainer}>
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>MOBILE NUMBER</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter your mobile number"
-                                placeholderTextColor="#b2bec3"
-                                value={phone}
-                                onChangeText={setPhone}
-                                keyboardType="phone-pad"
-                                autoCapitalize="none"
-                                underlineColorAndroid="transparent"
-                            />
-                        </View>
-
-                        <View style={styles.inputGroup}>
-                            <Text style={styles.label}>PASSWORD</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter your password"
-                                placeholderTextColor="#b2bec3"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry
-                                autoCapitalize="none"
-                                underlineColorAndroid="transparent"
-                            />
-                        </View>
+                        {step === 'phone' ? (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>MOBILE NUMBER</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter your mobile number"
+                                    placeholderTextColor="#b2bec3"
+                                    value={phone}
+                                    onChangeText={setPhone}
+                                    keyboardType="phone-pad"
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        ) : (
+                            <View style={styles.inputGroup}>
+                                <Text style={styles.label}>ONE-TIME PASSWORD</Text>
+                                <TextInput
+                                    style={[styles.input, styles.otpInput]}
+                                    placeholder="000000"
+                                    placeholderTextColor="#b2bec3"
+                                    value={otp}
+                                    onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
+                                    keyboardType="number-pad"
+                                    maxLength={6}
+                                />
+                                <TouchableOpacity onPress={() => setStep('phone')}>
+                                    <Text style={styles.changeNumberText}>Change number?</Text>
+                                </TouchableOpacity>
+                            </View>
+                        )}
 
                         {error ? (
                             <View style={styles.errorContainer}>
@@ -113,13 +135,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
                         <TouchableOpacity
                             style={[styles.button, isLoading && styles.buttonDisabled]}
-                            onPress={handleLogin}
+                            onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
                             disabled={isLoading}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="white" />
                             ) : (
-                                <Text style={styles.buttonText}>Sign In →</Text>
+                                <Text style={styles.buttonText}>
+                                    {step === 'phone' ? 'Get OTP →' : 'Verify & Sign In →'}
+                                </Text>
                             )}
                         </TouchableOpacity>
                     </View>
@@ -224,8 +248,21 @@ const styles = StyleSheet.create({
         padding: 14,
         fontSize: 14,
         color: '#2d3436',
-        outlineStyle: 'none',
-    } as any,
+    },
+    otpInput: {
+        letterSpacing: 10,
+        textAlign: 'center',
+        fontSize: 24,
+        fontWeight: 'bold',
+        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    },
+    changeNumberText: {
+        color: '#48327d',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 8,
+        textAlign: 'right',
+    },
     errorContainer: {
         backgroundColor: '#fff0f0',
         padding: 12,

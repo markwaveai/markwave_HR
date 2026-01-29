@@ -46,6 +46,7 @@ def apply_leave(request):
              return Response({'error': 'Insufficient leave balance. You cannot apply for more leave than your available balance.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        from django.utils import timezone
         new_request = Leaves.objects.create(
             employee_id=employee_id,
             type=leave_type,
@@ -53,7 +54,8 @@ def apply_leave(request):
             to_date=to_date,
             days=days,
             reason=data.get('reason', ''),
-            status='Pending'
+            status='Pending',
+            created_at=timezone.now()
         )
         return Response({'message': 'Leave request submitted', 'id': new_request.id}, status=status.HTTP_201_CREATED)
     except Exception as e:

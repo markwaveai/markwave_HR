@@ -104,7 +104,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 toDate,
                 days: days > 0 ? days : 1,
                 reason,
-                // session // API doesn't take this yet, but UI must show it
+                created_at: new Date().toISOString()
             });
             Alert.alert("Success", "Leave applied successfully");
             setIsModalVisible(false);

@@ -112,7 +112,7 @@ def send_otp(request):
     }
 
     try:
-        response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=10)
+        response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=30)
         if response.status_code in [200, 201]:
             return Response({'success': True, 'message': 'OTP sent successfully'})
         return Response({'error': f'Failed to send OTP: {response.text}'}, status=500)
