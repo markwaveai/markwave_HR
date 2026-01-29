@@ -83,6 +83,15 @@ def member_list(request):
             first_name = data.get('first_name') or (full_name[0] if full_name else '')
             last_name = data.get('last_name') or (' '.join(full_name[1:]) if len(full_name) > 1 else '')
 
+            # Get Team
+            team_id = data.get('team_id')
+            team = None
+            if team_id:
+                try:
+                    team = Teams.objects.get(id=team_id)
+                except Teams.DoesNotExist:
+                    pass
+
             employee = Employees.objects.create(
                 id=data.get('id'),
                 first_name=first_name,
@@ -92,7 +101,8 @@ def member_list(request):
                 location=data.get('location'),
                 email=data.get('email'),
                 contact=data.get('contact'),
-                aadhar=data.get('aadhar')
+                aadhar=data.get('aadhar'),
+                team=team
             )
             return Response({'message': 'Employee added successfully', 'id': employee.id}, status=status.HTTP_201_CREATED)
         except Exception as e:

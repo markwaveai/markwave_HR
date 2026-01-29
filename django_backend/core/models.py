@@ -10,7 +10,7 @@ from django.db import models
 
 class Attendance(models.Model):
     id = models.AutoField(primary_key=True)
-    employee = models.ForeignKey('Employees', models.DO_NOTHING)
+    employee = models.ForeignKey('Employees', models.DO_NOTHING, to_field='employee_id', null=True, blank=True)
     date = models.CharField(max_length=10)
     check_in = models.CharField(max_length=20, blank=True, null=True)
     check_out = models.CharField(max_length=20, blank=True, null=True)
@@ -28,7 +28,7 @@ class Attendance(models.Model):
 
 class AttendanceLogs(models.Model):
     id = models.AutoField(primary_key=True)
-    employee = models.ForeignKey('Employees', models.DO_NOTHING)
+    employee = models.ForeignKey('Employees', models.DO_NOTHING, to_field='employee_id', null=True, blank=True)
     timestamp = models.DateTimeField()
     type = models.CharField(max_length=10, blank=True, null=True)
     location = models.CharField(max_length=255, blank=True, null=True)
@@ -41,7 +41,7 @@ class AttendanceLogs(models.Model):
 
 class Employees(models.Model):
     id = models.AutoField(primary_key=True)
-    employee_id = models.CharField(max_length=20, blank=True, null=True)
+    employee_id = models.CharField(max_length=20, unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50, blank=True, null=True)
     role = models.CharField(max_length=100, blank=True, null=True)
@@ -85,7 +85,7 @@ class Posts(models.Model):
 
     class Meta:
         managed = True
-        db_table = 'core_post'
+        db_table = 'core_posts'
 
 
 class Teams(models.Model):

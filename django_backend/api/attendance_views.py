@@ -21,12 +21,11 @@ def clock(request):
     except Employees.DoesNotExist:
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    # India Time Adjustment (timezone-aware)
-    utc_time = datetime.now(pytz.UTC)
-    india_tz = pytz.timezone('Asia/Kolkata')
-    india_time = utc_time.astimezone(india_tz)
+    # India Time Adjustment (naive)
+    india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
     current_date_str = india_time.strftime('%Y-%m-%d')
     current_time_str = india_time.strftime('%I:%M %p')
+    print(f"DEBUG: India Time Calculated: {india_time}")
 
     last_log_today = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str).order_by('-timestamp').first()
     
@@ -91,9 +90,7 @@ def clock(request):
 
 @api_view(['GET'])
 def get_status(request, employee_id):
-    utc_time = datetime.now(pytz.UTC)
-    india_tz = pytz.timezone('Asia/Kolkata')
-    now = utc_time.astimezone(india_tz)
+    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     current_date_str = now.strftime('%Y-%m-%d')
     
     last_log = AttendanceLogs.objects.filter(employee_id=str(employee_id)).order_by('-timestamp').first()
@@ -113,9 +110,7 @@ def get_status(request, employee_id):
 
 @api_view(['GET'])
 def get_personal_stats(request, employee_id):
-    utc_time = datetime.now(pytz.UTC)
-    india_tz = pytz.timezone('Asia/Kolkata')
-    now = utc_time.astimezone(india_tz)
+    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     current_date_str = now.strftime('%Y-%m-%d')
 
     def get_week_range(d):
