@@ -103,7 +103,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         <View style={styles.iconContainer}>
                             <Text style={styles.lockIcon}>{step === 'phone' ? '📱' : '🔒'}</Text>
                         </View>
-                        <Text style={styles.title}>{step === 'phone' ? 'Welcome Back' : 'Verify Identity'}</Text>
+                        <Text style={styles.title}>{step === 'phone' ? 'Welcome to Markwave HR' : 'Verify Identity'}</Text>
                         <Text style={styles.subtitle}>
                             {step === 'phone'
                                 ? `Sign in with your ${loginMethod === 'phone' ? 'mobile number' : 'email'}`

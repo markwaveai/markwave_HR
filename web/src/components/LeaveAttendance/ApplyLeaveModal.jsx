@@ -159,7 +159,11 @@ const ApplyLeaveModal = ({
 
                     <button
                         onClick={handleLeaveSubmit}
-                        className="w-full bg-[#48327d] text-white font-bold py-2 rounded-lg text-sm shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c] transition-all transform active:scale-95 mt-2"
+                        disabled={!fromDate || !toDate || !reason.trim()}
+                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 ${!fromDate || !toDate || !reason.trim()
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                            : 'bg-[#48327d] text-white shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c]'
+                            }`}
                     >
                         Submit Request
                     </button>

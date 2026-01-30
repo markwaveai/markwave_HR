@@ -100,7 +100,7 @@ const LoginPage = ({ onLogin }) => {
                             <Lock className="text-white" size={32} />
                         </div>
                         <h1 className="text-2xl font-bold text-[#2d3436]">
-                            {step === 'input' ? 'Welcome Back' : 'Verify Identity'}
+                            {step === 'input' ? 'Welcome to Markwave HR' : 'Verify Identity'}
                         </h1>
                         <p className="text-[#636e72] text-sm mt-2">
                             {step === 'input'
@@ -115,8 +115,8 @@ const LoginPage = ({ onLogin }) => {
                                 type="button"
                                 onClick={() => { setLoginMethod('phone'); setError(''); }}
                                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${loginMethod === 'phone'
-                                        ? 'bg-white text-[#48327d] shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white text-[#48327d] shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 Phone
@@ -125,8 +125,8 @@ const LoginPage = ({ onLogin }) => {
                                 type="button"
                                 onClick={() => { setLoginMethod('email'); setError(''); }}
                                 className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${loginMethod === 'email'
-                                        ? 'bg-white text-[#48327d] shadow-sm'
-                                        : 'text-gray-500 hover:text-gray-700'
+                                    ? 'bg-white text-[#48327d] shadow-sm'
+                                    : 'text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 Email

@@ -643,18 +643,6 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                                 <Text style={styles.actionLinkIcon}>🏠</Text>
                                 <Text style={styles.actionLabel}>Work From Home</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionLinkItem}>
-                                <Text style={styles.actionLinkIcon}>💼</Text>
-                                <Text style={styles.actionLabel}>On Duty</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionLinkItem}>
-                                <Text style={styles.actionLinkIcon}>📄</Text>
-                                <Text style={styles.actionLabel}>Partial Day Request</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity style={styles.actionLinkItem}>
-                                <Text style={styles.actionLinkIcon}>🛡️</Text>
-                                <Text style={styles.actionLabel}>Attendance Policy</Text>
-                            </TouchableOpacity>
                         </View>
                     </View>
                 </View>
