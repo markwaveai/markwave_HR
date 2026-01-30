@@ -1,8 +1,9 @@
 import re
+import traceback
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from core.models import Employees
+from core.models import Employees, Teams
 import random
 import requests
 from django.conf import settings
@@ -42,7 +43,8 @@ def login(request):
                 'email': 'admin@markwave.com',
                 'role': 'Administrator',
                 'team_id': None,
-                'team_lead_name': 'Management'
+                'team_lead_name': 'Management',
+                'is_manager': True
             }
         })
 
@@ -64,14 +66,15 @@ def login(request):
         return Response({
             'success': True,
             'user': {
-                'id': employee.employee_id,
+                'id': employee.id,
                 'employee_id': employee.employee_id,
                 'first_name': employee.first_name,
                 'last_name': employee.last_name,
                 'email': employee.email,
                 'role': employee.role,
                 'team_id': employee.team.id if employee.team else None,
-                'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead"
+                'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead",
+                'is_manager': Teams.objects.filter(manager=employee).exists()
             }
         })
     except Exception as e:
@@ -150,7 +153,8 @@ def verify_otp(request):
                     'email': 'admin@markwave.com',
                     'role': 'Administrator',
                     'team_id': None,
-                    'team_lead_name': 'Management'
+                    'team_lead_name': 'Management',
+                    'is_manager': True
                 }
             })
 
@@ -159,14 +163,15 @@ def verify_otp(request):
                 return Response({
                     'success': True,
                     'user': {
-                        'id': emp.employee_id,
+                        'id': emp.id,
                         'employee_id': emp.employee_id,
                         'first_name': emp.first_name,
                         'last_name': emp.last_name,
                         'email': emp.email,
                         'role': emp.role,
                         'team_id': emp.team.id if emp.team else None,
-                        'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead"
+                        'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead",
+                        'is_manager': Teams.objects.filter(manager=emp).exists()
                     }
                 })
         return Response({'error': 'User not found'}, status=404)
@@ -182,7 +187,8 @@ def get_profile(request, employee_id):
             'first_name': 'Admin',
             'last_name': 'User',
             'role': 'Administrator',
-            'team_lead_name': 'Management'
+            'team_lead_name': 'Management',
+            'is_manager': True
         })
     try:
         emp = Employees.objects.filter(employee_id=employee_id).first()
@@ -193,12 +199,14 @@ def get_profile(request, employee_id):
             return Response({'error': 'User not found'}, status=404)
             
         return Response({
-            'id': emp.employee_id,
+            'id': emp.id,
             'employee_id': emp.employee_id,
             'first_name': emp.first_name,
             'last_name': emp.last_name,
             'role': emp.role,
-            'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead"
+            'team_id': emp.team.id if emp.team else None,
+            'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead",
+            'is_manager': Teams.objects.filter(manager=emp).exists()
         })
     except Exception as e:
         return Response({'error': str(e)}, status=500)

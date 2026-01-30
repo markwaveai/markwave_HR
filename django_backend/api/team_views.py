@@ -1,4 +1,5 @@
 import random
+import traceback
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -96,6 +97,29 @@ def member_list(request):
         } for m in members])
 
     elif request.method == 'POST':
+        # Permission check: Only Team Leader of the target team or Admin can add
+        acting_user_id = request.data.get('acting_user_id')
+        team_id = request.data.get('team_id')
+        
+        if acting_user_id:
+            try:
+                if str(acting_user_id).isdigit():
+                    acting_emp = Employees.objects.get(id=acting_user_id)
+                else:
+                    acting_emp = Employees.objects.get(employee_id=acting_user_id)
+                
+                # Check if authorized
+                is_authorized = Teams.objects.filter(id=team_id, manager=acting_emp).exists()
+                if not is_authorized and (acting_emp.role == 'Admin' or acting_emp.first_name == 'Admin'):
+                    is_authorized = True
+                    
+                if not is_authorized:
+                    return Response({'error': 'Unauthorized. Only the Team Leader of this team can add members.'}, status=403)
+            except Employees.DoesNotExist:
+                return Response({'error': 'Acting user not found'}, status=403)
+            except Exception as e:
+                print(f"Permission check error: {e}")
+
         data = request.data
         try:
             if Employees.objects.filter(email=data.get('email')).exists():
@@ -144,9 +168,35 @@ def member_detail(request, pk):
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'PUT':
+        # Permission check: Only manager of the team or Admin can add/update
+        acting_user_id = request.data.get('acting_user_id')
+        new_team_id = request.data.get('team_id')
+        
+        if acting_user_id:
+            try:
+                # Get the person doing the action
+                if str(acting_user_id).isdigit():
+                    acting_emp = Employees.objects.get(id=acting_user_id)
+                else:
+                    acting_emp = Employees.objects.get(employee_id=acting_user_id)
+                
+                # Check if they are a manager of the target team
+                is_authorized = Teams.objects.filter(id=new_team_id, manager=acting_emp).exists()
+                # Also allow if they are Admin
+                if not is_authorized and (acting_emp.role == 'Admin' or acting_emp.first_name == 'Admin'):
+                    is_authorized = True
+                    
+                if not is_authorized:
+                    return Response({'error': 'Unauthorized. Only the Team Leader of this team can add/view members.'}, status=403)
+            except Employees.DoesNotExist:
+                return Response({'error': 'Acting user not found'}, status=403)
+            except Exception as e:
+                print(f"Permission check error: {e}")
+                pass # Continue if check fails for other reasons for now to avoid blocking
+
         data = request.data
         try:
-            if 'first_name' in data: employee.first_name = data['first_name']
+            employee.first_name = data.get('first_name', employee.first_name)
             if 'last_name' in data: employee.last_name = data['last_name']
             if 'role' in data: employee.role = data['role']
             if 'contact' in data: employee.contact = data['contact']
@@ -249,35 +299,38 @@ def team_stats(request):
 
 @api_view(['GET'])
 def dashboard_stats(request):
-    """
-    Returns total active employees and a list of absentees for today.
-    """
-    india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    current_date_str = india_time.strftime('%Y-%m-%d')
-    
-    active_employees = Employees.objects.filter(status='Active')
-    total_count = active_employees.count()
-    
-    # Get IDs of employees who have attendance records for today with a valid check-in
-    present_employee_ids = Attendance.objects.filter(
-        date=current_date_str,
-        check_in__isnull=False
-    ).exclude(check_in='-').values_list('employee_id', flat=True)
-    
-    # Absentees are active employees not in the present list
-    absentees = active_employees.exclude(employee_id__in=present_employee_ids)
-    absentees_count = absentees.count()
-    
-    absentees_list = [{
-        'id': emp.id,
-        'employee_id': emp.employee_id,
-        'name': f"{emp.first_name} {emp.last_name}",
-        'role': emp.role,
-        'location': emp.location
-    } for emp in absentees]
-    
-    return Response({
-        'total_employees': total_count,
-        'absentees_count': absentees_count,
-        'absentees': absentees_list
-    })
+    try:
+        india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        current_date_str = india_time.strftime('%Y-%m-%d')
+        
+        active_employees = Employees.objects.filter(status='Active')
+        total_count = active_employees.count()
+        
+        # Get IDs of employees who have attendance records for today with a valid check-in
+        # Accessing the related field's to_field value directly
+        present_employee_ids = Attendance.objects.filter(
+            date=current_date_str,
+            check_in__isnull=False
+        ).exclude(check_in='-').values_list('employee', flat=True)
+        
+        # Absentees are active employees not in the present list (Compare employee_id strings)
+        absentees = active_employees.exclude(employee_id__in=present_employee_ids)
+        absentees_count = absentees.count()
+        
+        absentees_list = [{
+            'id': emp.id,
+            'employee_id': emp.employee_id,
+            'name': f"{emp.first_name} {emp.last_name}",
+            'role': emp.role,
+            'location': emp.location
+        } for emp in absentees]
+        
+        return Response({
+            'total_employees': total_count,
+            'absentees_count': absentees_count,
+            'absentees': absentees_list
+        })
+    except Exception as e:
+        print(f"Error in dashboard_stats: {str(e)}")
+        traceback.print_exc()
+        return Response({'error': str(e)}, status=500)

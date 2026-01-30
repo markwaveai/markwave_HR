@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import Dashboard from './components/Dashboard';
@@ -10,6 +10,7 @@ import EmployeeManagement from './components/EmployeeManagement';
 import AdminLeaveManagement from './components/AdminLeaveManagement';
 import TeamManagement from './components/TeamManagement';
 import LoginPage from './components/LoginPage';
+import { authApi } from './services/api';
 import './index.css';
 
 function App() {
@@ -35,6 +36,26 @@ function App() {
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('user', JSON.stringify(userData));
   };
+
+  // Sync profile on mount
+  useEffect(() => {
+    const syncProfile = async () => {
+      if (isAuthenticated && user?.id) {
+        try {
+          const profileData = await authApi.getProfile(user.id);
+          // Only update if something changed
+          if (JSON.stringify(profileData) !== JSON.stringify(user)) {
+            const updatedUser = { ...user, ...profileData };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+          }
+        } catch (error) {
+          console.error("Profile sync failed:", error);
+        }
+      }
+    };
+    syncProfile();
+  }, [isAuthenticated, user?.id]);
 
   const handleLogout = () => {
     setIsAuthenticated(false);

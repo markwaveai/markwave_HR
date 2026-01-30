@@ -9,18 +9,20 @@ function MyTeam({ user }) {
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [allEmployees, setAllEmployees] = useState([]);
 
     useEffect(() => {
         const fetchTeamData = async () => {
             try {
                 const teamId = user?.team_id;
-
-                const [membersData, statsData] = await Promise.all([
+                const [membersData, statsData, allEmpsData] = await Promise.all([
                     teamApi.getMembers(teamId),
-                    teamApi.getStats(teamId)
+                    teamApi.getStats(teamId),
+                    teamApi.getAttendanceRegistry()
                 ]);
                 setTeamMembers(membersData);
                 setStats(statsData);
+                setAllEmployees(allEmpsData);
             } catch (error) {
                 console.error("Failed to fetch team data:", error);
             } finally {
@@ -28,7 +30,7 @@ function MyTeam({ user }) {
             }
         };
         fetchTeamData();
-    }, []);
+    }, [user?.team_id]);
 
     const filteredMembers = teamMembers.filter(member =>
         (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -36,37 +38,27 @@ function MyTeam({ user }) {
     );
 
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newMember, setNewMember] = useState({
-        first_name: '',
-        last_name: '',
-        email: '',
-        role: '',
-        contact: '',
-        location: '',
-        aadhar: ''
-    });
+    const [selectedExistingId, setSelectedExistingId] = useState('');
 
-    // Check if user is a Team Lead
-    const isTeamLead = user?.role?.toLowerCase().includes('team lead');
+    // Check if user is a Team Lead (with fallback)
+    const isManager = user?.is_manager || user?.role?.toLowerCase().includes('team lead');
+    console.log("MyTeam Debug - User ID:", user?.id, "Is Manager:", isManager, "Raw is_manager:", user?.is_manager);
 
     const handleAddMember = async (e) => {
         e.preventDefault();
         try {
-            const memberData = {
-                ...newMember,
+            if (!selectedExistingId) throw new Error("Please select an employee");
+            await teamApi.updateMember(selectedExistingId, {
                 team_id: user?.team_id,
-                // Combine names for display/search if needed, but backend splits them or takes first/last
-                name: `${newMember.first_name} ${newMember.last_name}`
-            };
-
-            await teamApi.addEmployee(memberData);
+                acting_user_id: user?.id
+            });
 
             // Refresh list
             const updatedMembers = await teamApi.getMembers(user?.team_id);
             setTeamMembers(updatedMembers);
 
             setShowAddModal(false);
-            setNewMember({ first_name: '', last_name: '', email: '', role: '', contact: '', location: '', aadhar: '' });
+            setSelectedExistingId('');
             alert("Member added successfully!");
         } catch (error) {
             console.error("Failed to add member:", error);
@@ -99,7 +91,7 @@ function MyTeam({ user }) {
                                 className="pl-10 pr-4 py-2 bg-white border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent text-sm w-full md:w-64 shadow-sm"
                             />
                         </div>
-                        {isTeamLead && (
+                        {isManager && (
                             <button
                                 onClick={() => setShowAddModal(true)}
                                 className="bg-[#6c5ce7] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5b4bc4] transition-colors shadow-sm"
@@ -124,7 +116,7 @@ function MyTeam({ user }) {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
                         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-800">Add New Team Member</h3>
+                            <h3 className="text-lg font-bold text-gray-800">Add Team Member</h3>
                             <button
                                 onClick={() => setShowAddModal(false)}
                                 className="text-gray-400 hover:text-gray-600"
@@ -133,71 +125,26 @@ function MyTeam({ user }) {
                             </button>
                         </div>
                         <form onSubmit={handleAddMember} className="p-6 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">First Name</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7]"
-                                        value={newMember.first_name}
-                                        onChange={e => setNewMember({ ...newMember, first_name: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Last Name</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7]"
-                                        value={newMember.last_name}
-                                        onChange={e => setNewMember({ ...newMember, last_name: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
                             <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
-                                <input
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Select Employee (Total Employees)</label>
+                                <select
                                     required
-                                    type="email"
-                                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7]"
-                                    value={newMember.email}
-                                    onChange={e => setNewMember({ ...newMember, email: e.target.value })}
-                                />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
-                                    <input
-                                        required
-                                        type="text"
-                                        placeholder="e.g. Software Engineer"
-                                        className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7]"
-                                        value={newMember.role}
-                                        onChange={e => setNewMember({ ...newMember, role: e.target.value })}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Contact</label>
-                                    <input
-                                        type="text"
-                                        className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7]"
-                                        value={newMember.contact}
-                                        onChange={e => setNewMember({ ...newMember, contact: e.target.value })}
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Location</label>
-                                <input
-                                    type="text"
-                                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7]"
-                                    value={newMember.location}
-                                    onChange={e => setNewMember({ ...newMember, location: e.target.value })}
-                                />
+                                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] bg-white"
+                                    value={selectedExistingId}
+                                    onChange={e => setSelectedExistingId(e.target.value)}
+                                >
+                                    <option value="">Choose an employee...</option>
+                                    {allEmployees
+                                        .filter(emp => !teamMembers.some(m => m.id === emp.id)) // Filter out already in team
+                                        .map(emp => (
+                                            <option key={emp.id} value={emp.id}>
+                                                {emp.first_name} {emp.last_name} ({emp.role})
+                                            </option>
+                                        ))}
+                                </select>
+                                <p className="mt-2 text-[10px] text-gray-500 italic">
+                                    Showing employees not currently in your team.
+                                </p>
                             </div>
 
                             <div className="flex gap-3 pt-4">

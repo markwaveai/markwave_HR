@@ -10,7 +10,9 @@ import {
     Alert,
     SafeAreaView,
     StatusBar,
-    Platform
+    Platform,
+    Modal,
+    ScrollView
 } from 'react-native';
 import { teamApi } from '../services/api';
 
@@ -23,6 +25,12 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [allEmployees, setAllEmployees] = useState<any[]>([]);
+    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+    const [selectedExistingId, setSelectedExistingId] = useState<string>('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
 
     useEffect(() => {
         fetchTeamData();
@@ -31,18 +39,45 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const fetchTeamData = async () => {
         try {
             const teamId = user?.team_id;
-            const [membersData, statsData] = await Promise.all([
+            const [membersData, statsData, allEmpsData] = await Promise.all([
                 teamApi.getMembers(teamId),
-                teamApi.getStats(teamId)
+                teamApi.getStats(teamId),
+                teamApi.getAttendanceRegistry()
             ]);
 
             setTeamMembers(membersData);
             setStats(statsData);
+            setAllEmployees(allEmpsData);
         } catch (error) {
             console.log("Failed to fetch team data:", error);
             Alert.alert("Error", "Could not load team data. Please try again.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleAddMember = async () => {
+        if (!selectedExistingId) {
+            Alert.alert("Required", "Please select an employee.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await teamApi.updateMember(selectedExistingId, {
+                team_id: user?.team_id,
+                acting_user_id: user?.id
+            });
+
+            Alert.alert("Success", "Team member added successfully!");
+            setIsAddModalVisible(false);
+            setSelectedExistingId('');
+            fetchTeamData(); // Refresh list
+        } catch (error: any) {
+            console.log("Failed to add member:", error);
+            Alert.alert("Error", error.message || "Could not add team member.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -58,9 +93,14 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                     <Text style={styles.pageTitle}>My Team</Text>
                     <Text style={styles.pageSubtitle}>Manage and view your team members</Text>
                 </View>
-                <TouchableOpacity style={styles.addButton}>
-                    <Text style={styles.addButtonText}>Add Member</Text>
-                </TouchableOpacity>
+                {isManager && (
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => setIsAddModalVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>Add Member</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Search Bar */}
@@ -167,6 +207,66 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
             />
+
+            {/* Add Member Modal */}
+            <Modal
+                visible={isAddModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsAddModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Add Team Member</Text>
+                            <TouchableOpacity onPress={() => setIsAddModalVisible(false)} style={styles.closeButton}>
+                                <Text style={styles.closeButtonText}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
+                            <View>
+                                <Text style={styles.inputLabel}>SELECT EMPLOYEE (TOTAL EMPLOYEES)</Text>
+                                <View style={styles.pickerContainer}>
+                                    {allEmployees
+                                        .filter(emp => !teamMembers.some(m => m.id === emp.id))
+                                        .map(emp => (
+                                            <TouchableOpacity
+                                                key={emp.id}
+                                                onPress={() => setSelectedExistingId(String(emp.id))}
+                                                style={[
+                                                    styles.employeeSelectItem,
+                                                    selectedExistingId === String(emp.id) && styles.employeeSelected
+                                                ]}
+                                            >
+                                                <View>
+                                                    <Text style={[styles.empSelectName, selectedExistingId === String(emp.id) && styles.empSelectedText]}>
+                                                        {emp.first_name} {emp.last_name}
+                                                    </Text>
+                                                    <Text style={styles.empSelectRole}>{emp.role}</Text>
+                                                </View>
+                                                {selectedExistingId === String(emp.id) && <Text style={styles.checkIcon}>✓</Text>}
+                                            </TouchableOpacity>
+                                        ))}
+                                    {allEmployees.filter(emp => !teamMembers.some(m => m.id === emp.id)).length === 0 && (
+                                        <Text style={styles.emptyText}>All available employees are already in your team.</Text>
+                                    )}
+                                </View>
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+                                onPress={handleAddMember}
+                                disabled={isSubmitting}
+                            >
+                                <Text style={styles.submitButtonText}>
+                                    {isSubmitting ? "Adding..." : "Add Member"}
+                                </Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 };
@@ -397,6 +497,133 @@ const styles = StyleSheet.create({
         fontWeight: '800',
         color: '#3b82f6',
         textTransform: 'uppercase',
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        maxHeight: '85%',
+        width: '100%',
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#1e293b',
+    },
+    closeButton: {
+        padding: 4,
+    },
+    closeButtonText: {
+        fontSize: 18,
+        color: '#94a3b8',
+    },
+    formContainer: {
+        padding: 24,
+    },
+    formRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    formField: {
+        flex: 1,
+    },
+    inputLabel: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#64748b',
+        letterSpacing: 1,
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    input: {
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 14,
+        color: '#1e293b',
+        fontWeight: '500',
+    },
+    submitButton: {
+        backgroundColor: '#6366f1',
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginTop: 32,
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    submitButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    pickerContainer: {
+        marginTop: 10,
+    },
+    employeeSelectItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#f8fafc',
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    employeeSelected: {
+        borderColor: '#6366f1',
+        backgroundColor: '#f5f3ff',
+    },
+    empSelectName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1e293b',
+    },
+    empSelectedText: {
+        color: '#6366f1',
+    },
+    empSelectRole: {
+        fontSize: 11,
+        color: '#64748b',
+        marginTop: 2,
+    },
+    checkIcon: {
+        color: '#6366f1',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    emptyText: {
+        textAlign: 'center',
+        color: '#94a3b8',
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: 20,
     }
 });
 
