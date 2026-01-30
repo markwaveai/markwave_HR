@@ -72,7 +72,8 @@ const FeedSection = ({ user }) => {
             setSelectedImages([]);
             fetchPosts();
         } catch (error) {
-            alert("Failed to create post. Only admins can post.");
+            const errorMsg = error.response?.data?.error || "Failed to create post.";
+            alert(errorMsg);
         }
     };
 

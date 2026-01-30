@@ -4,43 +4,48 @@ from rest_framework.response import Response
 from core.models import Employees, Posts
 from .serializers import PostsSerializer
 from datetime import datetime
+from django.utils import timezone
 
 @api_view(['GET', 'POST'])
 def post_list(request):
-    if request.method == 'GET':
-        posts = Posts.objects.all().order_by('-created_at')
-        serializer = PostsSerializer(posts, many=True)
-        return Response(serializer.data)
-    
-    elif request.method == 'POST':
-        data = request.data
-        author_id = data.get('author_id')
-        content = data.get('content')
-        images_data = data.get('images', [])
-        post_type = data.get('type', 'Activity')
-
-        author = Employees.objects.filter(employee_id=author_id).first()
-        if not author and str(author_id).isdigit():
-            author = Employees.objects.filter(pk=author_id).first()
+    try:
+        if request.method == 'GET':
+            posts = Posts.objects.all().order_by('-created_at')
+            serializer = PostsSerializer(posts, many=True)
+            return Response(serializer.data)
         
-        if not author:
-            return Response({'error': f'Author with ID {author_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+        elif request.method == 'POST':
+            data = request.data
+            author_id = data.get('author_id')
+            content = data.get('content')
+            images_data = data.get('images', [])
+            post_type = data.get('type', 'Activity')
 
-        if author.role != 'Admin':
-            return Response({'error': 'Unauthorized. Only admins can post.'}, status=status.HTTP_403_FORBIDDEN)
-
-        if not content:
-            return Response({'error': 'Content is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        post = Posts.objects.create(
-            author=author,
-            content=content,
-            type=post_type,
-            images=images_data,
-            created_at=datetime.utcnow()
-        )
+            author = Employees.objects.filter(employee_id=author_id).first()
+            if not author and str(author_id).isdigit():
+                author = Employees.objects.filter(pk=author_id).first()
             
-        return Response({'message': 'Post created successfully', 'id': post.id})
+            if not author:
+                return Response({'error': f'Author with ID {author_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            if author.role != 'Admin':
+                return Response({'error': 'Unauthorized. Only admins can post.'}, status=status.HTTP_403_FORBIDDEN)
+
+            if not content and not images_data:
+                return Response({'error': 'Content or at least one image is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            post = Posts.objects.create(
+                author=author,
+                content=content,
+                type=post_type,
+                images=images_data,
+                created_at=timezone.now()
+            )
+                
+            return Response({'message': 'Post created successfully', 'id': post.id})
+    except Exception as e:
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 @api_view(['POST'])
 def toggle_like(request, post_id):
@@ -95,7 +100,7 @@ def add_comment(request, post_id):
             "author": f"{employee.first_name} {employee.last_name}",
             "author_id": employee.employee_id,
             "content": content,
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": timezone.now().isoformat()
         }
         comments.append(new_comment)
         post.comments = comments

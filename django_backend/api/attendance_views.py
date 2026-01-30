@@ -97,31 +97,36 @@ def clock(request):
 
 @api_view(['GET'])
 def get_status(request, employee_id):
-    # Lookup employee to handle both string employee_id and internal ID
-    employee = Employees.objects.filter(employee_id=employee_id).first()
-    if not employee and str(employee_id).isdigit():
-        employee = Employees.objects.filter(pk=employee_id).first()
-    
-    if not employee:
-        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
-
-    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    current_date_str = now.strftime('%Y-%m-%d')
-    
-    last_log = AttendanceLogs.objects.filter(employee=employee).order_by('-timestamp').first()
-    summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
-    
-    att_status = 'OUT'
-    if last_log and last_log.type == 'IN' and last_log.date == current_date_str:
-        att_status = 'IN'
+    try:
+        # Lookup employee to handle both string employee_id and internal ID
+        employee = Employees.objects.filter(employee_id=employee_id).first()
+        if not employee and str(employee_id).isdigit():
+            employee = Employees.objects.filter(pk=employee_id).first()
         
-    return Response({
-        'status': att_status,
-        'check_in': summary.check_in if summary else '-',
-        'check_out': summary.check_out if summary else '-',
-        'break_minutes': summary.break_minutes if summary else 0,
-        'worked_hours': summary.worked_hours if summary else '-'
-    })
+        if not employee:
+            return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        current_date_str = now.strftime('%Y-%m-%d')
+        
+        last_log = AttendanceLogs.objects.filter(employee=employee).order_by('-timestamp').first()
+        summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
+        
+        att_status = 'OUT'
+        if last_log and last_log.type == 'IN' and last_log.date == current_date_str:
+            att_status = 'IN'
+            
+        return Response({
+            'status': att_status,
+            'check_in': summary.check_in if summary else '-',
+            'check_out': summary.check_out if summary else '-',
+            'break_minutes': summary.break_minutes if summary else 0,
+            'worked_hours': summary.worked_hours if summary else '-',
+            'last_punch': last_log.timestamp.strftime('%I:%M %p') if last_log else None
+        })
+    except Exception as e:
+        import traceback
+        return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
 
 @api_view(['GET'])
 def get_personal_stats(request, employee_id):

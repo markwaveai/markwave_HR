@@ -67,7 +67,7 @@ class Leaves(models.Model):
     days = models.FloatField()
     reason = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         managed = True
@@ -81,7 +81,7 @@ class Posts(models.Model):
     images = models.JSONField(default=list, blank=True)
     likes = models.JSONField(default=list, blank=True)
     comments = models.JSONField(default=list, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         managed = True

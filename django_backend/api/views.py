@@ -100,7 +100,7 @@ def send_otp(request):
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
     otp = str(random.randint(100000, 999999))
-    OTPStore.objects.create(phone=target_phone, otp=otp)
+    OTPStore.objects.create(phone=target_phone, otp=otp, created_at=timezone.now())
 
     whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else "919247534762@c.us"
     headers = {

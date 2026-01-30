@@ -5,7 +5,7 @@ class OTPStore(models.Model):
     otp = models.CharField(max_length=6)
     is_verified = models.BooleanField(default=False)
     verified_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return f"{self.phone} - {self.otp} ({'Verified' if self.is_verified else 'Pending'})"
