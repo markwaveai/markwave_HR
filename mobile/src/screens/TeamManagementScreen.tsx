@@ -175,7 +175,11 @@ const TeamManagementScreen = () => {
                             <TouchableOpacity onPress={() => setModalVisible(false)} style={[styles.modalBtn, styles.cancelBtn]}>
                                 <Text style={styles.cancelText}>Cancel</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={handleSave} style={[styles.modalBtn, styles.saveBtn]}>
+                            <TouchableOpacity
+                                onPress={handleSave}
+                                style={[styles.modalBtn, styles.saveBtn, !formData.name.trim() && { opacity: 0.5 }]}
+                                disabled={!formData.name.trim()}
+                            >
                                 <Text style={styles.saveText}>Save</Text>
                             </TouchableOpacity>
                         </View>

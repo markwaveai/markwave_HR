@@ -110,3 +110,7 @@ export const feedApi = {
         method: 'DELETE'
     })
 };
+
+export const adminApi = {
+    getDashboardStats: () => apiFetch(`/admin/dashboard-stats/?_t=${new Date().getTime()}`)
+};

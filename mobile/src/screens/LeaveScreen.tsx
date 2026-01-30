@@ -319,8 +319,8 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
                             <TouchableOpacity
                                 onPress={handleApply}
-                                style={styles.submitBtn}
-                                disabled={isSubmitting}
+                                style={[styles.submitBtn, (!(fromDate && toDate && reason.trim()) || isSubmitting) && { opacity: 0.5 }]}
+                                disabled={!(fromDate && toDate && reason.trim()) || isSubmitting}
                             >
                                 <Text style={styles.submitBtnText}>{isSubmitting ? 'Submitting...' : 'Submit Request'}</Text>
                             </TouchableOpacity>

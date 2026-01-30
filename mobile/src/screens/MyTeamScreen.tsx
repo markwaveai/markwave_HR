@@ -255,9 +255,9 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                             </View>
 
                             <TouchableOpacity
-                                style={[styles.submitButton, isSubmitting && { opacity: 0.7 }]}
+                                style={[styles.submitButton, (!selectedExistingId || isSubmitting) && { opacity: 0.5 }]}
                                 onPress={handleAddMember}
-                                disabled={isSubmitting}
+                                disabled={!selectedExistingId || isSubmitting}
                             >
                                 <Text style={styles.submitButtonText}>
                                     {isSubmitting ? "Adding..." : "Add Member"}

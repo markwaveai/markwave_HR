@@ -328,9 +328,12 @@ const EmployeeListScreen = () => {
                             </View>
 
                             <TouchableOpacity
-                                style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+                                style={[
+                                    styles.submitButton,
+                                    (!(formData.firstName && formData.email && formData.role) || isSubmitting) && styles.submitButtonDisabled
+                                ]}
                                 onPress={handleRegister}
-                                disabled={isSubmitting}
+                                disabled={!(formData.firstName && formData.email && formData.role) || isSubmitting}
                             >
                                 <Text style={styles.submitButtonText}>
                                     {isSubmitting ? 'Saving...' : 'Register Employee'}
