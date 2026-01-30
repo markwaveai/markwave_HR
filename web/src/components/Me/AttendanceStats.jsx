@@ -34,7 +34,7 @@ const MeStatsRow = ({ label, avgHrs, onTime, icon: Icon }) => {
 const AttendanceStats = ({ meStats, teamStats }) => {
     return (
         <div className="bg-white rounded-xl shadow-lg p-4 border border-[#e2e8f0]">
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-5">
                 <button className="flex items-center text-sm text-[#636e72] font-medium hover:bg-gray-50 px-2 py-1 rounded">
                     This Week <ChevronDown size={14} className="ml-1" />
                 </button>

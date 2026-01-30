@@ -368,6 +368,7 @@ const Me = ({ user }) => {
                         formatDate={formatDate}
                         onClockAction={fetchHistory}
                         employeeId={EMPLOYEE_ID}
+                        displayId={user?.employee_id}
                     />
                 </div>
             </div>

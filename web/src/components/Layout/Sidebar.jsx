@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import {
     LayoutDashboard,
     User,
@@ -9,20 +10,20 @@ import {
     UserPlus
 } from 'lucide-react';
 
-function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
+function Sidebar({ user, onLogout }) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const isAdmin = user?.role === 'Admin' || user?.role === 'Administrator' || user?.first_name === 'Admin';
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['All'] },
-        { id: 'me', label: 'Me', icon: User, roles: ['Employee', 'Admin'] },
-        { id: 'team', label: 'My Team', icon: Users, roles: ['Employee'] },
-        { id: 'employee-management', label: 'Employee Management', icon: UserPlus, roles: ['Admin'] },
-        { id: 'team-management', label: 'Team Management', icon: Users, roles: ['Admin'] },
-        { id: 'leaves', label: 'Leave & Attendance', icon: Calendar, roles: ['Employee'] },
-        { id: 'admin-leaves', label: 'Leave Management', icon: Calendar, roles: ['Admin'] },
-        { id: 'settings', label: 'Settings', icon: Settings, roles: ['All'] }
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['All'] },
+        { id: 'me', label: 'Me', icon: User, path: '/me', roles: ['Employee', 'Admin'] },
+        { id: 'team', label: 'My Team', icon: Users, path: '/team', roles: ['Employee'] },
+        { id: 'employee-management', label: 'Employee Management', icon: UserPlus, path: '/employee-management', roles: ['Admin'] },
+        { id: 'team-management', label: 'Team Management', icon: Users, path: '/team-management', roles: ['Admin'] },
+        { id: 'leaves', label: 'Leave & Attendance', icon: Calendar, path: '/leaves', roles: ['Employee'] },
+        { id: 'admin-leaves', label: 'Leave Management', icon: Calendar, path: '/admin-leaves', roles: ['Admin'] },
+        { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', roles: ['All'] }
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
@@ -42,16 +43,14 @@ function Sidebar({ activeTab, setActiveTab, user, onLogout }) {
                 <nav className="p-4 flex-1">
                     {filteredMenuItems.map((item) => {
                         const Icon = item.icon;
-                        const isActive = activeTab === item.id;
                         return (
-                            <a
+                            <NavLink
                                 key={item.id}
-                                href={`#${item.id}`} // Using hash for navigation simulation
-                                onClick={() => setActiveTab(item.id)}
-                                className={`flex items-center gap-3 px-2 py-2 text-white no-underline rounded-lg transition-all font-medium mb-1 hover:bg-white/10 hover:text-white text-sm ${isActive ? 'bg-white/10 text-white' : ''}`}
+                                to={item.path}
+                                className={({ isActive }) => `flex items-center gap-3 px-2 py-2 text-white no-underline rounded-lg transition-all font-medium mb-1 hover:bg-white/10 hover:text-white text-sm ${isActive ? 'bg-white/10 text-white' : ''}`}
                             >
                                 <Icon size={18} /> {item.label}
-                            </a>
+                            </NavLink>
                         );
                     })}
                 </nav>

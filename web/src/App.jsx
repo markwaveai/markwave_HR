@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import Dashboard from './components/Dashboard';
@@ -13,9 +14,33 @@ import LoginPage from './components/LoginPage';
 import { authApi } from './services/api';
 import './index.css';
 
-function App() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+// Protected Route Component
+const ProtectedRoute = ({ isAuthenticated, children }) => {
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+  return children ? children : <Outlet />;
+};
 
+// Main Layout Component
+const Layout = ({ user, handleLogout }) => {
+  return (
+    <div className="fixed inset-0 flex overflow-hidden bg-[#F5F7FA]">
+      <Sidebar
+        user={user}
+        onLogout={handleLogout}
+      />
+      <div className="flex-1 flex flex-col h-full min-w-0">
+        <Header user={user} />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 relative">
+          <Outlet />
+        </main>
+      </div>
+    </div>
+  );
+};
+
+function App() {
   // Initialize state from localStorage
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
@@ -64,48 +89,32 @@ function App() {
     localStorage.removeItem('user');
   };
 
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />;
-  }
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard user={user} />;
-      case 'me':
-        return <Me user={user} />;
-      case 'team':
-        return <MyTeam user={user} />;
-      case 'leaves':
-        return <LeaveAttendance user={user} />;
-      case 'employee-management':
-        return <EmployeeManagement />;
-      case 'settings':
-        return <Settings />;
-      case 'admin-leaves':
-        return <AdminLeaveManagement />;
-      case 'team-management':
-        return <TeamManagement />;
-      default:
-        return <Dashboard user={user} />;
-    }
-  };
-
   return (
-    <div className="fixed inset-0 flex overflow-hidden bg-[#F5F7FA]">
-      <Sidebar
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        user={user}
-        onLogout={handleLogout}
-      />
-      <div className="flex-1 flex flex-col h-full min-w-0">
-        <Header user={user} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 relative">
-          {renderContent()}
-        </main>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/login" element={
+        !isAuthenticated ? (
+          <LoginPage onLogin={handleLogin} />
+        ) : (
+          <Navigate to="/dashboard" replace />
+        )
+      } />
+
+      {/* Protected Routes */}
+      <Route element={<ProtectedRoute isAuthenticated={isAuthenticated}><Layout user={user} handleLogout={handleLogout} /></ProtectedRoute>}>
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/dashboard" element={<Dashboard user={user} />} />
+        <Route path="/me" element={<Me user={user} />} />
+        <Route path="/team" element={<MyTeam user={user} />} />
+        <Route path="/leaves" element={<LeaveAttendance user={user} />} />
+        <Route path="/employee-management" element={<EmployeeManagement />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/admin-leaves" element={<AdminLeaveManagement />} />
+        <Route path="/team-management" element={<TeamManagement />} />
+      </Route>
+
+      {/* Catch all - redirect to dashboard if logged in, else login */}
+      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+    </Routes>
   );
 }
 
