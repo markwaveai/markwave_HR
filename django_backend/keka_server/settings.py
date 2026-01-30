@@ -9,8 +9,12 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
+
+# Environment detection
+# Set DJANGO_ENV=production on the server
+IS_PRODUCTION = os.environ.get('DJANGO_ENV') == 'production'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -80,10 +84,10 @@ WSGI_APPLICATION = 'keka_server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'keka_db',
-        'USER': 'keka_user',
+        'NAME': 'keka_db' if IS_PRODUCTION else 'postgres',
+        'USER': 'keka_user' if IS_PRODUCTION else 'postgres',
         'PASSWORD': 'StrongPassword@123',
-        'HOST': '34.14.209.166',
+        'HOST': '34.14.209.166' if IS_PRODUCTION else 'localhost',
         'PORT': '5432',
     }
 }
