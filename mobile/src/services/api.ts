@@ -31,6 +31,14 @@ export const authApi = {
     verifyOTP: (phone: string, otp: string) => apiFetch('/auth/verify-otp/', {
         method: 'POST',
         body: JSON.stringify({ phone, otp })
+    }),
+    sendEmailOTP: (email: string) => apiFetch('/auth/send-email-otp/', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+    }),
+    verifyEmailOTP: (email: string, otp: string) => apiFetch('/auth/verify-email-otp/', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp })
     })
 };
 

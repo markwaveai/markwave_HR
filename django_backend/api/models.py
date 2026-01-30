@@ -14,3 +14,18 @@ class OTPStore(models.Model):
         verbose_name = "OTP Store"
         verbose_name_plural = "OTP Store entries"
         ordering = ['-created_at']
+
+class EmailOTPStore(models.Model):
+    email = models.EmailField(max_length=255)
+    otp = models.CharField(max_length=6)
+    is_verified = models.BooleanField(default=False)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.email} - {self.otp} ({'Verified' if self.is_verified else 'Pending'})"
+
+    class Meta:
+        verbose_name = "Email OTP Store"
+        verbose_name_plural = "Email OTP Store entries"
+        ordering = ['-created_at']

@@ -21,21 +21,32 @@ const { width } = Dimensions.get('window');
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const [phone, setPhone] = useState('');
+    const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
     const [step, setStep] = useState<'phone' | 'otp'>('phone');
+    const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
 
     const handleSendOTP = async () => {
-        if (!phone) {
+        if (loginMethod === 'phone' && !phone) {
             setError('Please enter mobile number');
             return;
         }
+        if (loginMethod === 'email' && !email) {
+            setError('Please enter email address');
+            return;
+        }
+
         setError('');
         setIsLoading(true);
 
         try {
-            await authApi.sendOTP(phone);
+            if (loginMethod === 'phone') {
+                await authApi.sendOTP(phone);
+            } else {
+                await authApi.sendEmailOTP(email);
+            }
             setStep('otp');
         } catch (err) {
             console.log("OTP Send Error:", err);
@@ -55,7 +66,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         setIsLoading(true);
 
         try {
-            const data = await authApi.verifyOTP(phone, otp);
+            let data;
+            if (loginMethod === 'phone') {
+                data = await authApi.verifyOTP(phone, otp);
+            } else {
+                data = await authApi.verifyEmailOTP(email, otp);
+            }
             if (data.success) {
                 onLogin(data.user);
             } else {
@@ -90,22 +106,39 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         <Text style={styles.title}>{step === 'phone' ? 'Welcome Back' : 'Verify Identity'}</Text>
                         <Text style={styles.subtitle}>
                             {step === 'phone'
-                                ? 'Sign in with your mobile number'
-                                : `Enter code sent to ${phone}`}
+                                ? `Sign in with your ${loginMethod === 'phone' ? 'mobile number' : 'email'}`
+                                : `Enter code sent to ${loginMethod === 'phone' ? phone : email}`}
                         </Text>
                     </View>
+
+                    {step === 'phone' && (
+                        <View style={styles.tabContainer}>
+                            <TouchableOpacity
+                                style={[styles.tab, loginMethod === 'phone' && styles.activeTab]}
+                                onPress={() => { setLoginMethod('phone'); setError(''); }}
+                            >
+                                <Text style={[styles.tabText, loginMethod === 'phone' && styles.activeTabText]}>Phone</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tab, loginMethod === 'email' && styles.activeTab]}
+                                onPress={() => { setLoginMethod('email'); setError(''); }}
+                            >
+                                <Text style={[styles.tabText, loginMethod === 'email' && styles.activeTabText]}>Email</Text>
+                            </TouchableOpacity>
+                        </View>
+                    )}
 
                     <View style={styles.formContainer}>
                         {step === 'phone' ? (
                             <View style={styles.inputGroup}>
-                                <Text style={styles.label}>MOBILE NUMBER</Text>
+                                <Text style={styles.label}>{loginMethod === 'phone' ? 'MOBILE NUMBER' : 'EMAIL ADDRESS'}</Text>
                                 <TextInput
                                     style={styles.input}
-                                    placeholder="Enter your mobile number"
+                                    placeholder={loginMethod === 'phone' ? "Enter your mobile number" : "Enter your email address"}
                                     placeholderTextColor="#b2bec3"
-                                    value={phone}
-                                    onChangeText={setPhone}
-                                    keyboardType="phone-pad"
+                                    value={loginMethod === 'phone' ? phone : email}
+                                    onChangeText={loginMethod === 'phone' ? setPhone : setEmail}
+                                    keyboardType={loginMethod === 'phone' ? "phone-pad" : "email-address"}
                                     autoCapitalize="none"
                                 />
                             </View>
@@ -199,7 +232,7 @@ const styles = StyleSheet.create({
     },
     headerContainer: {
         alignItems: 'center',
-        marginBottom: 30,
+        marginBottom: 20,
     },
     iconContainer: {
         width: 64,
@@ -302,6 +335,36 @@ const styles = StyleSheet.create({
         color: '#636e72',
     },
     linkText: {
+        color: '#48327d',
+        fontWeight: 'bold',
+    },
+    tabContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#f5f7fa',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 20,
+    },
+    tab: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    activeTab: {
+        backgroundColor: 'white',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    tabText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#636e72',
+    },
+    activeTabText: {
         color: '#48327d',
         fontWeight: 'bold',
     },

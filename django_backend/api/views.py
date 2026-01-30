@@ -210,3 +210,99 @@ def get_profile(request, employee_id):
         })
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+
+from .utils import send_email_via_api
+from .models import EmailOTPStore
+
+@api_view(['POST'])
+def send_email_otp(request):
+    email = request.data.get('email')
+    if not email:
+        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if user exists with this email
+    user_exists = False
+    if email == 'admin@markwave.com':
+        user_exists = True
+    else:
+        # Case insensitive email check might be better but for now match exact or lowercase
+        for emp in Employees.objects.all():
+            if emp.email and emp.email.lower() == email.lower():
+                user_exists = True
+                break
+    
+    if not user_exists:
+        return Response({'error': 'User not found with this email'}, status=status.HTTP_404_NOT_FOUND)
+
+    otp = str(random.randint(100000, 999999))
+    # Use EmailOTPStore for email OTPs
+    EmailOTPStore.objects.create(email=email, otp=otp, created_at=timezone.now())
+
+    subject = "MarkwaveHR Login OTP"
+    body = f"<h1>Your MarkwaveHR login OTP is: {otp}</h1>"
+    
+    success, result = send_email_via_api(email, subject, body)
+    
+    if success:
+        return Response({'success': True, 'message': 'OTP sent successfully to email'})
+    else:
+        return Response({'error': f'Failed to send email: {result}'}, status=500)
+
+@api_view(['POST'])
+def verify_email_otp(request):
+    email = request.data.get('email')
+    otp = request.data.get('otp')
+
+    if not email or not otp:
+        return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Retrieve the latest unverified OTP for this email
+        otp_entry = EmailOTPStore.objects.filter(email=email, is_verified=False).order_by('-created_at').first()
+        
+        if not otp_entry or otp_entry.otp != otp:
+             return Response({'error': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Verify OTP
+        otp_entry.is_verified = True
+        otp_entry.verified_at = timezone.now()
+        otp_entry.save()
+
+        # Return user details
+        if email == 'admin@markwave.com':
+            return Response({
+                'success': True,
+                'user': {
+                    'id': '0',
+                    'employee_id': 'MW-ADMIN',
+                    'first_name': 'Admin',
+                    'last_name': 'User',
+                    'email': 'admin@markwave.com',
+                    'role': 'Administrator',
+                    'team_id': None,
+                    'team_lead_name': 'Management',
+                    'is_manager': True
+                }
+            })
+
+        employee = Employees.objects.filter(email__iexact=email).first()
+        
+        if not employee:
+            return Response({'error': 'User not found'}, status=404)
+
+        return Response({
+            'success': True,
+            'user': {
+                'id': employee.id,
+                'employee_id': employee.employee_id,
+                'first_name': employee.first_name,
+                'last_name': employee.last_name,
+                'email': employee.email,
+                'role': employee.role,
+                'team_id': employee.team.id if employee.team else None,
+                'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead",
+                'is_manager': Teams.objects.filter(manager=employee).exists()
+            }
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

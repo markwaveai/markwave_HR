@@ -6,6 +6,8 @@ urlpatterns = [
     path('auth/login/', views.login, name='login'),
     path('auth/send-otp/', views.send_otp, name='send_otp'),
     path('auth/verify-otp/', views.verify_otp, name='verify_otp'),
+    path('auth/send-email-otp/', views.send_email_otp, name='send_email_otp'),
+    path('auth/verify-email-otp/', views.verify_email_otp, name='verify_email_otp'),
     path('auth/profile/<str:employee_id>/', views.get_profile, name='get_profile'),
     
     # Team

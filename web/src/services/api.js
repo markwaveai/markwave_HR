@@ -26,7 +26,15 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 export const authApi = {
-    getProfile: (employeeId) => apiFetch(`/auth/profile/${employeeId}/`)
+    getProfile: (employeeId) => apiFetch(`/auth/profile/${employeeId}/`),
+    sendEmailOTP: (email) => apiFetch('/auth/send-email-otp/', {
+        method: 'POST',
+        body: JSON.stringify({ email })
+    }),
+    verifyEmailOTP: (email, otp) => apiFetch('/auth/verify-email-otp/', {
+        method: 'POST',
+        body: JSON.stringify({ email, otp })
+    })
 };
 
 export const leaveApi = {
