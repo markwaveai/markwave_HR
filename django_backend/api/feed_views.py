@@ -19,10 +19,12 @@ def post_list(request):
         images_data = data.get('images', [])
         post_type = data.get('type', 'Activity')
 
-        try:
-            author = Employees.objects.get(pk=author_id)
-        except Employees.DoesNotExist:
-            return Response({'error': 'Author not found'}, status=status.HTTP_404_NOT_FOUND)
+        author = Employees.objects.filter(employee_id=author_id).first()
+        if not author and str(author_id).isdigit():
+            author = Employees.objects.filter(pk=author_id).first()
+        
+        if not author:
+            return Response({'error': f'Author with ID {author_id} not found'}, status=status.HTTP_404_NOT_FOUND)
 
         if author.role != 'Admin':
             return Response({'error': 'Unauthorized. Only admins can post.'}, status=status.HTTP_403_FORBIDDEN)
@@ -49,11 +51,18 @@ def toggle_like(request, post_id):
         post = Posts.objects.get(pk=post_id)
         likes = post.likes or []
         
-        if employee_id in likes:
-            likes.remove(employee_id)
+        # Check if internal ID or employee_id is in likes
+        employee = Employees.objects.filter(employee_id=employee_id).first()
+        if not employee and str(employee_id).isdigit():
+            employee = Employees.objects.filter(pk=employee_id).first()
+        
+        target_id = employee.employee_id if employee else employee_id
+
+        if str(target_id) in likes:
+            likes.remove(str(target_id))
             message = 'Unliked'
         else:
-            likes.append(employee_id)
+            likes.append(str(target_id))
             message = 'Liked'
         
         post.likes = likes
@@ -73,13 +82,18 @@ def add_comment(request, post_id):
 
     try:
         post = Posts.objects.get(pk=post_id)
-        employee = Employees.objects.get(pk=employee_id)
+        employee = Employees.objects.filter(employee_id=employee_id).first()
+        if not employee and str(employee_id).isdigit():
+            employee = Employees.objects.filter(pk=employee_id).first()
+        
+        if not employee:
+            return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
         
         comments = post.comments or []
         new_comment = {
             "id": len(comments) + 1,
             "author": f"{employee.first_name} {employee.last_name}",
-            "author_id": employee_id,
+            "author_id": employee.employee_id,
             "content": content,
             "created_at": datetime.utcnow().isoformat()
         }

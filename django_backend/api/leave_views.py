@@ -7,7 +7,14 @@ from django.db.models import Q, Sum
 
 @api_view(['GET'])
 def get_leaves(request, employee_id):
-    leaves = Leaves.objects.filter(employee_id=employee_id).order_by('-created_at')
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+    
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    leaves = Leaves.objects.filter(employee=employee).order_by('-created_at')
     serializer = LeavesSerializer(leaves, many=True)
     return Response(serializer.data)
 
@@ -21,11 +28,19 @@ def apply_leave(request):
         leave_type = data.get('type')
         days = data.get('days')
 
+        # Lookup employee
+        employee = Employees.objects.filter(employee_id=employee_id).first()
+        if not employee and str(employee_id).isdigit():
+            employee = Employees.objects.filter(pk=employee_id).first()
+        
+        if not employee:
+            return Response({'error': f'Employee with ID {employee_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+
         LEAVE_LIMITS = {'cl': 6, 'sl': 6, 'el': 17}
 
         # Check for overlapping leaves
         existing_overlap = Leaves.objects.filter(
-            employee_id=employee_id,
+            employee=employee,
             status__in=['Pending', 'Approved'],
             from_date__lte=to_date,
             to_date__gte=from_date
@@ -38,7 +53,7 @@ def apply_leave(request):
         if leave_type in LEAVE_LIMITS:
             limit = LEAVE_LIMITS[leave_type]
             used_days = Leaves.objects.filter(
-                employee_id=employee_id,
+                employee=employee,
                 type=leave_type,
                 status__in=['Pending', 'Approved']
             ).aggregate(total=Sum('days'))['total'] or 0
@@ -48,7 +63,7 @@ def apply_leave(request):
 
         from django.utils import timezone
         new_request = Leaves.objects.create(
-            employee_id=employee_id,
+            employee=employee,
             type=leave_type,
             from_date=from_date,
             to_date=to_date,
@@ -85,10 +100,17 @@ def leave_action(request, request_id):
 
 @api_view(['GET'])
 def get_leave_balance(request, employee_id):
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+    
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
     LEAVE_LIMITS = {'cl': 6, 'sl': 6, 'el': 17}
     
     used_leaves = Leaves.objects.filter(
-        employee_id=employee_id,
+        employee=employee,
         status__in=['Pending', 'Approved']
     )
     

@@ -64,7 +64,7 @@ def login(request):
         return Response({
             'success': True,
             'user': {
-                'id': employee.id,
+                'id': employee.employee_id,
                 'employee_id': employee.employee_id,
                 'first_name': employee.first_name,
                 'last_name': employee.last_name,
@@ -159,7 +159,7 @@ def verify_otp(request):
                 return Response({
                     'success': True,
                     'user': {
-                        'id': emp.id,
+                        'id': emp.employee_id,
                         'employee_id': emp.employee_id,
                         'first_name': emp.first_name,
                         'last_name': emp.last_name,
@@ -185,14 +185,20 @@ def get_profile(request, employee_id):
             'team_lead_name': 'Management'
         })
     try:
-        emp = Employees.objects.get(id=employee_id)
+        emp = Employees.objects.filter(employee_id=employee_id).first()
+        if not emp and str(employee_id).isdigit():
+            emp = Employees.objects.filter(pk=employee_id).first()
+            
+        if not emp:
+            return Response({'error': 'User not found'}, status=404)
+            
         return Response({
-            'id': emp.id,
+            'id': emp.employee_id,
             'employee_id': emp.employee_id,
             'first_name': emp.first_name,
             'last_name': emp.last_name,
             'role': emp.role,
             'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead"
         })
-    except Employees.DoesNotExist:
-        return Response({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

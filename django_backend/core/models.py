@@ -60,7 +60,7 @@ class Employees(models.Model):
 
 class Leaves(models.Model):
     id = models.AutoField(primary_key=True)
-    employee = models.ForeignKey(Employees, models.DO_NOTHING)
+    employee = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id')
     type = models.CharField(max_length=20)
     from_date = models.CharField(max_length=10)
     to_date = models.CharField(max_length=10)
@@ -75,7 +75,7 @@ class Leaves(models.Model):
 
 
 class Posts(models.Model):
-    author = models.ForeignKey(Employees, models.DO_NOTHING)
+    author = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id')
     content = models.TextField()
     type = models.CharField(max_length=20, blank=True, null=True)
     images = models.JSONField(default=list, blank=True)
@@ -91,7 +91,7 @@ class Posts(models.Model):
 class Teams(models.Model):
     name = models.CharField(unique=True, max_length=100)
     description = models.CharField(max_length=255, blank=True, null=True)
-    manager = models.ForeignKey(Employees, models.DO_NOTHING, blank=True, null=True)
+    manager = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id', blank=True, null=True)
 
     class Meta:
         managed = True

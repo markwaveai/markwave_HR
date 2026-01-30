@@ -17,9 +17,16 @@ def clock(request):
         return Response({'error': 'Employee ID required'}, status=status.HTTP_400_BAD_REQUEST)
         
     try:
-        employee = Employees.objects.get(pk=employee_id)
-    except Employees.DoesNotExist:
-        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+        # Try lookup by employee_id first (the new standard)
+        employee = Employees.objects.filter(employee_id=employee_id).first()
+        if not employee and str(employee_id).isdigit():
+            # Fallback to internal ID for active sessions that haven't refreshed
+            employee = Employees.objects.filter(pk=employee_id).first()
+            
+        if not employee:
+            return Response({'error': f'Employee with ID {employee_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # India Time Adjustment (naive)
     india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
@@ -37,7 +44,7 @@ def clock(request):
 
     # Create Log
     new_log = AttendanceLogs.objects.create(
-        employee_id=employee_id,
+        employee=employee,
         timestamp=india_time,
         type=clock_type,
         location=location,
@@ -46,7 +53,7 @@ def clock(request):
     
     # Update Attendance Summary
     attendance_summary, created = Attendance.objects.get_or_create(
-        employee_id=employee_id,
+        employee=employee,
         date=current_date_str,
         defaults={'status': 'Present', 'break_minutes': 0}
     )
@@ -65,7 +72,7 @@ def clock(request):
             attendance_summary.check_out = current_time_str
         
         if attendance_summary.check_in:
-            first_log = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str, type='IN').order_by('timestamp').first()
+            first_log = AttendanceLogs.objects.filter(employee=employee, date=current_date_str, type='IN').order_by('timestamp').first()
             if first_log:
                 total_duration_minutes = (india_time - first_log.timestamp).total_seconds() / 60
                 break_mins = attendance_summary.break_minutes or 0
@@ -90,11 +97,19 @@ def clock(request):
 
 @api_view(['GET'])
 def get_status(request, employee_id):
+    # Lookup employee to handle both string employee_id and internal ID
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+    
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
     now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     current_date_str = now.strftime('%Y-%m-%d')
     
-    last_log = AttendanceLogs.objects.filter(employee_id=str(employee_id)).order_by('-timestamp').first()
-    summary = Attendance.objects.filter(employee_id=employee_id, date=current_date_str).first()
+    last_log = AttendanceLogs.objects.filter(employee=employee).order_by('-timestamp').first()
+    summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
     
     att_status = 'OUT'
     if last_log and last_log.type == 'IN' and last_log.date == current_date_str:
@@ -110,6 +125,13 @@ def get_status(request, employee_id):
 
 @api_view(['GET'])
 def get_personal_stats(request, employee_id):
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+    
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
     now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     current_date_str = now.strftime('%Y-%m-%d')
 
@@ -126,7 +148,7 @@ def get_personal_stats(request, employee_id):
 
     def calc_avg_for_range(start_dt, end_dt):
         summaries = Attendance.objects.filter(
-            employee_id=str(employee_id),
+            employee=employee,
             date__gte=start_dt.strftime('%Y-%m-%d'),
             date__lte=end_dt.strftime('%Y-%m-%d')
         )
@@ -135,7 +157,7 @@ def get_personal_stats(request, employee_id):
         days_with_activity = 0
         
         for summary in summaries:
-            punches = AttendanceLogs.objects.filter(employee_id=employee_id, date=summary.date).order_by('timestamp')
+            punches = AttendanceLogs.objects.filter(employee=employee, date=summary.date).order_by('timestamp')
             if not punches: continue
                 
             day_mins = 0
@@ -180,10 +202,17 @@ def get_personal_stats(request, employee_id):
 
 @api_view(['GET'])
 def get_history(request, employee_id):
-    logs = Attendance.objects.filter(employee_id=employee_id).order_by('-date')[:30]
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+    
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    logs = Attendance.objects.filter(employee=employee).order_by('-date')[:30]
     result = []
     for log in logs:
-        punches = AttendanceLogs.objects.filter(employee_id=employee_id, date=log.date).order_by('timestamp')
+        punches = AttendanceLogs.objects.filter(employee=employee, date=log.date).order_by('timestamp')
         logs_data = []
         calculated_break_mins = 0
         last_out_timestamp = None

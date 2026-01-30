@@ -15,11 +15,24 @@ def team_list(request):
     
     elif request.method == 'POST':
         data = request.data
+        manager_id = data.get('manager_id')
+        manager = None
+        if manager_id:
+            try:
+                manager = Employees.objects.filter(employee_id=manager_id).first()
+                if not manager and str(manager_id).isdigit():
+                    manager = Employees.objects.filter(pk=manager_id).first()
+                
+                if not manager and manager_id:
+                    return Response({'error': f'Manager with ID {manager_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+            except Exception:
+                pass
+
         try:
             team = Teams.objects.create(
                 name=data.get('name'),
                 description=data.get('description'),
-                manager_id=data.get('manager_id')
+                manager=manager
             )
             return Response({'message': 'Team created successfully', 'id': team.id}, status=status.HTTP_201_CREATED)
         except Exception as e:
@@ -37,7 +50,16 @@ def team_detail(request, pk):
         try:
             if 'name' in data: team.name = data['name']
             if 'description' in data: team.description = data['description']
-            if 'manager_id' in data: team.manager_id = data['manager_id']
+            if 'manager_id' in data:
+                manager_id = data['manager_id']
+                manager = Employees.objects.filter(employee_id=manager_id).first()
+                if not manager and str(manager_id).isdigit():
+                    manager = Employees.objects.filter(pk=manager_id).first()
+                
+                if manager:
+                    team.manager = manager
+                elif manager_id:
+                     return Response({'error': f"Manager with ID {manager_id} not found"}, status=status.HTTP_404_NOT_FOUND)
             team.save()
             return Response({'message': 'Team updated successfully'})
         except Exception as e:
@@ -164,7 +186,7 @@ def team_stats(request):
     monday_str = monday.strftime('%Y-%m-%d')
     
     attendance_records = Attendance.objects.filter(
-        employee_id__in=member_ids,
+        employee__employee_id__in=list(query.values_list('employee_id', flat=True)),
         date__gte=monday_str
     )
     
@@ -243,7 +265,7 @@ def dashboard_stats(request):
     ).exclude(check_in='-').values_list('employee_id', flat=True)
     
     # Absentees are active employees not in the present list
-    absentees = active_employees.exclude(id__in=present_employee_ids)
+    absentees = active_employees.exclude(employee_id__in=present_employee_ids)
     absentees_count = absentees.count()
     
     absentees_list = [{
