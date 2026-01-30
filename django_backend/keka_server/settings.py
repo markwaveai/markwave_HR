@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Environment detection
 # Set DJANGO_ENV=production on the server
@@ -84,11 +88,11 @@ WSGI_APPLICATION = 'keka_server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'keka_db' if IS_PRODUCTION else 'postgres',
-        'USER': 'keka_user' if IS_PRODUCTION else 'postgres',
-        'PASSWORD': 'StrongPassword@123',
-        'HOST': '34.14.209.166' if IS_PRODUCTION else 'localhost',
-        'PORT': '5432',
+        'NAME': os.getenv('POSTGRES_DB', 'keka_db'),
+        'USER': os.getenv('POSTGRES_USER', 'keka_user' if IS_PRODUCTION else 'dev_user'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'StrongPassword@123' if IS_PRODUCTION else 'DevPassword@123'),
+        'HOST': os.getenv('DB_HOST', 'postgres' if IS_PRODUCTION else '34.14.209.166'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
