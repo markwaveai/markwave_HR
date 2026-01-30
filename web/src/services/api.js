@@ -1,8 +1,5 @@
-// Automatically detect if running locally or on server
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-export const API_BASE_URL = isLocalhost
-    ? 'http://localhost:8000/api'
-    : 'http://34.14.209.166:8000/api'
+export const API_BASE_URL = 'https://hr.markwave.ai/api';
+
 const apiFetch = async (endpoint, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
