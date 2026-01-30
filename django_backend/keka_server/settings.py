@@ -88,10 +88,10 @@ WSGI_APPLICATION = 'keka_server.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB', 'keka_db'),
-        'USER': os.getenv('POSTGRES_USER', 'keka_user' if IS_PRODUCTION else 'dev_user'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'StrongPassword@123' if IS_PRODUCTION else 'DevPassword@123'),
-        'HOST': os.getenv('DB_HOST', 'postgres' if IS_PRODUCTION else '34.14.209.166'),
+        'NAME': os.getenv('POSTGRES_DB'),
+        'USER': os.getenv('POSTGRES_USER'),
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
