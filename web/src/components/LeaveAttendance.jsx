@@ -35,17 +35,29 @@ function LeaveAttendance({ user }) {
     const fetchLeaves = async () => {
         try {
             const data = await leaveApi.getLeaves(EMPLOYEE_ID);
-            const formattedData = data.map(item => ({
-                ...item,
-                typeCode: item.type,
-                type: LEAVE_TYPES[item.typeCode]?.name || item.type,
-                dates: item.fromDate === item.toDate ? item.fromDate : `${item.fromDate} to ${item.toDate}`,
-                statusColor: item.status === 'Approved'
-                    ? 'text-green-600 bg-green-50'
-                    : item.status === 'Rejected'
-                        ? 'text-red-600 bg-red-50'
-                        : 'text-amber-600 bg-amber-50'
-            }));
+            const formatDateWithDay = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+                return `${day}, ${dateStr}`;
+            };
+
+            const formattedData = data.map(item => {
+                const fromWithDay = formatDateWithDay(item.fromDate);
+                const toWithDay = formatDateWithDay(item.toDate);
+
+                return {
+                    ...item,
+                    typeCode: item.type,
+                    type: LEAVE_TYPES[item.typeCode]?.name || item.type,
+                    dates: item.fromDate === item.toDate ? fromWithDay : `${fromWithDay} to ${toWithDay}`,
+                    statusColor: item.status === 'Approved'
+                        ? 'text-green-600 bg-green-50'
+                        : item.status === 'Rejected'
+                            ? 'text-red-600 bg-red-50'
+                            : 'text-amber-600 bg-amber-50'
+                };
+            });
             setHistory(formattedData);
         } catch (error) {
             console.error("Failed to fetch leaves:", error);

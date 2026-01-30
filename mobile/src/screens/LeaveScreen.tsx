@@ -135,6 +135,13 @@ const LeaveScreen = ({ user }: { user: any }) => {
         return item ? item.label : code.toUpperCase();
     };
 
+    const formatDateWithDay = (dateStr: string) => {
+        if (!dateStr) return '';
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const date = new Date(dateStr);
+        return `${days[date.getDay()]}, ${dateStr}`;
+    };
+
     // Date Picker State
     const [datePickerVisible, setDatePickerVisible] = useState(false);
     const [activeDateInput, setActiveDateInput] = useState<'from' | 'to' | null>(null);
@@ -213,7 +220,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                 <View key={index} style={styles.historyItem}>
                                     <View style={styles.historyLeft}>
                                         <Text style={styles.leaveType}>{getLeaveLabel(item.type)}</Text>
-                                        <Text style={styles.leaveDates}>{item.fromDate} - {item.toDate}</Text>
+                                        <Text style={styles.leaveDates}>{formatDateWithDay(item.fromDate)} - {formatDateWithDay(item.toDate)}</Text>
                                     </View>
                                     <View style={styles.historyRight}>
                                         <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
