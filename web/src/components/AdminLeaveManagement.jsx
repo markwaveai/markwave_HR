@@ -44,7 +44,7 @@ const AdminLeaveManagement = () => {
     };
 
     return (
-        <main className="flex-1 p-6 overflow-y-auto bg-[#f5f7fa]">
+        <div className="flex-1 p-3 mm:p-4 tab:p-6 overflow-y-auto bg-[#f5f7fa]">
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-[#2d3436]">Leave Management</h1>
                 <p className="text-sm text-[#636e72] mt-1">Review and manage employee leave requests</p>
@@ -90,8 +90,8 @@ const AdminLeaveManagement = () => {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={`px-2 py-1 rounded text-xs font-bold ${leave.type === 'cl' ? 'bg-blue-50 text-blue-600' :
-                                                    leave.type === 'sl' ? 'bg-red-50 text-red-600' :
-                                                        'bg-green-50 text-green-600'
+                                                leave.type === 'sl' ? 'bg-red-50 text-red-600' :
+                                                    'bg-green-50 text-green-600'
                                                 }`}>
                                                 {leave.type.toUpperCase()}
                                             </span>
@@ -150,7 +150,7 @@ const AdminLeaveManagement = () => {
                     onClose={() => setToast(null)}
                 />
             )}
-        </main>
+        </div>
     );
 };
 

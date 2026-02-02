@@ -6,7 +6,14 @@ export default {
   ],
   darkMode: "class",   // ✅ enable dark mode
   theme: {
-    extend: {},
+    extend: {
+      screens: {
+        'ms': '320px',    // Mobile S
+        'mm': '375px',    // Mobile M
+        'ml': '425px',    // Mobile L
+        'tab': '768px',   // Tab
+      },
+    },
   },
   plugins: [],
 };

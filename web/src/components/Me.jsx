@@ -348,7 +348,7 @@ const Me = ({ user }) => {
     const displayedLogs = getFilteredLogs();
 
     return (
-        <div className="p-6 space-y-8 bg-[#f8fafc] min-h-screen">
+        <div className="p-3 mm:p-4 tab:p-6 space-y-6 tab:space-y-8 bg-[#f8fafc] min-h-screen">
             <div>
                 <h2 className="text-lg font-semibold text-[#2d3436] mb-4">Attendance Stats</h2>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -146,7 +146,7 @@ const TeamManagement = () => {
     );
 
     return (
-        <div className="p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+        <div className="flex-1 p-3 mm:p-4 tab:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500 overflow-y-auto">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
                 <div>

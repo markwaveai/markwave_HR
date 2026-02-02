@@ -107,7 +107,7 @@ function EmployeeManagement() {
     };
 
     return (
-        <main className="flex-1 p-6 overflow-y-auto bg-[#f5f7fa]">
+        <div className="flex-1 p-3 mm:p-4 tab:p-6 overflow-y-auto bg-[#f5f7fa]">
             <div className="mb-6 flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-[#2d3436]">Employee Management</h1>
@@ -285,7 +285,7 @@ function EmployeeManagement() {
                     </table>
                 </div>
             </div>
-        </main >
+        </div>
     );
 }
 

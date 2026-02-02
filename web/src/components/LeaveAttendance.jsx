@@ -162,7 +162,7 @@ function LeaveAttendance({ user }) {
     }
 
     return (
-        <main className="flex-1 p-6 overflow-y-auto bg-[#f5f7fa]">
+        <div className="flex-1 p-3 mm:p-4 tab:p-6 overflow-y-auto bg-[#f5f7fa]">
             <div className="max-w-6xl mx-auto space-y-6">
                 <div className="flex justify-between items-end">
                     <div>
@@ -211,7 +211,7 @@ function LeaveAttendance({ user }) {
                     />
                 )}
             </div>
-        </main>
+        </div>
     );
 }
 

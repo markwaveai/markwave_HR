@@ -7,10 +7,11 @@ import {
     Calendar,
     Settings,
     LogOut,
-    UserPlus
+    UserPlus,
+    Menu
 } from 'lucide-react';
 
-function Sidebar({ user, onLogout }) {
+function Sidebar({ user, onLogout, isOpen, onClose }) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const isAdmin = user?.role === 'Admin' || user?.role === 'Administrator' || user?.first_name === 'Admin';
@@ -35,9 +36,15 @@ function Sidebar({ user, onLogout }) {
 
     return (
         <>
-            <aside className="w-[210px] bg-[#48327d] flex flex-col h-full shrink-0 z-20">
-                <div className="h-[44px] flex items-center justify-center border border-white/10">
-                    <span className="font-bold text-xl text-white">Markwave HR</span>
+            <aside className={`fixed lg:relative top-0 left-0 bottom-0 w-[240px] bg-[#48327d] flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                <div className="h-[44px] flex items-center px-4 border-b border-white/10 shrink-0 gap-3">
+                    <button
+                        onClick={onClose}
+                        className="lg:hidden text-white/90 hover:bg-white/10 p-1.5 rounded-lg transition-colors -ml-1"
+                    >
+                        <Menu size={20} />
+                    </button>
+                    <span className="font-bold text-lg text-white">Markwave HR</span>
                 </div>
 
                 <nav className="p-4 flex-1">

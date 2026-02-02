@@ -6,21 +6,21 @@ const TimingCard = ({ activeTiming, currentWeekLogs, selectedDayIndex, setSelect
         <div className="bg-white rounded-xl shadow-lg p-5 border border-[#e2e8f0]">
             <h3 className="text-sm font-medium text-[#636e72] mb-5">Timings</h3>
 
-            <div className="flex justify-between mb-6">
+            <div className="flex justify-between mb-6 gap-1 overflow-x-auto pb-2 scrollbar-none">
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => {
                     const log = currentWeekLogs[i];
                     const isToday = log?.date === getLocalSelectedDateStr(new Date());
                     return (
-                        <div key={i} className="flex flex-col items-center gap-1">
+                        <div key={i} className="flex flex-col items-center gap-1 shrink-0">
                             <button
                                 onClick={() => setSelectedDayIndex(i)}
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all relative ${selectedDayIndex === i
+                                className={`w-8 h-8 mm:w-9 mm:h-9 tab:w-10 tab:h-10 rounded-full flex items-center justify-center text-xs mm:text-sm font-bold transition-all relative ${selectedDayIndex === i
                                     ? 'bg-[#48327d] text-white shadow-md transform scale-110'
                                     : isToday ? 'bg-[#48327d]/10 text-[#48327d] border border-[#48327d]/30' : 'bg-[#f1f2f6] text-[#636e72] hover:bg-[#e2e8f0]'
                                     }`}
                             >
                                 {label}
-                                {isToday && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ef4444] rounded-full border-2 border-white"></div>}
+                                {isToday && <div className="absolute -top-1 -right-1 w-2 h-2 mm:w-2.5 mm:h-2.5 bg-[#ef4444] rounded-full border-2 border-white"></div>}
                             </button>
                         </div>
                     );

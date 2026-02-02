@@ -5,27 +5,27 @@ const MeStatsRow = ({ label, avgHrs, onTime, icon: Icon }) => {
     const avgParts = avgHrs.split(' ');
 
     return (
-        <div className="grid grid-cols-[120px_1fr_1fr] items-center gap-4">
-            <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#f8fafc] text-[#48327d] flex items-center justify-center shrink-0 border border-[#f1f5f9]">
-                    <Icon size={18} />
+        <div className="grid grid-cols-[1fr_80px_80px] mm:grid-cols-[120px_1fr_1fr] items-center gap-2 mm:gap-4">
+            <div className="flex items-center gap-2 mm:gap-3">
+                <div className="w-8 h-8 mm:w-9 mm:h-9 rounded-full bg-[#f8fafc] text-[#48327d] flex items-center justify-center shrink-0 border border-[#f1f5f9]">
+                    <Icon size={16} />
                 </div>
-                <span className="text-sm font-bold text-[#334155]">{label}</span>
+                <span className="text-xs mm:text-sm font-bold text-[#334155]">{label}</span>
             </div>
             <div className="text-center group">
-                <div className="text-[9px] font-bold text-[#8e78b0] leading-tight mb-2 uppercase tracking-wider">
+                <div className="text-[8px] mm:text-[9px] font-bold text-[#8e78b0] leading-tight mb-1 mm:mb-2 uppercase tracking-wider">
                     Avg Hrs /<br />Day
                 </div>
                 <div className="flex flex-col items-center">
-                    <div className="text-xl font-black text-[#1e293b] leading-tight">{avgParts[0]}</div>
-                    <div className="text-xl font-black text-[#1e293b] leading-tight">{avgParts[1] || '00m'}</div>
+                    <div className="text-lg mm:text-xl font-black text-[#1e293b] leading-tight">{avgParts[0]}</div>
+                    <div className="text-lg mm:text-xl font-black text-[#1e293b] leading-tight">{avgParts[1] || '00m'}</div>
                 </div>
             </div>
             <div className="text-center">
-                <div className="text-[9px] font-bold text-[#8e78b0] leading-tight mb-2 uppercase tracking-wider">
+                <div className="text-[8px] mm:text-[9px] font-bold text-[#8e78b0] leading-tight mb-1 mm:mb-2 uppercase tracking-wider">
                     On Time<br />Arrival
                 </div>
-                <div className="text-3xl font-black text-[#1e293b] mt-1">{onTime}</div>
+                <div className="text-2xl mm:text-3xl font-black text-[#1e293b] mt-1">{onTime}</div>
             </div>
         </div>
     );

@@ -24,15 +24,26 @@ const ProtectedRoute = ({ isAuthenticated, children }) => {
 
 // Main Layout Component
 const Layout = ({ user, handleLogout }) => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-[#F5F7FA]">
+      {/* Overlay for mobile only */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-30 tab:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
       <Sidebar
         user={user}
         onLogout={handleLogout}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
-      <div className="flex-1 flex flex-col h-full min-w-0">
-        <Header user={user} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-3 relative">
+      <div className={`flex-1 flex flex-col h-full min-w-0 transition-all duration-300 ${isSidebarOpen ? 'tab:ml-[240px] lg:ml-0' : ''}`}>
+        <Header user={user} isSidebarOpen={isSidebarOpen} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <main className="flex-1 relative overflow-hidden">
           <Outlet />
         </main>
       </div>

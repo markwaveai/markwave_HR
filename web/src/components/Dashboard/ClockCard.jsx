@@ -8,15 +8,15 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
                 <span className="text-sm font-medium">Time Today - {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
             </div>
 
-            <div className="flex justify-between items-end">
+            <div className="flex justify-between items-end gap-2">
                 <div>
-                    <div className="text-[10px] font-bold tracking-widest mb-1 opacity-80">CURRENT TIME</div>
-                    <div className="flex items-baseline font-light">
-                        <span className="text-5xl">
+                    <div className="text-[10px] font-bold tracking-widest mb-1 opacity-80 uppercase">CURRENT TIME</div>
+                    <div className="flex items-baseline font-light whitespace-nowrap">
+                        <span className="text-3xl ms:text-4xl mm:text-5xl">
                             {currentTime.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit' }).split(' ')[0]}
                         </span>
-                        <span className="text-xl mx-0.5 opacity-80">:{currentTime.getSeconds().toString().padStart(2, '0')}</span>
-                        <span className="text-2xl ml-1 font-normal">{currentTime.getHours() >= 12 ? 'PM' : 'AM'}</span>
+                        <span className="text-lg mm:text-xl mx-0.5 opacity-80">:{currentTime.getSeconds().toString().padStart(2, '0')}</span>
+                        <span className="text-xl mm:text-2xl ml-1 font-normal">{currentTime.getHours() >= 12 ? 'PM' : 'AM'}</span>
                     </div>
                 </div>
 

@@ -27,9 +27,9 @@ const LeaveBalanceCard = ({ user }) => {
                 <CalendarIcon size={16} className="text-[#48327d]" />
             </div>
 
-            <div className="flex items-center gap-4 px-1 flex-grow justify-center mt-2">
-                <div className="flex flex-col items-center gap-1.5">
-                    <div className="relative w-11 h-11">
+            <div className="flex items-center gap-2 ms:gap-4 px-0.5 flex-grow justify-center mt-2">
+                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
+                    <div className="relative w-9 h-9 mm:w-11 mm:h-11">
                         <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
                             <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
                             <circle
@@ -50,8 +50,8 @@ const LeaveBalanceCard = ({ user }) => {
                 </div>
 
                 {/* Casual Leave Chart */}
-                <div className="flex flex-col items-center gap-1.5">
-                    <div className="relative w-11 h-11">
+                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
+                    <div className="relative w-9 h-9 mm:w-11 mm:h-11">
                         <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
                             <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
                             <circle
@@ -72,8 +72,8 @@ const LeaveBalanceCard = ({ user }) => {
                 </div>
 
                 {/* Sick Leave Chart */}
-                <div className="flex flex-col items-center gap-1.5">
-                    <div className="relative w-11 h-11">
+                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
+                    <div className="relative w-9 h-9 mm:w-11 mm:h-11">
                         <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
                             <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
                             <circle
@@ -93,8 +93,8 @@ const LeaveBalanceCard = ({ user }) => {
                     <span className="text-[8px] font-bold text-[#2d3436] whitespace-nowrap">Sick Leaves</span>
                 </div>
 
-                <div className="flex flex-col items-center gap-1.5">
-                    <div className="relative w-11 h-11">
+                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
+                    <div className="relative w-9 h-9 mm:w-11 mm:h-11">
                         <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
                             <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
                             <circle

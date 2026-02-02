@@ -206,7 +206,7 @@ const FeedSection = ({ user }) => {
             ) : (
                 <div className="space-y-4">
                     {posts.map(post => (
-                        <div key={post.id} className="bg-white rounded-2xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]">
+                        <div key={post.id} className="bg-white rounded-xl mm:rounded-2xl p-4 mm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="flex gap-3">
                                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm shadow-md">

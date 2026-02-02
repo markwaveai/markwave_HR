@@ -73,9 +73,9 @@ function MyTeam({ user }) {
 
 
     return (
-        <main className="flex-1 p-6 overflow-y-auto bg-[#f5f7fa] relative">
+        <div className="flex-1 p-3 mm:p-4 tab:p-6 overflow-y-auto bg-[#f5f7fa] relative">
             <div className="max-w-7xl mx-auto">
-                <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <header className="mb-6 flex flex-col tab:flex-row tab:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold text-[#2d3436]">My Team</h1>
                         <p className="text-sm text-[#636e72]">Manage and view your team members</p>
@@ -166,7 +166,7 @@ function MyTeam({ user }) {
                     </div>
                 </div>
             )}
-        </main>
+        </div>
     );
 }
 

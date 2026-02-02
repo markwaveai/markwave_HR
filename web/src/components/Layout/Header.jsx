@@ -1,6 +1,6 @@
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Menu } from 'lucide-react';
 
-function Header({ user }) {
+function Header({ user, isSidebarOpen, onMenuClick }) {
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Good Morning';
@@ -14,16 +14,24 @@ function Header({ user }) {
     };
 
     return (
-        <header className="bg-[#48327d] h-[44px] flex items-center justify-between px-5 text-white shrink-0 z-10">
-            <div className="flex items-center gap-4">
-                <div className="flex items-center bg-white rounded-full px-4 py-1 max-w-[200px] w-full gap-2 relative">
+        <header className="bg-[#48327d] h-[44px] flex items-center justify-between px-3 mm:px-5 text-white shrink-0 z-10">
+            <div className="flex items-center gap-2 mm:gap-4">
+                {!isSidebarOpen && (
+                    <button
+                        onClick={onMenuClick}
+                        className="lg:hidden p-1.5 hover:bg-white/10 rounded-lg transition-colors mr-1"
+                    >
+                        <Menu size={20} />
+                    </button>
+                )}
+                <div className="hidden mm:flex items-center bg-white rounded-full px-4 py-1 max-w-[200px] w-full gap-2 relative">
                     <Search size={14} className="text-[#636e72]" />
                     <input
                         type="text"
                         placeholder="Search..."
                         className="border-none bg-transparent w-full outline-none text-xs text-[#2d3436]"
                     />
-                    <span className="bg-[#f1f2f6] text-[#636e72] px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap">Alt + K</span>
+                    <span className="hidden ml:block bg-[#f1f2f6] text-[#636e72] px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap">Alt + K</span>
                 </div>
             </div>
 
