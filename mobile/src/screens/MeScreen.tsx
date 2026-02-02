@@ -27,11 +27,14 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
     const [logs, setLogs] = useState<any[]>([]);
     const [teamStats, setTeamStats] = useState<any>(null);
     const [clockStatus, setClockStatus] = useState<any>(null);
+    const [canClock, setCanClock] = useState(true);
+    const [disabledReason, setDisabledReason] = useState<string | null>(null);
     const [debugInfo, setDebugInfo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [filterType, setFilterType] = useState('30Days');
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [activeBreakLog, setActiveBreakLog] = useState<any>(null);
+    const [clockLoading, setClockLoading] = useState(false);
 
     const DAYS_ABBR = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -74,6 +77,8 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
             ]);
             setLogs(history);
             setClockStatus(status.status);
+            setCanClock(status.can_clock !== undefined ? status.can_clock : true);
+            setDisabledReason(status.disabled_reason);
             setDebugInfo(status.debug);
             setTeamStats(stats);
 
@@ -93,7 +98,6 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
         }
     };
 
-    const [clockLoading, setClockLoading] = useState(false);
 
     const handleClockAction = async () => {
         try {
@@ -171,6 +175,21 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
             console.log("Unexpected error:", err);
             setClockLoading(false);
         }
+    };
+
+    const getLeaveCode = (leaveType: string) => {
+        const map: Record<string, string> = {
+            'Sick Leave': 'SL',
+            'Casual Leave': 'CL',
+            'Earned Leave': 'EL',
+            'Privilege Leave': 'PL',
+            'Loss of Pay': 'LOP'
+        };
+        return map[leaveType] || leaveType?.substring(0, 2).toUpperCase();
+    };
+
+    const getLeaveLabel = (leaveType: string) => {
+        return leaveType || 'Leave';
     };
 
     const parseTime = (timeStr: string) => {
@@ -631,12 +650,19 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         </View>
                         <View style={styles.actionLinksSide}>
                             <TouchableOpacity
-                                style={[styles.actionLinkItem, clockLoading && { opacity: 0.6 }]}
+                                style={[styles.actionLinkItem, (clockLoading || !canClock) && { opacity: 0.6 }]}
                                 onPress={handleClockAction}
-                                disabled={clockLoading}
+                                disabled={clockLoading || !canClock}
                             >
-                                <Text style={styles.actionLinkIcon}>{clockStatus === 'IN' ? '⇠' : '➔'}</Text>
-                                <Text style={styles.actionLabel}>{clockStatus === 'IN' ? 'Web Clock-Out' : 'Web Clock-In'}</Text>
+                                <Text style={styles.actionLinkIcon}>
+                                    {!canClock && disabledReason === 'On Leave' ? '🏖️' :
+                                        !canClock && disabledReason === 'Holiday' ? '🎉' :
+                                            clockStatus === 'IN' ? '⇠' : '➔'}
+                                </Text>
+                                <Text style={styles.actionLabel}>
+                                    {!canClock ? (disabledReason || 'Disabled') :
+                                        clockStatus === 'IN' ? 'Web Clock-Out' : 'Web Clock-In'}
+                                </Text>
                                 {clockLoading && <ActivityIndicator size="small" color="#48327d" style={{ marginLeft: 8 }} />}
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.actionLinkItem}>
@@ -692,8 +718,9 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                                 const isHoliday = log.isHoliday;
                                 const isToday = log.date === toLocalDateString(new Date());
                                 const hasActivity = log.checkIn && log.checkIn !== '-';
-                                const isLeave = !isWeekend && !isHoliday && !isToday && !hasActivity;
-                                const isOffRow = isWeekend || isHoliday || isLeave;
+                                const isApprovedLeave = !!log.leaveType;
+                                const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActivity && !isApprovedLeave;
+                                const isOffRow = isWeekend || isHoliday || isAbsent || isApprovedLeave;
 
                                 return (
                                     <View key={index} style={[styles.tableRow, isOffRow && styles.rowOff]}>
@@ -702,18 +729,24 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                                                 {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
                                             </Text>
                                             {isOffRow && (
-                                                <Text style={styles.offBadge}>
-                                                    {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : 'ABSENT'}
+                                                <Text style={[styles.offBadge, isAbsent && { backgroundColor: '#fef2f2', color: '#ef4444' }]}>
+                                                    {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (getLeaveCode(log.leaveType) || 'LEAVE') : 'ABSENT'}
                                                 </Text>
                                             )}
                                         </View>
 
                                         {isOffRow ? (
-                                            <View style={[styles.cell, { flex: 1, paddingLeft: 20 }]}>
-                                                <Text style={styles.offFullText}>
-                                                    {isHoliday ? 'Full day Holiday' : isWeekend ? 'Full day Weekly-off' : 'Absent'}
-                                                </Text>
-                                            </View>
+                                            <>
+                                                <View style={{ width: COL_WIDTHS.visual }} />
+                                                <View style={{ width: COL_WIDTHS.inOut }} />
+                                                <View style={{ width: COL_WIDTHS.breaks }} />
+                                                <View style={{ width: COL_WIDTHS.inOut }} />
+                                                <View style={[styles.cell, { flex: 1, paddingLeft: 12 }]}>
+                                                    <Text style={[styles.offFullText, { textAlign: 'left' }]}>
+                                                        {isHoliday ? 'Full day Holiday' : isWeekend ? 'Full day Weekly-off' : isApprovedLeave ? `Full Day ${getLeaveLabel(log.leaveType)}` : 'Absent'}
+                                                    </Text>
+                                                </View>
+                                            </>
                                         ) : (
                                             <>
                                                 <View style={[styles.cell, { width: COL_WIDTHS.visual }]}>
@@ -761,9 +794,9 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                             })}
                         </View>
                     </ScrollView>
-                </View>
-            </ScrollView>
-        </SafeAreaView>
+                </View >
+            </ScrollView >
+        </SafeAreaView >
     );
 };
 
@@ -846,11 +879,11 @@ const styles = StyleSheet.create({
     tableHead: { flexDirection: 'row', backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 14 },
     headCell: { fontSize: 9, fontWeight: '900', color: '#94a3b8', textAlign: 'center', letterSpacing: 0.5 },
     tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 14, alignItems: 'center' },
-    rowOff: { backgroundColor: '#fcfcfc' },
+    rowOff: { backgroundColor: '#f5f5f5' },
     cell: { paddingHorizontal: 12, justifyContent: 'center' },
     dateText: { fontSize: 12, fontWeight: '800', color: '#334155', textAlign: 'center' },
-    offBadge: { fontSize: 8, fontWeight: 'bold', color: '#6366f1', backgroundColor: '#eff6ff', alignSelf: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
-    offFullText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+    offBadge: { fontSize: 8, fontWeight: 'bold', color: '#48327d', backgroundColor: '#d1d5db', alignSelf: 'center', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
+    offFullText: { fontSize: 12, color: '#334155', fontWeight: '600' },
     timeText: { fontSize: 11, fontWeight: '600', color: '#334155', textAlign: 'center' },
     breakItemContainer: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     infoSquare: { width: 18, height: 18, backgroundColor: '#98a5b2', borderRadius: 3, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.2, shadowRadius: 1, elevation: 2 },

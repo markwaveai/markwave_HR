@@ -43,6 +43,7 @@ const HomeScreen = ({ user }: { user: any }) => {
     const [newComment, setNewComment] = useState('');
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [leaveBalance, setLeaveBalance] = useState<any>(null); // Added state for leave balance
+    const [disabledReason, setDisabledReason] = useState<string | null>(null); // Added state for leave/weekend status
 
     const isAdmin = user?.role === 'Admin';
 
@@ -61,6 +62,7 @@ const HomeScreen = ({ user }: { user: any }) => {
             ]);
 
             setIsClockedIn(statusData.status === 'IN');
+            setDisabledReason(statusData.disabled_reason || null);
             setPersonalStats(statsData);
             setPosts(postsData || []); // Ensure posts is always an array
             setLeaveBalance(balanceData);
@@ -277,6 +279,11 @@ const HomeScreen = ({ user }: { user: any }) => {
                     <Text style={styles.dateText}>
                         Time Today - {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}
                     </Text>
+                    {disabledReason && (
+                        <View style={styles.leaveBadge}>
+                            <Text style={styles.leaveBadgeText}>{disabledReason.toUpperCase()}</Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.clockBody}>
@@ -292,9 +299,9 @@ const HomeScreen = ({ user }: { user: any }) => {
                     </View>
 
                     <TouchableOpacity
-                        style={styles.webClockBtn}
+                        style={[styles.webClockBtn, (disabledReason || isLoadingLocation) && styles.webClockBtnDisabled]}
                         onPress={handleClockAction}
-                        disabled={isLoadingLocation}
+                        disabled={!!disabledReason || isLoadingLocation}
                     >
                         <Text style={styles.webClockBtnText}>
                             {isLoadingLocation ? 'Locating...' : (isClockedIn ? 'Web Clock-Out' : 'Web Clock-In')}
@@ -303,6 +310,7 @@ const HomeScreen = ({ user }: { user: any }) => {
                 </View>
                 {locationState && <Text style={styles.locationText}>📍 {locationState}</Text>}
             </View>
+
 
 
 
@@ -638,8 +646,23 @@ const styles = StyleSheet.create({
         elevation: 5,
     },
     clockHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
         marginBottom: 16,
         opacity: 0.9,
+    },
+    leaveBadge: {
+        backgroundColor: 'white',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    leaveBadgeText: {
+        color: '#8e78b0',
+        fontSize: 10,
+        fontWeight: 'bold',
+        letterSpacing: 0.5,
     },
     dateText: {
         color: 'white',
@@ -688,6 +711,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
+    },
+    webClockBtnDisabled: {
+        opacity: 0.5,
     },
     webClockBtnText: {
         color: '#8e78b0',

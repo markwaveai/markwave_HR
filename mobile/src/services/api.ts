@@ -39,7 +39,12 @@ export const authApi = {
     verifyEmailOTP: (email: string, otp: string) => apiFetch('/auth/verify-email-otp/', {
         method: 'POST',
         body: JSON.stringify({ email, otp })
-    })
+    }),
+    login: (phone: string, pin: string) => apiFetch('/auth/login/', {
+        method: 'POST',
+        body: JSON.stringify({ phone, password: pin })
+    }),
+    getProfile: (employeeId: string) => apiFetch(`/auth/profile/${employeeId}/`)
 };
 
 export const leaveApi = {

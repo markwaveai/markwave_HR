@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { leaveApi } from '../services/api';
+import { leaveApi, authApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 
 const LeaveScreen = ({ user }: { user: any }) => {
@@ -24,7 +24,10 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
     const [reason, setReason] = useState('');
-    const [session, setSession] = useState('Full Day'); // New State
+    const [fromSession, setFromSession] = useState('Full Day');
+    const [toSession, setToSession] = useState('Full Day');
+    const [notifyTo, setNotifyTo] = useState<string[]>([]);
+    const [profile, setProfile] = useState<any>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const EMPLOYEE_ID = user?.id; // Dynamic ID from prop
@@ -43,7 +46,10 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
     useEffect(() => {
         fetchLeaves();
-    }, []);
+        if (EMPLOYEE_ID) {
+            authApi.getProfile(EMPLOYEE_ID).then(p => setProfile(p)).catch(console.log);
+        }
+    }, [EMPLOYEE_ID]);
 
     useEffect(() => {
         calculateBalances();
@@ -77,8 +83,8 @@ const LeaveScreen = ({ user }: { user: any }) => {
     };
 
     const handleApply = async () => {
-        if (!fromDate || !toDate || !reason) {
-            Alert.alert("Validation", "Please fill all fields");
+        if (!fromDate || !reason || notifyTo.length === 0) {
+            Alert.alert("Validation", "Please fill all required fields (Dates, Reason, Notify To)");
             return;
         }
 
@@ -87,23 +93,39 @@ const LeaveScreen = ({ user }: { user: any }) => {
             return;
         }
 
+        const effectiveToDate = toDate || fromDate;
+        const start = new Date(fromDate);
+        const end = new Date(effectiveToDate);
+
+        if (end < start) {
+            Alert.alert("Error", "To Date cannot be earlier than From Date.");
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            const diff = new Date(toDate).getTime() - new Date(fromDate).getTime();
-            // diff is 0 for single day (same dates), +1 makes it 1 day.
+            const diff = end.getTime() - start.getTime();
             let days = Math.ceil(diff / (1000 * 3600 * 24)) + 1;
 
-            // Basic logic: if Half Day, maybe reduce days? 
-            // Web App doesn't seem to use it for calculation yet, but we'll send a note or keep generic.
-            // For now, mirroring Web's behavior which just sends days.
+            if (fromDate === effectiveToDate) {
+                // Single day logic
+                if (fromSession !== 'Full Day') {
+                    days = 0.5;
+                }
+            } else {
+                // Multi-day logic
+                if (fromSession !== 'Full Day') days -= 0.5;
+                if (toSession !== 'Full Day') days -= 0.5;
+            }
 
             await leaveApi.apply({
                 employeeId: EMPLOYEE_ID,
                 type: leaveType,
                 fromDate,
-                toDate,
-                days: days > 0 ? days : 1,
-                reason,
+                toDate: effectiveToDate,
+                days: days > 0 ? days : 0.5,
+                reason: reason.trim(),
+                notifyTo: notifyTo.join(', '),
                 created_at: new Date().toISOString()
             });
             Alert.alert("Success", "Leave applied successfully");
@@ -111,7 +133,9 @@ const LeaveScreen = ({ user }: { user: any }) => {
             setReason('');
             setFromDate('');
             setToDate('');
-            setSession('Full Day');
+            setFromSession('Full Day');
+            setToSession('Full Day');
+            setNotifyTo([]);
             fetchLeaves();
         } catch (error) {
             const msg = error instanceof Error ? error.message : "Failed to apply leave";
@@ -292,20 +316,49 @@ const LeaveScreen = ({ user }: { user: any }) => {
                             </View>
 
                             {/* Session Buttons */}
-                            <Text style={styles.inputLabel}>SESSION *</Text>
-                            <View style={styles.sessionRow}>
-                                {['Full Day', 'First Half', 'Second Half'].map(s => (
-                                    <TouchableOpacity
-                                        key={s}
-                                        style={[styles.sessionBtn, session === s && styles.sessionBtnActive]}
-                                        onPress={() => setSession(s)}
-                                    >
-                                        <Text style={[styles.sessionBtnText, session === s && styles.sessionBtnTextActive]}>
-                                            {s}
-                                        </Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
+                            {(fromDate && (!toDate || fromDate === toDate)) ? (
+                                <>
+                                    <Text style={styles.inputLabel}>SESSION *</Text>
+                                    <View style={styles.sessionRow}>
+                                        {['Full Day', 'First Half', 'Second Half'].map(s => (
+                                            <TouchableOpacity
+                                                key={s}
+                                                style={[styles.sessionBtn, fromSession === s && styles.sessionBtnActive]}
+                                                onPress={() => { setFromSession(s); setToSession(s); }}
+                                            >
+                                                <Text style={[styles.sessionBtnText, fromSession === s && styles.sessionBtnTextActive]}>{s}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            ) : (
+                                <>
+                                    <Text style={styles.inputLabel}>START DATE SESSION *</Text>
+                                    <View style={styles.sessionRow}>
+                                        {['Full Day', 'First Half', 'Second Half'].map(s => (
+                                            <TouchableOpacity
+                                                key={s}
+                                                style={[styles.sessionBtn, fromSession === s && styles.sessionBtnActive]}
+                                                onPress={() => setFromSession(s)}
+                                            >
+                                                <Text style={[styles.sessionBtnText, fromSession === s && styles.sessionBtnTextActive]}>{s}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                    <Text style={styles.inputLabel}>END DATE SESSION *</Text>
+                                    <View style={styles.sessionRow}>
+                                        {['Full Day', 'First Half', 'Second Half'].map(s => (
+                                            <TouchableOpacity
+                                                key={s}
+                                                style={[styles.sessionBtn, toSession === s && styles.sessionBtnActive]}
+                                                onPress={() => setToSession(s)}
+                                            >
+                                                <Text style={[styles.sessionBtnText, toSession === s && styles.sessionBtnTextActive]}>{s}</Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </>
+                            )}
 
                             {/* Reason */}
                             <Text style={styles.inputLabel}>REASON FOR LEAVE *</Text>
@@ -316,6 +369,33 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                 placeholder="Briefly describe the reason..."
                                 multiline
                             />
+
+                            {/* Notify To */}
+                            <Text style={styles.inputLabel}>NOTIFY TO *</Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8, padding: 8, backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8 }}>
+                                {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: 12 }}>Select notification recipients...</Text>}
+                                {notifyTo.map(p => (
+                                    <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4 }}>
+                                        <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>{p}</Text>
+                                        <Text style={{ color: 'white', fontSize: 10 }}>✕</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                {[
+                                    user?.team_lead_name || profile?.team_lead_name || 'Team Lead',
+                                    profile?.project_manager_name,
+                                    profile?.advisor_name
+                                ].filter(name => name && !notifyTo.includes(name)).map(name => (
+                                    <TouchableOpacity
+                                        key={name}
+                                        onPress={() => setNotifyTo([...notifyTo, name])}
+                                        style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
+                                    >
+                                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
 
                             <TouchableOpacity
                                 onPress={handleApply}

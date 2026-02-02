@@ -121,6 +121,14 @@ def get_status(request, employee_id):
         now = datetime.utcnow() + timedelta(hours=5, minutes=30)
         current_date_str = now.strftime('%Y-%m-%d')
         
+        # Check for holiday first (highest priority)
+        attendance_record = Attendance.objects.filter(
+            employee=employee,
+            date=current_date_str
+        ).first()
+        
+        is_holiday = attendance_record and attendance_record.is_holiday
+        
         # Check for approved leave
         is_on_leave = Leaves.objects.filter(
             employee=employee,
@@ -131,12 +139,26 @@ def get_status(request, employee_id):
 
         is_weekend = now.weekday() >= 5  # 5=Saturday, 6=Sunday
         
-        can_clock = not (is_on_leave or is_weekend)
+        can_clock = not (is_on_leave or is_weekend or is_holiday)
         disabled_reason = None
-        if is_on_leave:
+        
+        if is_holiday:
+            disabled_reason = 'Holiday'
+        elif is_on_leave:
             disabled_reason = 'On Leave'
         elif is_weekend:
             disabled_reason = 'Week Off'
+        else:
+            # Check for absent status (no activity after 11 AM on working day)
+            has_activity = AttendanceLogs.objects.filter(
+                employee=employee,
+                date=current_date_str
+            ).exists()
+            
+            current_hour = now.hour
+            if not has_activity and current_hour >= 11:
+                disabled_reason = 'Absent'
+                can_clock = True  # Still allow clocking in even if marked absent
 
         last_log = AttendanceLogs.objects.filter(employee=employee).order_by('-timestamp').first()
         summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
@@ -159,6 +181,7 @@ def get_status(request, employee_id):
     except Exception as e:
         import traceback
         return Response({'error': str(e), 'traceback': traceback.format_exc()}, status=500)
+
 
 @api_view(['GET'])
 def get_personal_stats(request, employee_id):

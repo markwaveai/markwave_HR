@@ -46,7 +46,6 @@ const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, icon })
 );
 
 function App() {
-  console.log("Markwave App Mounting - Force Update");
   const [activeTab, setActiveTab] = useState('Home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -71,9 +70,8 @@ function App() {
   };
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
-      <View style={{ position: 'absolute', top: 50, left: 10, zIndex: 9999 }}><Text style={{ color: 'red', fontSize: 10 }}>System Online</Text></View>
 
       {!isLoggedIn ? (
         <LoginScreen onLogin={(userData) => { setIsLoggedIn(true); setUser(userData); }} />
@@ -141,7 +139,6 @@ function App() {
               isActive={activeTab === 'Home'}
               onPress={() => setActiveTab('Home')}
             />
-            {/* Employee Only Tabs */}
             {/* Common Tabs for Employee & Admin */}
             <TabButton
               title="Me"
