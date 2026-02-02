@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.http import HttpResponse
 from core.models import Leaves, Employees
 from .serializers import LeavesSerializer
 from django.db.models import Q, Sum
@@ -57,15 +58,16 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
             }
             leave_name = leave_display_names.get(leave_type, leave_type.upper())
             
-            # Action Links - auto-detect environment
+            # Action Links - prioritize environment variable, fallback to auto-detection
             import os
-            django_env = os.getenv('DJANGO_ENV', 'development')
+            base_url = os.getenv('BASE_URL')
             
-            # Use production URL if not in development, otherwise use localhost
-            if django_env == 'production':
-                base_url = 'https://hr.markwave.ai'
-            else:
-                base_url = 'http://localhost:8000'
+            if not base_url:
+                django_env = os.getenv('DJANGO_ENV', 'development')
+                if django_env == 'production':
+                    base_url = 'https://hr.markwave.ai'
+                else:
+                    base_url = 'http://localhost:8000'
             
             approve_url = f"{base_url}/api/leaves/email-action/{leave_request.id}/approve/"
             reject_url = f"{base_url}/api/leaves/email-action/{leave_request.id}/reject/"
@@ -208,16 +210,26 @@ def email_leave_action(request, request_id, action):
     try:
         leave_request = Leaves.objects.get(pk=request_id)
         if leave_request.status != 'Pending':
-            return Response("<html><body><h2 style='text-align:center;margin-top:50px;'>This request has already been processed.</h2></body></html>", content_type="text/html")
+            return HttpResponse(f"""
+                <div style="font-family: sans-serif; text-align: center; padding-top: 100px;">
+                    <div style="font-size: 60px; margin-bottom: 20px;">ℹ️</div>
+                    <h2 style="color: #334155;">Request Already Processed</h2>
+                    <p style="color: #64748b;">This leave request has already been marked as <strong>{leave_request.status}</strong>.</p>
+                </div>
+            """, content_type="text/html")
         
         if action == 'approve':
             leave_request.status = 'Approved'
             status_text = "Approved"
+            color = "#10b981"
+            icon = "✓"
         elif action == 'reject':
             leave_request.status = 'Rejected'
             status_text = "Rejected"
+            color = "#ef4444"
+            icon = "✕"
         else:
-            return Response("<html><body><h2>Invalid action.</h2></body></html>", content_type="text/html")
+            return HttpResponse("<h2>Invalid action.</h2>", content_type="text/html")
             
         leave_request.save()
         
@@ -225,7 +237,9 @@ def email_leave_action(request, request_id, action):
         <!DOCTYPE html>
         <html>
             <head>
+                <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Leave {status_text}</title>
                 <style>
                     body {{
                         margin: 0;
@@ -233,52 +247,78 @@ def email_leave_action(request, request_id, action):
                         display: flex;
                         justify-content: center;
                         align-items: center;
-                        height: 100vh;
-                        background: {'#10b981' if action == 'approve' else '#ef4444'};
-                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+                        min-height: 100vh;
+                        background-color: #f8fafc;
+                        font-family: 'Inter', -apple-system, system-ui, sans-serif;
                     }}
-                    .message {{
+                    .card {{
+                        background: white;
+                        padding: 40px;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
                         text-align: center;
+                        max-width: 400px;
+                        width: 90%;
+                        animation: slideUp 0.5s ease-out;
+                    }}
+                    @keyframes slideUp {{
+                        from {{ transform: translateY(20px); opacity: 0; }}
+                        to {{ transform: translateY(0); opacity: 1; }}
+                    }}
+                    .icon-circle {{
+                        width: 80px;
+                        height: 80px;
+                        background-color: {color};
                         color: white;
+                        border-radius: 50%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        font-size: 40px;
+                        margin: 0 auto 24px;
                     }}
-                    .icon {{
-                        font-size: 64px;
-                        margin-bottom: 10px;
-                    }}
-                    .text {{
+                    h1 {{
+                        color: #1e293b;
+                        margin: 0 0 8px;
                         font-size: 24px;
-                        font-weight: bold;
-                        margin-bottom: 5px;
+                        font-weight: 800;
                     }}
-                    .subtext {{
-                        font-size: 14px;
-                        opacity: 0.9;
+                    p {{
+                        color: #64748b;
+                        margin: 0;
+                        font-size: 16px;
+                    }}
+                    .footer {{
+                        margin-top: 32px;
+                        padding-top: 24px;
+                        border-top: 1px solid #f1f5f9;
+                        font-size: 12px;
+                        color: #94a3b8;
                     }}
                 </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="icon-circle">{icon}</div>
+                    <h1>Leave {status_text}</h1>
+                    <p>The leave request has been successfully updated.</p>
+                    <div class="footer">
+                        You can close this window now.
+                    </div>
+                </div>
                 <script>
                     setTimeout(function() {{
                         window.close();
-                        // Fallback: redirect to a blank page if close doesn't work
-                        setTimeout(function() {{
-                            window.location.href = 'about:blank';
-                        }}, 100);
-                    }}, 1000);
+                    }}, 3000);
                 </script>
-            </head>
-            <body>
-                <div class="message">
-                    <div class="icon">{'✓' if action == 'approve' else '✗'}</div>
-                    <div class="text">{status_text}</div>
-                    <div class="subtext">Closing...</div>
-                </div>
             </body>
         </html>
         """
-        return Response(html_response, content_type="text/html")
+        return HttpResponse(html_response, content_type="text/html")
     except Leaves.DoesNotExist:
-        return Response("<html><body><h2 style='text-align:center;margin-top:50px;'>Leave request not found.</h2></body></html>", content_type="text/html")
+        return HttpResponse("<h2>Leave request not found.</h2>", content_type="text/html")
     except Exception as e:
-        return Response(f"<html><body><h2>Error: {str(e)}</h2></body></html>", content_type="text/html")
+        return HttpResponse(f"<h2>Error: {str(e)}</h2>", content_type="text/html")
 
 @api_view(['GET'])
 def get_pending_leaves(request):
