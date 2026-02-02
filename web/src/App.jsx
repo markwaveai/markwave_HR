@@ -43,7 +43,7 @@ const Layout = ({ user, handleLogout }) => {
       />
       <div className={`flex-1 flex flex-col h-full min-w-0 transition-all duration-300 ${isSidebarOpen ? 'tab:ml-[240px] lg:ml-0' : ''}`}>
         <Header user={user} isSidebarOpen={isSidebarOpen} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
-        <main className="flex-1 relative overflow-hidden">
+        <main className="flex-1 relative overflow-y-auto">
           <Outlet />
         </main>
       </div>

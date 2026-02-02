@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 import { Bell, Search, Menu } from 'lucide-react';
-=======
-import { Search } from 'lucide-react';
->>>>>>> Stashed changes
 
 function Header({ user, isSidebarOpen, onMenuClick }) {
     const getGreeting = () => {
@@ -18,7 +14,7 @@ function Header({ user, isSidebarOpen, onMenuClick }) {
     };
 
     return (
-        <header className="bg-[#48327d] h-[44px] flex items-center justify-between px-3 mm:px-5 text-white shrink-0 z-10">
+        <header className="bg-[#48327d] h-[44px] flex items-center justify-between px-8 text-white shrink-0 z-10">
             <div className="flex items-center gap-2 mm:gap-4">
                 {!isSidebarOpen && (
                     <button
@@ -28,7 +24,7 @@ function Header({ user, isSidebarOpen, onMenuClick }) {
                         <Menu size={20} />
                     </button>
                 )}
-                <div className="hidden mm:flex items-center bg-white rounded-full px-4 py-1 max-w-[200px] w-full gap-2 relative">
+                <div className="flex items-center bg-white rounded-full px-4 py-1 max-w-[200px] w-full gap-2 relative">
                     <Search size={14} className="text-[#636e72]" />
                     <input
                         type="text"

@@ -410,10 +410,10 @@ const Me = ({ user }) => {
     };
 
     return (
-        <div className="p-3 mm:p-4 tab:p-6 space-y-6 tab:space-y-8 bg-[#f8fafc] min-h-screen">
+        <div className="flex-1 p-8 space-y-10 bg-[#f8fafc]">
             <div>
-                <h2 className="text-lg font-semibold text-[#2d3436] mb-4">Attendance Stats</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <h1 className="text-3xl font-black text-[#1e293b] tracking-tight mb-6">Attendance Stats</h1>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                     <AttendanceStats meStats={meStats} teamStats={teamStats} />
 
                     <TimingCard
@@ -436,7 +436,7 @@ const Me = ({ user }) => {
             </div>
 
             <div>
-                <h2 className="text-lg font-semibold text-[#2d3436] mb-4">Logs & Requests</h2>
+                <h1 className="text-3xl font-black text-[#1e293b] tracking-tight mb-6">Logs & Requests</h1>
                 <AttendanceLog
                     filterType={filterType}
                     setFilterType={setFilterType}

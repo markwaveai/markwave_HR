@@ -69,7 +69,7 @@ const AdminLeaveManagement = () => {
     };
 
     return (
-        <div className="flex-1 p-3 mm:p-4 tab:p-6 overflow-y-auto bg-[#f5f7fa]">
+        <div className="flex-1 p-3 mm:p-4 tab:p-6 bg-[#f5f7fa]">
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-[#2d3436]">Leave Management</h1>
                 <p className="text-sm text-[#636e72] mt-1">Review and manage employee leave requests</p>
@@ -175,9 +175,6 @@ const AdminLeaveManagement = () => {
                     onClose={() => setToast(null)}
                 />
             )}
-<<<<<<< Updated upstream
-        </div>
-=======
 
             <ConfirmDialog
                 isOpen={dialogConfig.isOpen}
@@ -188,8 +185,7 @@ const AdminLeaveManagement = () => {
                 confirmText={dialogConfig.action}
                 type={dialogConfig.action === 'Reject' ? 'danger' : 'primary'}
             />
-        </main>
->>>>>>> Stashed changes
+        </div>
     );
 };
 
