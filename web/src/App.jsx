@@ -79,9 +79,15 @@ function App() {
       if (isAuthenticated && user?.id) {
         try {
           const profileData = await authApi.getProfile(user.id);
-          // Only update if something changed
-          if (JSON.stringify(profileData) !== JSON.stringify(user)) {
-            const updatedUser = { ...user, ...profileData };
+          // Update state and localStorage with fresh server data
+          const updatedUser = { ...user, ...profileData };
+
+          // Check if we actually need to update to avoid infinite loops or unnecessary renders
+          // We specifically check for is_admin to ensure permissions are up to date
+          if (user.is_admin !== profileData.is_admin ||
+            user.role !== profileData.role ||
+            JSON.stringify(updatedUser) !== JSON.stringify(user)) {
+
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
           }

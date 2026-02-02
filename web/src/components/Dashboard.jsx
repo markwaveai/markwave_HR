@@ -11,6 +11,8 @@ import { attendanceApi, adminApi } from '../services/api';
 
 function Dashboard({ user }) {
     const [isClockedIn, setIsClockedIn] = useState(null); // Null for loading state
+    const [canClock, setCanClock] = useState(true);
+    const [disabledReason, setDisabledReason] = useState(null);
     const [personalStats, setPersonalStats] = useState(null);
     const [locationState, setLocationState] = useState(null);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
@@ -19,6 +21,7 @@ function Dashboard({ user }) {
     const [showCalendar, setShowCalendar] = useState(false);
     const [dashboardStats, setDashboardStats] = useState(null);
     const [showAbsentees, setShowAbsentees] = useState(false);
+    const [timeOffset, setTimeOffset] = useState(0);
 
     const holidays = [
         { name: 'BHOGI', date: 'Wed, 14 January, 2026', type: 'Floater Leave' },
@@ -30,15 +33,27 @@ function Dashboard({ user }) {
 
     // Update time every second
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timer = setInterval(() => {
+            setCurrentTime(new Date(Date.now() + timeOffset));
+        }, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [timeOffset]);
 
     // Initial Status and Stats Fetch
     const fetchData = async () => {
         try {
             const statusData = await attendanceApi.getStatus(EMPLOYEE_ID);
             setIsClockedIn(statusData.status === 'IN');
+            setCanClock(statusData.can_clock !== false); // Default true if undefined
+            setDisabledReason(statusData.disabled_reason);
+
+            // Sync time with server
+            if (statusData.server_time) {
+                const serverTime = new Date(statusData.server_time).getTime();
+                const deviceTime = Date.now();
+                setTimeOffset(serverTime - deviceTime);
+                setCurrentTime(new Date(serverTime));
+            }
 
             const statsData = await attendanceApi.getPersonalStats(EMPLOYEE_ID);
             setPersonalStats(statsData);
@@ -78,39 +93,26 @@ function Dashboard({ user }) {
         const processSuccess = async (position) => {
             try {
                 const { latitude, longitude } = position.coords;
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-                const data = await response.json();
+                const coordsStr = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                let finalLocation = coordsStr;
 
-                const addr = data.address;
-                const buildingTags = [
-                    addr.building, addr.commercial, addr.office, addr.amenity,
-                    addr.house_name, addr.office, addr.landmark, addr.tourism,
-                    addr.shop, addr.retail, addr.university, addr.hospital,
-                    addr.hotel, addr.industrial, addr.theatre, addr.place_of_worship
-                ];
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        const addr = data.address;
+                        const parts = [
+                            addr.office || addr.amenity || addr.building || addr.shop || addr.industrial,
+                            addr.neighbourhood || addr.suburb || addr.road,
+                            addr.city || addr.town || addr.village
+                        ].filter(Boolean);
 
-                let buildingName = buildingTags.find(Boolean) || '';
-                if (!buildingName && data.display_name) {
-                    const primaryName = data.display_name.split(',')[0].trim();
-                    const road = addr.road || addr.pedestrian || '';
-                    if (primaryName && road && !road.includes(primaryName) && !primaryName.includes(road)) {
-                        buildingName = primaryName;
+                        const name = parts.length > 0 ? parts.join(', ') : data.display_name.split(',').slice(0, 3).join(', ');
+                        finalLocation = `${name} (${coordsStr})`;
                     }
+                } catch (e) {
+                    console.error("Error fetching location name:", e);
                 }
-
-                const mainLocation = addr.house_number || '';
-                const roadDetail = addr.road || addr.pedestrian || '';
-                const areaDetail = addr.neighbourhood || addr.suburb || addr.city_district || '';
-                const cityDetail = addr.city || addr.town || addr.village || '';
-
-                const displayAddr = [
-                    buildingName,
-                    [mainLocation, roadDetail].filter(Boolean).join(' '),
-                    areaDetail,
-                    cityDetail
-                ].filter(Boolean).join(', ');
-
-                const finalLocation = displayAddr || data.display_name.split(',').slice(0, 3).join(',') || "Location Found";
 
                 // Call Backend API
                 try {
@@ -127,7 +129,8 @@ function Dashboard({ user }) {
 
                 } catch (apiError) {
                     console.error("API Error:", apiError);
-                    alert("Failed to update clock status. Please try again.");
+                    const msg = apiError.response?.data?.error || "Failed to update clock status. Please try again.";
+                    alert(msg);
                 }
 
                 // Clear location after 5 seconds
@@ -147,7 +150,8 @@ function Dashboard({ user }) {
                     setIsClockedIn(nextType === 'IN');
                     setLocationState(fallbackLoc);
                 } catch (e) {
-                    alert("Failed to clock action.");
+                    const msg = e.response?.data?.error || "Failed to clock action.";
+                    alert(msg);
                 }
                 setTimeout(() => setLocationState(null), 5000);
             } finally {
@@ -207,6 +211,8 @@ function Dashboard({ user }) {
                         isLoadingLocation={isLoadingLocation}
                         locationState={locationState}
                         handleClockAction={handleClockAction}
+                        canClock={canClock}
+                        disabledReason={disabledReason}
                     />
 
                     <EmployeeStatsCard

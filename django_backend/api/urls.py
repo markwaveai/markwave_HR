@@ -25,6 +25,7 @@ urlpatterns = [
     path('leaves/balance/<str:employee_id>/', leave_views.get_leave_balance, name='get-leave-balance'),
     path('leaves/<str:employee_id>/', leave_views.get_leaves, name='get-leaves'),
     path('leaves/<int:request_id>/action/', leave_views.leave_action, name='leave-action'),
+    path('leaves/email-action/<int:request_id>/<str:action>/', leave_views.email_leave_action, name='email-leave-action'),
     
     # Attendance
     path('attendance/clock/', attendance_views.clock, name='clock'),

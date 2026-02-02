@@ -8,13 +8,34 @@ import { useMemo } from 'react';
 
 const Me = ({ user }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [timeOffset, setTimeOffset] = useState(0);
     const [attendanceLogs, setAttendanceLogs] = useState([]);
     const EMPLOYEE_ID = user?.id;
 
     useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+        const timer = setInterval(() => {
+            setCurrentTime(new Date(Date.now() + timeOffset));
+        }, 1000);
         return () => clearInterval(timer);
-    }, []);
+    }, [timeOffset]);
+
+    useEffect(() => {
+        const syncTime = async () => {
+            if (!EMPLOYEE_ID) return;
+            try {
+                const statusData = await attendanceApi.getStatus(EMPLOYEE_ID);
+                if (statusData.server_time) {
+                    const serverTime = new Date(statusData.server_time).getTime();
+                    const deviceTime = Date.now();
+                    setTimeOffset(serverTime - deviceTime);
+                    setCurrentTime(new Date(serverTime));
+                }
+            } catch (err) {
+                console.error("Time sync failed:", err);
+            }
+        };
+        syncTime();
+    }, [EMPLOYEE_ID]);
 
     useEffect(() => {
         fetchHistory();
@@ -347,6 +368,47 @@ const Me = ({ user }) => {
 
     const displayedLogs = getFilteredLogs();
 
+    const handleClockUpdate = (data) => {
+        // Optimistic update
+        if (data && data.summary) {
+            setAttendanceLogs(prevLogs => {
+                const logs = [...prevLogs];
+                const todayStr = getLocalSelectedDateStr(new Date());
+                const logIndex = logs.findIndex(l => l.date === todayStr);
+
+                if (logIndex !== -1) {
+                    const updatedLog = { ...logs[logIndex] };
+                    updatedLog.checkIn = data.summary.check_in || updatedLog.checkIn;
+                    updatedLog.checkOut = data.summary.check_out || updatedLog.checkOut;
+                    updatedLog.breakMinutes = data.summary.break_minutes || updatedLog.breakMinutes;
+
+                    // Update logs array for visual bar
+                    if (data.type && data.time) {
+                        const newLogs = [...(updatedLog.logs || [])];
+                        if (data.type === 'IN') {
+                            newLogs.push({ in: data.time, out: null });
+                        } else if (data.type === 'OUT' && newLogs.length > 0) {
+                            const lastLog = { ...newLogs[newLogs.length - 1] };
+                            if (!lastLog.out) {
+                                lastLog.out = data.time;
+                                newLogs[newLogs.length - 1] = lastLog;
+                            }
+                        }
+                        updatedLog.logs = newLogs;
+                    }
+
+                    logs[logIndex] = updatedLog;
+                } else {
+                    // unexpected: today not found, wait for fetch
+                }
+                return logs;
+            });
+        }
+
+        // Fetch source of truth
+        fetchHistory();
+    };
+
     return (
         <div className="p-3 mm:p-4 tab:p-6 space-y-6 tab:space-y-8 bg-[#f8fafc] min-h-screen">
             <div>
@@ -366,7 +428,7 @@ const Me = ({ user }) => {
                         currentTime={currentTime}
                         formatTime={formatTime}
                         formatDate={formatDate}
-                        onClockAction={fetchHistory}
+                        onClockAction={handleClockUpdate}
                         employeeId={EMPLOYEE_ID}
                         displayId={user?.employee_id}
                     />

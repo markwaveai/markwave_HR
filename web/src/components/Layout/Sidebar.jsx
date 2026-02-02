@@ -14,7 +14,12 @@ import {
 function Sidebar({ user, onLogout, isOpen, onClose }) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    const isAdmin = user?.role === 'Admin' || user?.role === 'Administrator' || user?.first_name === 'Admin';
+    // Check is_admin flag primarily, with role fallbacks for robustness
+    const isAdmin = user?.is_admin === true ||
+        user?.role === 'Admin' ||
+        user?.role === 'Administrator' ||
+        user?.role === 'Project Manager' ||
+        user?.role === 'Advisor-Technology & Operations';
 
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['All'] },

@@ -21,15 +21,15 @@ function LeaveAttendance({ user }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [notifyTo, setNotifyTo] = useState(user?.team_lead_name || 'Team Lead');
+    const [notifyTo, setNotifyTo] = useState([]);
     const [profile, setProfile] = useState(null);
     const [toast, setToast] = useState(null);
     const EMPLOYEE_ID = user?.id;
 
     const LEAVE_TYPES = {
-        'cl': { name: 'Casual Leave', code: 'CL', total: 6, icon: <Plane size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' },
-        'sl': { name: 'Sick Leave', code: 'SL', total: 6, icon: <Thermometer size={20} />, color: 'text-red-600', bg: 'bg-red-50' },
-        'el': { name: 'Earned Leave', code: 'EL', total: 17, icon: <TentTree size={20} />, color: 'text-green-600', bg: 'bg-green-50' }
+        'cl': { name: 'CASUAL LEAVE', code: 'CL', total: 6, icon: <Plane size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        'sl': { name: 'SICK LEAVE', code: 'SL', total: 6, icon: <Thermometer size={20} />, color: 'text-red-600', bg: 'bg-red-50' },
+        'el': { name: 'EARNED LEAVE', code: 'EL', total: 17, icon: <TentTree size={20} />, color: 'text-green-600', bg: 'bg-green-50' }
     };
 
     const fetchLeaves = async () => {
@@ -39,7 +39,10 @@ function LeaveAttendance({ user }) {
                 if (!dateStr) return '';
                 const date = new Date(dateStr);
                 const day = date.toLocaleDateString('en-US', { weekday: 'short' });
-                return `${day}, ${dateStr}`;
+                const dd = String(date.getDate()).padStart(2, '0');
+                const mm = String(date.getMonth() + 1).padStart(2, '0');
+                const yyyy = date.getFullYear();
+                return `${day}, ${dd}-${mm}-${yyyy}`;
             };
 
             const formattedData = data.map(item => {
@@ -69,14 +72,18 @@ function LeaveAttendance({ user }) {
     useEffect(() => {
         fetchLeaves();
 
-        if (EMPLOYEE_ID && !user?.team_lead_name) {
+        if (EMPLOYEE_ID) {
             authApi.getProfile(EMPLOYEE_ID).then(p => {
                 setProfile(p);
-                if (p.team_lead_name) {
-                    setNotifyTo(p.team_lead_name);
-                }
             }).catch(console.error);
         }
+
+        // Add Polling for real-time updates (every 5 seconds)
+        const pollInterval = setInterval(() => {
+            fetchLeaves();
+        }, 5000);
+
+        return () => clearInterval(pollInterval);
     }, [EMPLOYEE_ID]);
 
     const calculateBalances = () => {
@@ -97,13 +104,14 @@ function LeaveAttendance({ user }) {
     const balances = calculateBalances();
 
     const handleLeaveSubmit = async () => {
-        if (!fromDate || !toDate || !reason.trim()) {
-            setToast({ message: "All fields are required.", type: 'error' });
+        if (!fromDate || !reason.trim()) {
+            setToast({ message: "From Date and Reason are required.", type: 'error' });
             return;
         }
 
+        const effectiveToDate = toDate || fromDate;
         const start = new Date(fromDate);
-        const end = new Date(toDate);
+        const end = new Date(effectiveToDate);
 
         if (end < start) {
             setToast({ message: "To Date cannot be earlier than From Date.", type: 'error' });
@@ -129,10 +137,10 @@ function LeaveAttendance({ user }) {
                 employeeId: EMPLOYEE_ID,
                 type: leaveType,
                 fromDate,
-                toDate,
+                toDate: effectiveToDate,
                 days: diffDays,
                 reason: reason.trim(),
-                notifyTo: notifyTo
+                notifyTo: notifyTo.join(', ')
             });
 
             await fetchLeaves();
@@ -141,7 +149,7 @@ function LeaveAttendance({ user }) {
             setToDate('');
             setReason('');
             setLeaveType('cl');
-            setNotifyTo(user?.team_lead_name || profile?.team_lead_name || 'Team Lead');
+            setNotifyTo([]);
             setFromSession('Full Day');
             setToSession('Full Day');
             setIsModalOpen(false);

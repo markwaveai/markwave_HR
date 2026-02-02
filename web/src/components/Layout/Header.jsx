@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 import { Bell, Search, Menu } from 'lucide-react';
+=======
+import { Search } from 'lucide-react';
+>>>>>>> Stashed changes
 
 function Header({ user, isSidebarOpen, onMenuClick }) {
     const getGreeting = () => {
@@ -36,10 +40,7 @@ function Header({ user, isSidebarOpen, onMenuClick }) {
             </div>
 
             <div className="flex items-center gap-6">
-                <div className="relative cursor-pointer">
-                    <Bell size={20} className="text-white" />
-                    <span className="absolute -top-1.5 -right-1.5 bg-[#d63031] text-white text-[10px] px-1 rounded-full min-w-[14px] text-center border-2 border-[#48327d]">1</span>
-                </div>
+
                 <div className="w-8 h-8 bg-[#3498db] rounded-full flex items-center justify-center text-white font-semibold text-sm border-2 border-white cursor-pointer">
                     {getInitials()}
                 </div>

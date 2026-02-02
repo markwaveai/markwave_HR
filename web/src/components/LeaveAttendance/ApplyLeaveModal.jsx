@@ -14,7 +14,7 @@ const ApplyLeaveModal = ({
     profile,
     handleLeaveSubmit
 }) => {
-    const isSingleDay = fromDate && toDate && fromDate === toDate;
+    const isSingleDay = !toDate || (fromDate && toDate && fromDate === toDate);
 
     const SessionSelector = ({ label, value, onChange }) => (
         <div className="mb-2 last:mb-0">
@@ -68,9 +68,9 @@ const ApplyLeaveModal = ({
                             onChange={(e) => setLeaveType(e.target.value)}
                             required
                         >
-                            <option value="cl">Casual Leave</option>
-                            <option value="sl">Sick Leave</option>
-                            <option value="el">Earned Leave</option>
+                            <option value="cl">CASUAL LEAVE</option>
+                            <option value="sl">SICK LEAVE</option>
+                            <option value="el">EARNED LEAVE</option>
                         </select>
                     </div>
 
@@ -89,7 +89,7 @@ const ApplyLeaveModal = ({
                         </div>
                         <div>
                             <label className="block text-[11px] font-bold text-[#636e72] uppercase tracking-wide mb-1 flex items-center gap-1">
-                                To Date <span className="text-red-500">*</span>
+                                To Date
                             </label>
                             <input
                                 type="date"
@@ -97,7 +97,6 @@ const ApplyLeaveModal = ({
                                 value={toDate}
                                 min={fromDate}
                                 onChange={(e) => setToDate(e.target.value)}
-                                required
                             />
                         </div>
                     </div>
@@ -139,28 +138,42 @@ const ApplyLeaveModal = ({
                         ></textarea>
                     </div>
 
-                    <div>
+                    <div className="relative">
                         <label className="block text-[11px] font-bold text-[#636e72] uppercase tracking-wide mb-1 flex items-center gap-1">
                             Notify To <span className="text-red-500">*</span>
                         </label>
-                        <select
-                            className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-sm text-[#2d3436] outline-none focus:border-[#48327d] transition-colors"
-                            value={notifyTo}
-                            onChange={(e) => setNotifyTo(e.target.value)}
-                            required
-                        >
-                            <option value={user?.team_lead_name || profile?.team_lead_name || "Team Lead"}>
-                                {user?.team_lead_name || profile?.team_lead_name || "Team Lead"}
-                            </option>
-                            <option value="Balam Rajesh">Balam Rajesh</option>
-                            <option value="Kunapareddy Satyanarayana">Kunapareddy Satyanarayana</option>
-                        </select>
+                        <div className="flex flex-wrap gap-2 p-2 bg-[#f8fafc] border border-[#e2e8f0] rounded-lg min-h-[38px]">
+                            {notifyTo.length === 0 && <span className="text-gray-400 text-sm">Select employee(s)...</span>}
+                            {notifyTo.map(person => (
+                                <span key={person} className="bg-[#48327d] text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
+                                    {person}
+                                    <button onClick={() => setNotifyTo(notifyTo.filter(p => p !== person))}>
+                                        <XCircle size={12} />
+                                    </button>
+                                </span>
+                            ))}
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                            {[
+                                user?.team_lead_name || profile?.team_lead_name || "Team Lead",
+                                profile?.project_manager_name,
+                                profile?.advisor_name
+                            ].filter(name => name && !notifyTo.includes(name)).map(name => (
+                                <button
+                                    key={name}
+                                    onClick={() => setNotifyTo([...notifyTo, name])}
+                                    className="text-[10px] font-bold text-[#48327d] bg-[#48327d]/10 px-2 py-0.5 rounded-md hover:bg-[#48327d]/20 transition-colors"
+                                >
+                                    + {name}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <button
                         onClick={handleLeaveSubmit}
-                        disabled={!fromDate || !toDate || !reason.trim()}
-                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 ${!fromDate || !toDate || !reason.trim()
+                        disabled={!fromDate || !reason.trim() || notifyTo.length === 0}
+                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 ${!fromDate || !reason.trim() || notifyTo.length === 0
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                             : 'bg-[#48327d] text-white shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c]'
                             }`}

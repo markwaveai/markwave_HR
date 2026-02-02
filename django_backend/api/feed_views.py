@@ -50,18 +50,22 @@ def post_list(request):
 @api_view(['POST'])
 def toggle_like(request, post_id):
     data = request.data
-    employee_id = str(data.get('employee_id'))
+    employee_id = data.get('employee_id')
+
+    if not employee_id:
+        return Response({'error': 'Employee ID required'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
         post = Posts.objects.get(pk=post_id)
         likes = post.likes or []
         
-        # Check if internal ID or employee_id is in likes
-        employee = Employees.objects.filter(employee_id=employee_id).first()
-        if not employee and str(employee_id).isdigit():
-            employee = Employees.objects.filter(pk=employee_id).first()
+        # Standardize on MW-style employee_id
+        employee = Employees.objects.filter(Q(employee_id=employee_id) | Q(pk=employee_id if str(employee_id).isdigit() else -1)).first()
         
-        target_id = employee.employee_id if employee else employee_id
+        if not employee:
+            return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        target_id = employee.employee_id
 
         if str(target_id) in likes:
             likes.remove(str(target_id))

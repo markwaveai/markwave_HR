@@ -62,7 +62,7 @@ const FeedSection = ({ user }) => {
 
         try {
             await feedApi.createPost({
-                author_id: user.id,
+                author_id: user.employee_id,
                 content: newPostContent,
                 images: imagePreviews, // Sending array of base64
                 type: postType
@@ -78,9 +78,9 @@ const FeedSection = ({ user }) => {
     };
 
     const handleToggleLike = async (postId) => {
-        if (!user?.id) return;
+        if (!user?.employee_id) return;
         try {
-            await feedApi.toggleLike(postId, user.id);
+            await feedApi.toggleLike(postId, user.employee_id);
             fetchPosts();
         } catch (error) {
             console.error("Like failed:", error);
@@ -88,9 +88,9 @@ const FeedSection = ({ user }) => {
     };
 
     const handleAddComment = async (postId) => {
-        if (!newComment.trim() || !user?.id) return;
+        if (!newComment.trim() || !user?.employee_id) return;
         try {
-            await feedApi.addComment(postId, user.id, newComment);
+            await feedApi.addComment(postId, user.employee_id, newComment);
             setNewComment('');
             setCommentingOn(null);
             fetchPosts();
@@ -256,9 +256,9 @@ const FeedSection = ({ user }) => {
                             <div className="flex items-center gap-6 pt-4 border-t border-[#f1f5f9]">
                                 <button
                                     onClick={() => handleToggleLike(post.id)}
-                                    className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${user?.id && post.likes.includes(user.id) ? 'text-[#ef4444]' : 'text-[#94a3b8] hover:text-[#ef4444]'}`}
+                                    className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${user?.employee_id && post.likes.includes(user.employee_id) ? 'text-[#ef4444]' : 'text-[#94a3b8] hover:text-[#ef4444]'}`}
                                 >
-                                    <Heart size={16} fill={user?.id && post.likes.includes(user.id) ? "currentColor" : "none"} />
+                                    <Heart size={16} fill={user?.employee_id && post.likes.includes(user.employee_id) ? "currentColor" : "none"} />
                                     {post.likes_count} {post.likes_count === 1 ? 'Like' : 'Likes'}
                                 </button>
                                 <button

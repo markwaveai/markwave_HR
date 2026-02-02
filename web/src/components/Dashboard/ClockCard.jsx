@@ -1,11 +1,12 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
 
-const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState, handleClockAction }) => {
+const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState, handleClockAction, canClock = true, disabledReason }) => {
     return (
         <div className="bg-[#8e78b0] rounded-xl p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between">
             <div className="flex justify-between items-center mb-4 opacity-90">
                 <span className="text-sm font-medium">Time Today - {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                {disabledReason && <span className="text-xs bg-white text-[#8e78b0] px-2 py-0.5 rounded-full font-bold">{disabledReason.toUpperCase()}</span>}
             </div>
 
             <div className="flex justify-between items-end gap-2">
@@ -22,9 +23,9 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
 
                 <div className="flex gap-2">
                     <button
-                        className="bg-white text-[#8e78b0] px-4 py-2 rounded-md font-semibold text-sm transition-all hover:bg-opacity-90 active:scale-95 shadow-sm"
+                        className={`bg-white text-[#8e78b0] px-4 py-2 rounded-md font-semibold text-sm transition-all shadow-sm ${(!canClock || isLoadingLocation) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90 active:scale-95'}`}
                         onClick={handleClockAction}
-                        disabled={isLoadingLocation}
+                        disabled={!canClock || isLoadingLocation}
                     >
                         {isLoadingLocation || isClockedIn === null ? (
                             isClockedIn === null ? 'Loading...' : 'Locating...'

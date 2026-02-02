@@ -27,7 +27,7 @@ const LeaveHistoryTable = ({ history }) => {
                             <tr key={log.id} className="hover:bg-[#f9fafb] transition-colors">
                                 <td className="px-5 py-4">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-[#2d3436]">{log.type}</span>
+                                        <span className="text-sm font-bold text-[#2d3436]">{log.type?.toUpperCase()}</span>
                                         <span className="text-[10px] text-[#636e72] italic truncate max-w-[400px]">{log.reason}</span>
                                     </div>
                                 </td>

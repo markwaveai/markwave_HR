@@ -77,7 +77,7 @@ const AttendanceLog = ({
                 <div className="flex gap-1 bg-[#f1f2f6] p-1 rounded-lg">
                     <button className="px-4 py-1.5 text-xs font-bold bg-white text-[#2d3436] shadow-sm rounded-md uppercase tracking-wider">Attendance Log</button>
                     <button className="px-4 py-1.5 text-xs font-bold text-[#636e72] hover:text-[#2d3436] uppercase tracking-wider">Calendar</button>
-                    <button className="px-4 py-1.5 text-xs font-bold text-[#636e72] hover:text-[#2d3436] uppercase tracking-wider">Attendance Requests</button>
+
                 </div>
                 <div className="flex items-center gap-2">
                     <div className="flex bg-white border border-[#e2e8f0] rounded-md overflow-hidden p-1 gap-1">
@@ -137,24 +137,41 @@ const AttendanceLog = ({
                             const currentDay = new Date(currentTime);
                             const isToday = y === currentDay.getFullYear() && (m - 1) === currentDay.getMonth() && d === currentDay.getDate();
                             const hasActivity = log.checkIn && log.checkIn !== '-';
-                            const isLeave = !isWeekend && !isHoliday && !isToday && !hasActivity;
+                            const isApprovedLeave = !!log.leaveType;
+                            const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActivity && !isApprovedLeave;
 
                             return (
-                                <tr key={index} className={`border-b border-[#e2e8f0] last:border-none hover:bg-[#f9fafb] transition-colors ${isWeekend || isHoliday || isLeave ? 'bg-[#f5f5f5]' : 'bg-white'}`}>
+                                <tr key={index} className={`border-b border-[#e2e8f0] last:border-none hover:bg-[#f9fafb] transition-colors ${isWeekend || isHoliday || isAbsent || isApprovedLeave ? 'bg-[#f5f5f5]' : 'bg-white'}`}>
                                     <td className="p-4 text-sm font-medium text-[#2d3436] text-center">
                                         <div className="flex items-center justify-center gap-2">
                                             <span className="whitespace-nowrap">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</span>
-                                            {(isWeekend || isHoliday || isLeave) && (
-                                                <span className="px-1  bg-[#d1d5db] text-[#48327d] text-[7px] rounded-full uppercase font-semibold whitespace-nowrap">
-                                                    {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : 'ABSENT'}
+                                            {(isWeekend || isHoliday || isAbsent || isApprovedLeave) && (
+                                                <span className={`px-1 text-[7px] rounded-full uppercase font-semibold whitespace-nowrap ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-[#d1d5db] text-[#48327d]'}`}>
+                                                    {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (log.leaveType?.toUpperCase() || 'LEAVE') : 'ABSENT'}
                                                 </span>
                                             )}
                                         </div>
                                     </td>
 
-                                    {(isWeekend || isHoliday || isLeave) ? (
+                                    {(isWeekend || isHoliday || isAbsent || isApprovedLeave) ? (
                                         <td colSpan="8" className="p-4 text-sm text-[#2d3436] font-medium text-center">
-                                            {isHoliday ? 'Full day Holiday' : isWeekend ? 'Full day Weekly-off' : 'Absent'}
+                                            {(() => {
+                                                const getLeaveLabel = (code) => {
+                                                    const map = {
+                                                        'SL': 'Sick Leave',
+                                                        'CL': 'Casual Leave',
+                                                        'EL': 'Earned Leave',
+                                                        'PL': 'Privilege Leave',
+                                                        'LOP': 'Loss of Pay'
+                                                    };
+                                                    return map[code?.toUpperCase()] || code?.toUpperCase() || 'Leave';
+                                                };
+
+                                                if (isHoliday) return 'Full day Holiday';
+                                                if (isWeekend) return 'Full day Weekly-off';
+                                                if (isApprovedLeave) return `Full Day ${getLeaveLabel(log.leaveType)}`;
+                                                return 'Absent';
+                                            })()}
                                         </td>
                                     ) : (
                                         <>

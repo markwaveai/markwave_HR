@@ -1,10 +1,11 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from core.models import Employees, Attendance, AttendanceLogs
+from core.models import Employees, Attendance, AttendanceLogs, Leaves
 from datetime import datetime, timedelta
 from django.db.models import Q
 import pytz
+
 
 @api_view(['POST'])
 def clock(request):
@@ -33,6 +34,17 @@ def clock(request):
     current_date_str = india_time.strftime('%Y-%m-%d')
     current_time_str = india_time.strftime('%I:%M %p')
     print(f"DEBUG: India Time Calculated: {india_time}")
+
+    # Check for approved leave
+    is_on_leave = Leaves.objects.filter(
+        employee=employee,
+        status='Approved',
+        from_date__lte=current_date_str,
+        to_date__gte=current_date_str
+    ).exists()
+
+    if is_on_leave:
+        return Response({'error': 'Cannot clock in/out while on approved leave.'}, status=status.HTTP_400_BAD_REQUEST)
 
     last_log_today = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str).order_by('-timestamp').first()
     
@@ -109,6 +121,23 @@ def get_status(request, employee_id):
         now = datetime.utcnow() + timedelta(hours=5, minutes=30)
         current_date_str = now.strftime('%Y-%m-%d')
         
+        # Check for approved leave
+        is_on_leave = Leaves.objects.filter(
+            employee=employee,
+            status='Approved',
+            from_date__lte=current_date_str,
+            to_date__gte=current_date_str
+        ).exists()
+
+        is_weekend = now.weekday() >= 5  # 5=Saturday, 6=Sunday
+        
+        can_clock = not (is_on_leave or is_weekend)
+        disabled_reason = None
+        if is_on_leave:
+            disabled_reason = 'On Leave'
+        elif is_weekend:
+            disabled_reason = 'Week Off'
+
         last_log = AttendanceLogs.objects.filter(employee=employee).order_by('-timestamp').first()
         summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
         
@@ -122,7 +151,10 @@ def get_status(request, employee_id):
             'check_out': summary.check_out if summary else '-',
             'break_minutes': summary.break_minutes if summary else 0,
             'worked_hours': summary.worked_hours if summary else '-',
-            'last_punch': last_log.timestamp.strftime('%I:%M %p') if last_log else None
+            'last_punch': last_log.timestamp.strftime('%I:%M %p') if last_log else None,
+            'can_clock': can_clock,
+            'disabled_reason': disabled_reason,
+            'server_time': now.isoformat()
         })
     except Exception as e:
         import traceback
@@ -214,42 +246,110 @@ def get_history(request, employee_id):
     if not employee:
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    logs = Attendance.objects.filter(employee=employee).order_by('-date')[:30]
+    # 1. Fetch Attendance Logs (last 60 days to be safe)
+    start_date = (datetime.utcnow() - timedelta(days=60)).strftime('%Y-%m-%d')
+    att_logs = Attendance.objects.filter(employee=employee, date__gte=start_date).order_by('-date')
+    
+    # Map by date string
+    logs_map = {log.date: log for log in att_logs}
+
+    # 2. Fetch Approved Leaves in potential range
+    # Since leaves can be in the future, we just fetch recent/current leaves
+    # We'll filter visually on frontend, but here we just need to enhance the data we return
+    leaves = Leaves.objects.filter(
+        employee=employee, 
+        status='Approved',
+        # Simple optimization: leaves that end after start_date
+        to_date__gte=start_date
+    )
+
+    leave_dates = {}
+    for leave in leaves:
+        # Expand dates
+        try:
+            current_d = datetime.strptime(leave.from_date, '%Y-%m-%d')
+            end_d = datetime.strptime(leave.to_date, '%Y-%m-%d')
+            while current_d <= end_d:
+                d_str = current_d.strftime('%Y-%m-%d')
+                leave_dates[d_str] = leave.type # e.g. "Sick Leave"
+                current_d += timedelta(days=1)
+        except ValueError:
+            continue
+
+    # 3. Build Result List (Backend usually returns 30 days based on existing logic, 
+    # but now we need to make sure we return dates that have EITHER attendance OR leave)
+    
+    # To keep it consistent with previous "return logs" behavior which relies on existing Attendance rows:
+    # We will iterate over the UNION of keys from logs_map and leave_dates, sorted.
+    
+    all_dates = set(logs_map.keys()) | set(leave_dates.keys())
+    sorted_dates = sorted(list(all_dates), reverse=True)[:35] # Return ~35 days to cover the request
+
     result = []
-    for log in logs:
-        punches = AttendanceLogs.objects.filter(employee=employee, date=log.date).order_by('timestamp')
-        logs_data = []
-        calculated_break_mins = 0
-        last_out_timestamp = None
-        current_pair = {}
-        for punch in punches:
-            t_str = punch.timestamp.strftime('%I:%M %p')
-            if punch.type == 'IN':
-                if last_out_timestamp:
-                    break_dur = (punch.timestamp - last_out_timestamp).total_seconds() / 60
-                    calculated_break_mins += int(round(break_dur))
-                current_pair = {'in': t_str}
-            elif punch.type == 'OUT' and 'in' in current_pair:
-                current_pair['out'] = t_str
-                logs_data.append(current_pair)
-                last_out_timestamp = punch.timestamp
-                current_pair = {}
-        
-        if 'in' in current_pair:
-             current_pair['out'] = None
-             logs_data.append(current_pair)
+    for d_str in sorted_dates:
+        log = logs_map.get(d_str)
+        leave_type = leave_dates.get(d_str)
 
-        is_active = punches.last().type == 'IN' if punches.exists() else False
+        if log:
+            # Existing Attendance Record
+            punches = AttendanceLogs.objects.filter(employee=employee, date=log.date).order_by('timestamp')
+            logs_data = []
+            calculated_break_mins = 0
+            last_out_timestamp = None
+            current_pair = {}
+            for punch in punches:
+                t_str = punch.timestamp.strftime('%I:%M %p')
+                if punch.type == 'IN':
+                    if last_out_timestamp:
+                        break_dur = (punch.timestamp - last_out_timestamp).total_seconds() / 60
+                        calculated_break_mins += int(round(break_dur))
+                    current_pair = {'in': t_str}
+                elif punch.type == 'OUT' and 'in' in current_pair:
+                    current_pair['out'] = t_str
+                    logs_data.append(current_pair)
+                    last_out_timestamp = punch.timestamp
+                    current_pair = {}
+            
+            if 'in' in current_pair:
+                 current_pair['out'] = None
+                 logs_data.append(current_pair)
 
-        result.append({
-            'date': log.date,
-            'status': log.status,
-            'checkIn': log.check_in or '-',
-            'checkOut': '-' if is_active else (log.check_out or '-'),
-            'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
-            'isHoliday': log.is_holiday,
-            'isWeekend': log.is_weekend,
-            'logs': logs_data
-        })
+            is_active = punches.last().type == 'IN' if punches.exists() else False
+
+            # Override status if leave exists for this date
+            display_status = leave_type if leave_type else log.status
+            
+            result.append({
+                'date': log.date,
+                'status': display_status,
+                'leaveType': leave_type, # Provide explicit field
+                'checkIn': log.check_in or '-',
+                'checkOut': '-' if is_active else (log.check_out or '-'),
+                'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
+                'isHoliday': log.is_holiday,
+                'isWeekend': log.is_weekend,
+                'logs': logs_data
+            })
+        else:
+            # No Attendance Record, but IS a Leave Date
+            # Synthesize an entry
+            # Check if it's a weekend according to simple logic (optional, but good for UI)
+            try:
+                dt = datetime.strptime(d_str, '%Y-%m-%d')
+                is_weekend = dt.weekday() >= 5
+            except:
+                is_weekend = False
+
+            result.append({
+                'date': d_str,
+                'status': leave_type,
+                'leaveType': leave_type,
+                'checkIn': '-',
+                'checkOut': '-',
+                'breakMinutes': 0,
+                'isHoliday': False, # Could check holidays table if we had access to it easily here, but safe default
+                'isWeekend': is_weekend,
+                'logs': []
+            })
         
     return Response(result)

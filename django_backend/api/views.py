@@ -44,7 +44,8 @@ def login(request):
                 'role': 'Administrator',
                 'team_id': None,
                 'team_lead_name': 'Management',
-                'is_manager': True
+                'is_manager': True,
+                'is_admin': True
             }
         })
 
@@ -74,7 +75,8 @@ def login(request):
                 'role': employee.role,
                 'team_id': employee.team.id if employee.team else None,
                 'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead",
-                'is_manager': Teams.objects.filter(manager=employee).exists()
+                'is_manager': Teams.objects.filter(manager=employee).exists(),
+                'is_admin': getattr(employee, 'is_admin', False)
             }
         })
     except Exception as e:
@@ -154,7 +156,8 @@ def verify_otp(request):
                     'role': 'Administrator',
                     'team_id': None,
                     'team_lead_name': 'Management',
-                    'is_manager': True
+                    'is_manager': True,
+                    'is_admin': True
                 }
             })
 
@@ -171,7 +174,8 @@ def verify_otp(request):
                         'role': emp.role,
                         'team_id': emp.team.id if emp.team else None,
                         'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead",
-                        'is_manager': Teams.objects.filter(manager=emp).exists()
+                        'is_manager': Teams.objects.filter(manager=emp).exists(),
+                        'is_admin': getattr(emp, 'is_admin', False)
                     }
                 })
         return Response({'error': 'User not found'}, status=404)
@@ -188,7 +192,8 @@ def get_profile(request, employee_id):
             'last_name': 'User',
             'role': 'Administrator',
             'team_lead_name': 'Management',
-            'is_manager': True
+            'is_manager': True,
+            'is_admin': True
         })
     try:
         emp = Employees.objects.filter(employee_id=employee_id).first()
@@ -198,6 +203,10 @@ def get_profile(request, employee_id):
         if not emp:
             return Response({'error': 'User not found'}, status=404)
             
+        # Fetch dynamic managers
+        pm = Employees.objects.filter(role='Project Manager').first()
+        advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
+        
         return Response({
             'id': emp.id,
             'employee_id': emp.employee_id,
@@ -206,7 +215,10 @@ def get_profile(request, employee_id):
             'role': emp.role,
             'team_id': emp.team.id if emp.team else None,
             'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead",
-            'is_manager': Teams.objects.filter(manager=emp).exists()
+            'is_manager': Teams.objects.filter(manager=emp).exists(),
+            'is_admin': getattr(emp, 'is_admin', False),
+            'project_manager_name': f"{pm.first_name} {pm.last_name}" if pm else None,
+            'advisor_name': f"{advisor.first_name} {advisor.last_name}" if advisor else None
         })
     except Exception as e:
         return Response({'error': str(e)}, status=500)
@@ -301,7 +313,8 @@ def verify_email_otp(request):
                 'role': employee.role,
                 'team_id': employee.team.id if employee.team else None,
                 'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead",
-                'is_manager': Teams.objects.filter(manager=employee).exists()
+                'is_manager': Teams.objects.filter(manager=employee).exists(),
+                'is_admin': getattr(employee, 'is_admin', False)
             }
         })
     except Exception as e:

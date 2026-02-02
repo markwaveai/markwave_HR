@@ -8,6 +8,8 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
     const [error, setError] = useState(null);
     const [clockStatus, setClockStatus] = useState(null); // Start as null to show loading
     const [debugInfo, setDebugInfo] = useState(null);
+    const [canClock, setCanClock] = useState(true);
+    const [disabledReason, setDisabledReason] = useState(null);
     const [loading, setLoading] = useState(false);
 
     const EMPLOYEE_ID = employeeId;
@@ -20,6 +22,8 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
         try {
             const data = await attendanceApi.getStatus(EMPLOYEE_ID);
             setClockStatus(data.status);
+            setCanClock(data.can_clock !== false);
+            setDisabledReason(data.disabled_reason);
             setDebugInfo(data.debug);
         } catch (err) {
             console.error("Failed to fetch status:", err);
@@ -31,15 +35,16 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
         setLoading(true);
         try {
             const nextType = clockStatus === 'IN' ? 'OUT' : 'IN';
-            await attendanceApi.clock({
+            const data = await attendanceApi.clock({
                 employee_id: EMPLOYEE_ID,
                 location: locationAddr || "Location Unavailable",
                 type: nextType
             });
             setClockStatus(nextType);
-            if (onClockAction) onClockAction();
+            if (onClockAction) onClockAction(data);
         } catch (apiErr) {
-            setError("Failed to clock action");
+            const msg = apiErr.response?.data?.error || "Failed to clock action";
+            setError(msg);
             console.error(apiErr);
         } finally {
             setLoading(false);
@@ -61,14 +66,24 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
-                let displayAddr = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                const coordsStr = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                let displayAddr = coordsStr;
                 try {
                     const response = await fetch(
                         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
                     );
                     if (response.ok) {
                         const data = await response.json();
-                        displayAddr = data.display_name.split(',').slice(0, 3).join(',') || displayAddr;
+                        const addr = data.address;
+                        // Pick the most relevant parts: [Office/Building], [Neighborhood/Road], [City]
+                        const parts = [
+                            addr.office || addr.amenity || addr.building || addr.shop || addr.industrial,
+                            addr.neighbourhood || addr.suburb || addr.road,
+                            addr.city || addr.town || addr.village
+                        ].filter(Boolean);
+
+                        const name = parts.length > 0 ? parts.join(', ') : data.display_name.split(',').slice(0, 3).join(', ');
+                        displayAddr = `${name} (${coordsStr})`;
                     }
                 } catch (e) {
                     console.warn(e);
@@ -86,6 +101,7 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
 
     return (
         <div className="bg-white rounded-xl shadow-lg p-4 border border-[#e2e8f0]">
+            {/* ... (lines 90-120 unchanged) ... */}
             <h3 className="text-sm font-medium text-[#636e72] mb-3">Actions</h3>
 
             <div className="flex flex-col items-center justify-center mb-4">
@@ -125,8 +141,8 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
                 ) : (
                     <button
                         onClick={handleClockAction}
-                        disabled={isLocating || loading}
-                        className="flex flex-col items-center gap-2 text-[#48327d] hover:bg-purple-50 p-2 rounded-xl transition-all disabled:opacity-50 min-w-[100px]"
+                        disabled={!canClock || isLocating || loading}
+                        className={`flex flex-col items-center gap-2 text-[#48327d] hover:bg-purple-50 p-2 rounded-xl transition-all min-w-[100px] ${(!canClock || isLocating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {clockStatus === 'IN' ? (
                             <LogOut size={20} className="shrink-0" />

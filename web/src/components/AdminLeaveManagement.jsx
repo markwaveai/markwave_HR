@@ -3,12 +3,21 @@ import React, { useState, useEffect } from 'react';
 import { leaveApi } from '../services/api';
 import { CheckCircle, XCircle, Clock, Calendar, AlertCircle } from 'lucide-react';
 import Toast from './Common/Toast';
+import ConfirmDialog from './Common/ConfirmDialog';
 
 const AdminLeaveManagement = () => {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null); // ID of request being processed
     const [toast, setToast] = useState(null);
+
+    // Dialog State
+    const [dialogConfig, setDialogConfig] = useState({
+        isOpen: false,
+        id: null,
+        action: null, // 'Approve' or 'Reject'
+        employeeName: ''
+    });
 
     useEffect(() => {
         fetchPendingLeaves();
@@ -26,10 +35,22 @@ const AdminLeaveManagement = () => {
         }
     };
 
-    const handleAction = async (id, action) => {
-        if (!window.confirm(`Are you sure you want to ${action} this request?`)) return;
+    const initiateAction = (leave, action) => {
+        setDialogConfig({
+            isOpen: true,
+            id: leave.id,
+            action: action,
+            employeeName: leave.employee_name
+        });
+    };
 
+    const confirmAction = async () => {
+        const { id, action } = dialogConfig;
+        if (!id || !action) return;
+
+        setDialogConfig(prev => ({ ...prev, isOpen: false })); // Close dialog immediately or keep open for loading? Let's close.
         setActionLoading(id);
+
         try {
             await leaveApi.action(id, action);
             setToast({ type: 'success', message: `Leave request ${action}d successfully.` });
@@ -41,6 +62,10 @@ const AdminLeaveManagement = () => {
         } finally {
             setActionLoading(null);
         }
+    };
+
+    const closeDialog = () => {
+        setDialogConfig(prev => ({ ...prev, isOpen: false }));
     };
 
     return (
@@ -118,7 +143,7 @@ const AdminLeaveManagement = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
-                                                    onClick={() => handleAction(leave.id, 'Approve')}
+                                                    onClick={() => initiateAction(leave, 'Approve')}
                                                     disabled={actionLoading === leave.id}
                                                     className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 transition-colors"
                                                     title="Approve"
@@ -126,7 +151,7 @@ const AdminLeaveManagement = () => {
                                                     <CheckCircle size={18} />
                                                 </button>
                                                 <button
-                                                    onClick={() => handleAction(leave.id, 'Reject')}
+                                                    onClick={() => initiateAction(leave, 'Reject')}
                                                     disabled={actionLoading === leave.id}
                                                     className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 transition-colors"
                                                     title="Reject"
@@ -150,7 +175,21 @@ const AdminLeaveManagement = () => {
                     onClose={() => setToast(null)}
                 />
             )}
+<<<<<<< Updated upstream
         </div>
+=======
+
+            <ConfirmDialog
+                isOpen={dialogConfig.isOpen}
+                title={`${dialogConfig.action} Leave Request`}
+                message={`Are you sure you want to ${dialogConfig.action?.toLowerCase()} the leave request for ${dialogConfig.employeeName}?`}
+                onConfirm={confirmAction}
+                onCancel={closeDialog}
+                confirmText={dialogConfig.action}
+                type={dialogConfig.action === 'Reject' ? 'danger' : 'primary'}
+            />
+        </main>
+>>>>>>> Stashed changes
     );
 };
 

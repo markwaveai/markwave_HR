@@ -42,7 +42,7 @@ function MyTeam({ user }) {
 
     // Check if user is a Team Lead (with fallback)
     const isManager = user?.is_manager || user?.role?.toLowerCase().includes('team lead');
-    console.log("MyTeam Debug - User ID:", user?.id, "Is Manager:", isManager, "Raw is_manager:", user?.is_manager);
+
 
     const handleAddMember = async (e) => {
         e.preventDefault();

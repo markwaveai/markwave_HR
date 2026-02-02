@@ -3,7 +3,7 @@ import traceback
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from core.models import Teams, Employees, Attendance
+from core.models import Teams, Employees, Attendance, Leaves
 from .serializers import TeamsSerializer, EmployeesSerializer
 from datetime import datetime, timedelta
 
@@ -86,12 +86,24 @@ def member_list(request):
         if not team_id and len(members) > 6:
             members = random.sample(members, 6)
             
+        india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        current_date_str = india_time.strftime('%Y-%m-%d')
+        
+        # Get approved leaves for today for these members
+        member_ids = [m.employee_id for m in members]
+        on_leave_ids = set(Leaves.objects.filter(
+            employee_id__in=member_ids,
+            status='Approved',
+            from_date__lte=current_date_str,
+            to_date__gte=current_date_str
+        ).values_list('employee_id', flat=True))
+            
         return Response([{
             'id': m.id,
             'employee_id': m.employee_id,
             'name': f"{m.first_name} {m.last_name}",
             'role': m.role,
-            'status': m.status or 'Active',
+            'status': 'On Leave' if m.employee_id in on_leave_ids else (m.status or 'Active'),
             'location': m.location,
             'email': m.email
         } for m in members])
@@ -218,84 +230,101 @@ def member_detail(request, pk):
 
 @api_view(['GET'])
 def team_stats(request):
-    team_id = request.query_params.get('team_id')
-    query = Employees.objects.all()
-    if team_id:
-        query = query.filter(team_id=team_id)
+    try:
+        team_id = request.query_params.get('team_id')
+        query = Employees.objects.all()
+        if team_id:
+            query = query.filter(team_id=team_id)
+            
+        members = query.all()
         
-    members = query.all()
-    member_ids = [m.id for m in members]
-    
-    total = len(members)
-    active = query.filter(status='Active').count()
-    on_leave = query.filter(status='On Leave').count()
-    remote = query.filter(status='Remote').count()
-    
-    now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    monday = now - timedelta(days=now.weekday())
-    monday_str = monday.strftime('%Y-%m-%d')
-    
-    attendance_records = Attendance.objects.filter(
-        employee__employee_id__in=list(query.values_list('employee_id', flat=True)),
-        date__gte=monday_str
-    )
-    
-    total_minutes = 0
-    present_count = 0
-    on_time_count = 0
-    
-    def parse_worked_hours(wh):
-        if not wh or 'h' not in wh: return 0
-        try:
-            parts = wh.replace('m', '').split('h ')
-            h = int(parts[0])
-            m = int(parts[1]) if len(parts) > 1 else 0
-            return h * 60 + m
-        except:
-            return 0
-
-    def is_on_time(check_in):
-        if not check_in or ':' not in check_in: return False
-        try:
-            t = datetime.strptime(check_in, '%I:%M %p')
-            cutoff = datetime.strptime('09:30 AM', '%I:%M %p')
-            return t <= cutoff
-        except:
-            return False
-
-    for rec in attendance_records:
-        rec_mins = parse_worked_hours(rec.worked_hours)
-        if not rec_mins and rec.check_in and rec.check_in != '-':
+        total = len(members)
+        now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+        today_date = now.strftime('%Y-%m-%d')
+        monday = now - timedelta(days=now.weekday())
+        monday_str = monday.strftime('%Y-%m-%d')
+        
+        # Calculate On Leave from Leaves table
+        on_leave_ids = Leaves.objects.filter(
+            employee__employee_id__in=list(query.values_list('employee_id', flat=True)),
+            status='Approved',
+            from_date__lte=today_date,
+            to_date__gte=today_date
+        ).values_list('employee', flat=True).distinct()
+        
+        on_leave = on_leave_ids.count()
+        
+        # Active Now = Active Status AND NOT On Leave
+        # on_leave_ids contains employee_id strings (because Leaves.employee points to to_field='employee_id')
+        # So we must exclude based on employee_id, not id (which is int)
+        active = query.filter(status='Active').exclude(employee_id__in=on_leave_ids).count()
+        
+        attendance_records = Attendance.objects.filter(
+            employee__employee_id__in=list(query.values_list('employee_id', flat=True)),
+            date__gte=monday_str
+        )
+        
+        total_minutes = 0
+        present_count = 0
+        on_time_count = 0
+        
+        def parse_worked_hours(wh):
+            if not wh or 'h' not in wh: return 0
             try:
-                india_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-                in_time = datetime.strptime(rec.check_in, '%I:%M %p')
-                in_time = in_time.replace(year=india_now.year, month=india_now.month, day=india_now.day)
-                if india_now > in_time:
-                    rec_mins = int((india_now - in_time).total_seconds() / 60)
+                parts = wh.replace('m', '').split('h ')
+                h = int(parts[0])
+                m = int(parts[1]) if len(parts) > 1 else 0
+                return h * 60 + m
             except:
-                pass
+                return 0
 
-        if rec_mins > 0:
-            present_count += 1
-            total_minutes += rec_mins
-            if is_on_time(rec.check_in):
-                on_time_count += 1
-                
-    avg_mins = total_minutes // present_count if present_count > 0 else 0
-    avg_h = avg_mins // 60
-    avg_m = avg_mins % 60
-    
-    avg_working_hours = f"{avg_h}h {avg_m}m"
-    on_time_arrival = f"{int((on_time_count / present_count) * 100)}%" if present_count > 0 else "0%"
-    
-    return Response({
-        'total': total,
-        'active': active,
-        'onLeave': on_leave,
-        'remote': remote,
-        'avg_working_hours': avg_working_hours,
-        'on_time_arrival': on_time_arrival
-    })
+        def is_on_time(check_in):
+            if not check_in or ':' not in check_in: return False
+            try:
+                t = datetime.strptime(check_in, '%I:%M %p')
+                cutoff = datetime.strptime('09:30 AM', '%I:%M %p')
+                return t <= cutoff
+            except:
+                return False
+
+        for rec in attendance_records:
+            rec_mins = parse_worked_hours(rec.worked_hours)
+            if not rec_mins and rec.check_in and rec.check_in != '-':
+                try:
+                    india_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+                    in_time = datetime.strptime(rec.check_in, '%I:%M %p')
+                    in_time = in_time.replace(year=india_now.year, month=india_now.month, day=india_now.day)
+                    if india_now > in_time:
+                        rec_mins = int((india_now - in_time).total_seconds() / 60)
+                except:
+                    pass
+
+            if rec_mins > 0:
+                present_count += 1
+                total_minutes += rec_mins
+                if is_on_time(rec.check_in):
+                    on_time_count += 1
+                    
+        avg_mins = total_minutes // present_count if present_count > 0 else 0
+        avg_h = avg_mins // 60
+        avg_m = avg_mins % 60
+        
+        avg_working_hours = f"{avg_h}h {avg_m}m"
+        on_time_arrival = f"{int((on_time_count / present_count) * 100)}%" if present_count > 0 else "0%"
+        remote = query.filter(status='Remote').count()
+
+        return Response({
+            'total': total,
+            'active': active,
+            'onLeave': on_leave,
+            'remote': remote,
+            'avg_working_hours': avg_working_hours,
+            'on_time_arrival': on_time_arrival
+        })
+    except Exception as e:
+        print(f"Error in team_stats: {str(e)}")
+        traceback.print_exc()
+        return Response({'error': str(e), 'trace': traceback.format_exc()}, status=500)
 
 @api_view(['GET'])
 def dashboard_stats(request):
@@ -317,13 +346,27 @@ def dashboard_stats(request):
         absentees = active_employees.exclude(employee_id__in=present_employee_ids)
         absentees_count = absentees.count()
         
-        absentees_list = [{
-            'id': emp.id,
-            'employee_id': emp.employee_id,
-            'name': f"{emp.first_name} {emp.last_name}",
-            'role': emp.role,
-            'location': emp.location
-        } for emp in absentees]
+        # Check for approved leaves for these absentees
+        on_leave_employee_ids = Leaves.objects.filter(
+            employee__in=absentees,
+            status='Approved',
+            from_date__lte=current_date_str,
+            to_date__gte=current_date_str
+        ).values_list('employee__employee_id', flat=True)
+        
+        on_leave_set = set(on_leave_employee_ids)
+
+        absentees_list = []
+        for emp in absentees:
+            is_on_leave = emp.employee_id in on_leave_set
+            absentees_list.append({
+                'id': emp.id,
+                'employee_id': emp.employee_id,
+                'name': f"{emp.first_name} {emp.last_name}",
+                'role': emp.role,
+                'location': emp.location,
+                'status': 'On Leave' if is_on_leave else 'Absent'
+            })
         
         return Response({
             'total_employees': total_count,

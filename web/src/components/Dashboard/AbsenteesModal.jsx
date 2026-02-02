@@ -37,8 +37,11 @@ const AbsenteesModal = ({ absentees, onClose }) => {
                                         )}
                                     </div>
                                 </div>
-                                <div className="px-2 py-1 rounded-md bg-[#fff1f2] text-[#f43f5e] text-[10px] font-black uppercase tracking-wider border border-[#ffe4e6]">
-                                    Absent
+                                <div className={`px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border ${emp.status === 'On Leave'
+                                        ? 'bg-amber-50 text-amber-600 border-amber-100'
+                                        : 'bg-[#fff1f2] text-[#f43f5e] border-[#ffe4e6]'
+                                    }`}>
+                                    {emp.status}
                                 </div>
                             </div>
                         ))
