@@ -5,6 +5,7 @@ from core.models import Employees, Posts
 from .serializers import PostsSerializer
 from datetime import datetime
 from django.utils import timezone
+from django.db.models import Q
 
 @api_view(['GET', 'POST'])
 def post_list(request):
