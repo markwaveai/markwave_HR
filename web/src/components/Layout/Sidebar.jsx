@@ -49,6 +49,7 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
                     >
                         <Menu size={20} />
                     </button>
+
                     <span className="font-bold text-lg text-white">Markwave HR</span>
                 </div>
 

@@ -69,10 +69,10 @@ const AdminLeaveManagement = () => {
     };
 
     return (
-        <div className="flex-1 p-3 mm:p-4 tab:p-6 bg-[#f5f7fa]">
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-[#2d3436]">Leave Management</h1>
-                <p className="text-sm text-[#636e72] mt-1">Review and manage employee leave requests</p>
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 bg-[#f5f7fa]">
+            <div className="mb-4 mm:mb-6">
+                <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Leave Management</h1>
+                <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Review and manage employee leave requests</p>
             </div>
 
             {loading ? (

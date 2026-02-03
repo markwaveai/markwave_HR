@@ -13,7 +13,11 @@ const FeedSection = ({ user }) => {
     const [newComment, setNewComment] = useState('');
     const fileInputRef = useRef(null);
 
-    const isAdmin = user?.role === 'Admin';
+    const isAdmin = user?.is_admin === true ||
+        user?.role === 'Admin' ||
+        user?.role === 'Administrator' ||
+        user?.role === 'Project Manager' ||
+        user?.role === 'Advisor-Technology & Operations';
 
     const fetchPosts = async () => {
         try {
@@ -154,18 +158,18 @@ const FeedSection = ({ user }) => {
                         </div>
                     </div>
 
-                    <div className="flex justify-between items-center pt-3 border-t border-[#f1f5f9]">
-                        <div className="flex items-center gap-4">
-                            <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#f1f5f9]">
+                        <div className="flex items-center gap-3 mm:gap-4">
+                            <div className="flex gap-1.5 mm:gap-2">
                                 <button
                                     onClick={() => setPostType('Activity')}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${postType === 'Activity' ? 'bg-[#6366f1] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]'}`}
+                                    className={`px-2.5 mm:px-3 py-1 rounded-full text-[10px] mm:text-xs font-medium transition-colors ${postType === 'Activity' ? 'bg-[#6366f1] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]'}`}
                                 >
                                     Activity
                                 </button>
                                 <button
                                     onClick={() => setPostType('Event')}
-                                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${postType === 'Event' ? 'bg-[#f59e0b] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]'}`}
+                                    className={`px-2.5 mm:px-3 py-1 rounded-full text-[10px] mm:text-xs font-medium transition-colors ${postType === 'Event' ? 'bg-[#f59e0b] text-white' : 'bg-[#f1f5f9] text-[#64748b] hover:bg-[#e2e8f0]'}`}
                                 >
                                     Event
                                 </button>
@@ -175,8 +179,8 @@ const FeedSection = ({ user }) => {
                                 onClick={() => fileInputRef.current?.click()}
                                 className="text-[#64748b] hover:text-[#6366f1] transition-colors flex items-center gap-1.5"
                             >
-                                <ImageIcon size={18} />
-                                <span className="text-xs font-medium">Photo</span>
+                                <ImageIcon size={16} />
+                                <span className="text-[10px] mm:text-xs font-semibold">Photo</span>
                             </button>
                             <input
                                 type="file"
@@ -191,7 +195,7 @@ const FeedSection = ({ user }) => {
                         <button
                             onClick={handleCreatePost}
                             disabled={!newPostContent.trim() && imagePreviews.length === 0}
-                            className="bg-[#6366f1] text-white px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-[#4f46e5] transition-colors"
+                            className="bg-[#6366f1] text-white px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-[#4f46e5] transition-colors ml-auto sm:ml-0"
                         >
                             Post
                         </button>
@@ -206,43 +210,43 @@ const FeedSection = ({ user }) => {
             ) : (
                 <div className="space-y-4">
                     {posts.map(post => (
-                        <div key={post.id} className="bg-white rounded-xl mm:rounded-2xl p-4 mm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]">
-                            <div className="flex justify-between items-start mb-4">
-                                <div className="flex gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white font-bold text-sm shadow-md">
+                        <div key={post.id} className="bg-white rounded-xl mm:rounded-2xl p-3 mm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] border border-[#e2e8f0]">
+                            <div className="flex justify-between items-start mb-3 mm:mb-4">
+                                <div className="flex gap-2 mm:gap-3">
+                                    <div className="w-8 h-8 mm:w-10 mm:h-10 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center text-white font-bold text-xs mm:text-sm shadow-md">
                                         {post.author?.[0]}
                                     </div>
                                     <div>
-                                        <p className="font-bold text-[#1e293b] text-sm">{post.author}</p>
-                                        <p className="text-[10px] text-[#94a3b8] font-medium">{new Date(post.created_at).toLocaleDateString()} · {post.type}</p>
+                                        <p className="font-bold text-[#1e293b] text-xs mm:text-sm">{post.author}</p>
+                                        <p className="text-[9px] mm:text-[10px] text-[#94a3b8] font-medium">{new Date(post.created_at).toLocaleDateString()} · {post.type}</p>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-1 mm:gap-2">
                                     {isAdmin && (
                                         <button
                                             onClick={() => handleDeletePost(post.id)}
-                                            className="p-1.5 text-[#94a3b8] hover:text-[#ef4444] transition-colors"
+                                            className="p-1 text-[#94a3b8] hover:text-[#ef4444] transition-colors"
                                             title="Delete post"
                                         >
-                                            <Trash2 size={16} />
+                                            <Trash2 size={14} mm:size={16} />
                                         </button>
                                     )}
                                     {post.type === 'Event' && (
-                                        <span className="bg-[#fffbeb] text-[#d97706] p-1.5 rounded-lg">
-                                            <Calendar size={14} />
+                                        <span className="bg-[#fffbeb] text-[#d97706] p-1 mm:p-1.5 rounded-lg">
+                                            <Calendar size={12} mm:size={14} />
                                         </span>
                                     )}
                                 </div>
                             </div>
 
-                            <p className="text-[#475569] text-sm leading-relaxed mb-4">
+                            <p className="text-[#475569] text-xs mm:text-sm leading-relaxed mb-3 mm:mb-4">
                                 {post.content}
                             </p>
 
                             {post.images && post.images.length > 0 && (
-                                <div className={`mb-4 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : post.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2'}`}>
+                                <div className={`mb-4 grid gap-2 ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-1 mm:grid-cols-2'}`}>
                                     {post.images.map((img, idx) => (
-                                        <div key={idx} className={`rounded-xl overflow-hidden border border-[#f1f5f9] ${post.images.length === 3 && idx === 0 ? 'row-span-2 h-full' : 'h-48'}`}>
+                                        <div key={idx} className={`rounded-xl overflow-hidden border border-[#f1f5f9] ${post.images.length === 3 && idx === 0 && window.innerWidth > 480 ? 'row-span-2 h-full' : 'h-40 mm:h-48'}`}>
                                             <img
                                                 src={img}
                                                 alt={`Post ${idx}`}

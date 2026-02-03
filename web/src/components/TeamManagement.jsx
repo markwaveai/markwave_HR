@@ -146,19 +146,19 @@ const TeamManagement = () => {
     );
 
     return (
-        <div className="flex-1 p-3 mm:p-4 tab:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500 overflow-y-auto">
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 max-w-[1600px] mx-auto animate-in fade-in duration-500 overflow-y-auto">
             {/* Header */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 mm:mb-8">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#2d3436] mb-1">Team Management</h1>
-                    <p className="text-[#636e72]">Manage all departments and teams</p>
+                    <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436] mb-1">Team Management</h1>
+                    <p className="text-[12px] mm:text-sm text-[#636e72]">Manage all departments and teams</p>
                 </div>
 
                 <button
                     onClick={() => handleOpenModal()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[#48327d] text-white rounded-xl hover:bg-[#3d2a6a] transition-all shadow-lg shadow-purple-500/20"
+                    className="flex items-center gap-2 px-4 py-2 bg-[#48327d] text-white rounded-xl hover:bg-[#3d2a6a] transition-all shadow-lg shadow-purple-500/20 text-sm"
                 >
-                    <Plus size={20} />
+                    <Plus size={18} />
                     Create Team
                 </button>
             </div>

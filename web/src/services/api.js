@@ -75,7 +75,7 @@ export const teamApi = {
     }),
     getAttendanceRegistry: () => apiFetch('/team/registry/'),
     getStats: (teamId) => apiFetch(`/team/stats/${teamId ? `?team_id=${teamId}` : ''}`),
-    getRoles: () => apiFetch('/team/roles/'),
+    getDesignations: () => apiFetch('/team/designations/'),
 };
 
 export const attendanceApi = {

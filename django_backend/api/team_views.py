@@ -172,6 +172,12 @@ def registry_list(request):
     serializer = EmployeesSerializer(members, many=True)
     return Response(serializer.data)
 
+@api_view(['GET'])
+def designation_list(request):
+    """Returns a unique list of designations for dropdowns."""
+    designations = Employees.objects.exclude(role__isnull=True).exclude(role='').values_list('role', flat=True).distinct().order_by('role')
+    return Response([{'name': d} for d in designations])
+
 @api_view(['PUT', 'DELETE'])
 def member_detail(request, pk):
     try:

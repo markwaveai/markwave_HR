@@ -410,10 +410,10 @@ const Me = ({ user }) => {
     };
 
     return (
-        <div className="flex-1 p-8 space-y-10 bg-[#f8fafc]">
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 space-y-6 mm:space-y-10 bg-[#f8fafc]">
             <div>
-                <h1 className="text-3xl font-black text-[#1e293b] tracking-tight mb-6">Attendance Stats</h1>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                <h1 className="text-2xl mm:text-3xl font-black text-[#1e293b] tracking-tight mb-4 mm:mb-6">Attendance Stats</h1>
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mm:gap-10">
                     <AttendanceStats meStats={meStats} teamStats={teamStats} />
 
                     <TimingCard

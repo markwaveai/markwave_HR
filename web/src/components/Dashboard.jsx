@@ -191,18 +191,18 @@ function Dashboard({ user }) {
     };
 
     return (
-        <div className="flex-1 p-8 bg-[#f5f7fa]">
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 lg:p-8 bg-[#f5f7fa]">
             {/* Welcome Section */}
-            <div className="mb-10 text-left">
-                <h1 className="text-3xl font-black text-[#1e293b] tracking-tight">
+            <div className="mb-4 mm:mb-6 ml:mb-8 lg:mb-10 text-left">
+                <h1 className="text-xl mm:text-2xl ml:text-3xl font-black text-[#1e293b] tracking-tight">
                     {getGreeting()}, {user?.first_name || 'Markwave'} {user?.last_name || ''}!
                 </h1>
-                <p className="text-sm text-[#64748b] font-medium mt-1 italic">
+                <p className="text-[11px] mm:text-[12px] ml:text-sm text-[#64748b] font-medium mt-1 italic">
                     You're doing great today. Here's a quick look at your workspace.
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 max-w-[1400px] mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 mm:gap-6 ml:gap-8 lg:gap-10 max-w-[1400px] mx-auto">
                 {/* Left Column - Essential Metrics */}
                 <div className="lg:col-span-5 flex flex-col gap-6">
                     <ClockCard

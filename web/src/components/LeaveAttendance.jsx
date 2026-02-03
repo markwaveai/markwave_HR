@@ -170,16 +170,16 @@ function LeaveAttendance({ user }) {
     }
 
     return (
-        <div className="flex-1 p-8 bg-[#f5f7fa]">
-            <div className="max-w-6xl mx-auto space-y-10">
-                <header className="flex justify-between items-center mb-10">
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 bg-[#f5f7fa]">
+            <div className="max-w-6xl mx-auto space-y-6 mm:space-y-10">
+                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 mm:mb-10">
                     <div className="text-left">
-                        <h1 className="text-3xl font-black text-[#1e293b] tracking-tight">Leave & Attendance</h1>
-                        <p className="text-sm text-[#64748b] font-medium mt-1 italic">Manage your time off and track attendance records</p>
+                        <h1 className="text-2xl mm:text-3xl font-black text-[#1e293b] tracking-tight">Leave & Attendance</h1>
+                        <p className="text-[12px] mm:text-sm text-[#64748b] font-medium mt-1 italic">Manage your time off and track attendance records</p>
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="bg-[#48327d] text-white font-bold py-2.5 px-6 rounded-lg text-sm shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c] transition-all flex items-center gap-2 whitespace-nowrap"
+                        className="bg-[#48327d] text-white font-bold py-2 px-4 mm:px-6 rounded-lg text-xs mm:text-sm shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c] transition-all flex items-center justify-center gap-2 whitespace-nowrap w-fit"
                     >
                         <Plus size={18} /> Request for Leave
                     </button>

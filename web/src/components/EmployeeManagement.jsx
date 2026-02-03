@@ -25,17 +25,17 @@ function EmployeeManagement() {
 
     useEffect(() => {
         fetchEmployees();
-        fetchRoles();
+        fetchDesignations();
     }, []);
 
-    const fetchRoles = async () => {
+    const fetchDesignations = async () => {
         try {
-            const data = await teamApi.getRoles();
+            const data = await teamApi.getDesignations();
             if (Array.isArray(data)) {
                 setDesignations(data.map(r => r.name));
             }
         } catch (error) {
-            console.error('Error fetching roles:', error);
+            console.error('Error fetching designations:', error);
         }
     };
 
@@ -107,11 +107,11 @@ function EmployeeManagement() {
     };
 
     return (
-        <div className="flex-1 p-3 mm:p-4 tab:p-6 overflow-y-auto bg-[#f5f7fa]">
-            <div className="mb-6 flex justify-between items-center">
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 overflow-y-auto bg-[#f5f7fa]">
+            <div className="mb-4 mm:mb-6 flex justify-between items-center">
                 <div>
-                    <h1 className="text-2xl font-bold text-[#2d3436]">Employee Management</h1>
-                    <p className="text-sm text-[#636e72] mt-1">Personnel registry and employee records</p>
+                    <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Employee Management</h1>
+                    <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Personnel registry and employee records</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <button
@@ -172,7 +172,7 @@ function EmployeeManagement() {
                                         onChange={handleChange}
                                         className="w-full px-3 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:ring-2 focus:ring-[#48327d]/10 outline-none bg-white"
                                     >
-                                        <option value="">Select Role</option>
+                                        <option value="">Select Designation</option>
                                         {designations.map(role => (
                                             <option key={role} value={role}>{role}</option>
                                         ))}
@@ -220,11 +220,7 @@ function EmployeeManagement() {
                     <h2 className="text-[#48327d] font-bold flex items-center gap-2">
                         <Users size={18} /> Company Employee Registry
                     </h2>
-                    <div className="flex gap-4 text-[10px] sm:text-xs">
-                        <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Active</div>
-                        <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500"></span> On Leave</div>
-                        <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500"></span> Remote</div>
-                    </div>
+
                 </div>
 
                 <div className="overflow-x-auto">

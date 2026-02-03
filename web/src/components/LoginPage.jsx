@@ -93,16 +93,16 @@ const LoginPage = ({ onLogin }) => {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#48327d]/5 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-[#dfe6e9] overflow-hidden z-10 animate-in fade-in zoom-in duration-300 mx-auto">
-                <div className="p-8">
-                    <div className="text-center mb-8">
-                        <div className="w-32 h-32 bg-transparent rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="bg-white w-full max-w-[320px] mm:max-w-md rounded-2xl shadow-xl border border-[#dfe6e9] overflow-hidden z-10 animate-in fade-in zoom-in duration-300 mx-auto">
+                <div className="p-5 mm:p-7 ml:p-8">
+                    <div className="text-center mb-5 mm:mb-7 ml:mb-8">
+                        <div className="w-24 h-24 mm:w-28 ml:w-32 bg-transparent rounded-2xl flex items-center justify-center mx-auto mb-2 mm:mb-3 ml:mb-4">
                             <img src="/images/logo.png" alt="Logo" className="w-full h-full object-contain" />
                         </div>
-                        <h1 className="text-2xl font-bold text-[#2d3436]">
+                        <h1 className="text-xl mm:text-xl ml:text-2xl font-bold text-[#2d3436]">
                             {step === 'input' ? 'Welcome to Markwave HR' : 'Verify Identity'}
                         </h1>
-                        <p className="text-[#636e72] text-sm mt-2">
+                        <p className="text-[#636e72] text-[12px] mm:text-[12px] ml:text-sm mt-1.5 mm:mt-2">
                             {step === 'input'
                                 ? `Please enter your ${loginMethod === 'phone' ? 'mobile number' : 'email'} to receive an OTP`
                                 : `Enter the 6-digit code sent to ${loginMethod === 'phone' ? phone : email}`}

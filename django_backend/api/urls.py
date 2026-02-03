@@ -17,6 +17,7 @@ urlpatterns = [
     path('team/members/<str:pk>/', team_views.member_detail, name='member-detail'),
     path('team/registry/', team_views.registry_list, name='registry-list'),
     path('team/stats/', team_views.team_stats, name='team-stats'),
+    path('team/designations/', team_views.designation_list, name='designation-list'),
     path('admin/dashboard-stats/', team_views.dashboard_stats, name='dashboard-stats'),
     
     # Leaves

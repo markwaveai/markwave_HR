@@ -73,40 +73,39 @@ const AttendanceLog = ({
 
     return (
         <div className="bg-white rounded-xl shadow-lg border border-[#e2e8f0] overflow-hidden w-full">
-            <div className="flex items-center justify-between p-4 border-b border-[#e2e8f0]">
-                <div className="flex gap-1 bg-[#f1f2f6] p-1 rounded-lg">
-                    <button className="px-4 py-1.5 text-xs font-bold bg-white text-[#2d3436] shadow-sm rounded-md uppercase tracking-wider">Attendance Log</button>
-                    <button className="px-4 py-1.5 text-xs font-bold text-[#636e72] hover:text-[#2d3436] uppercase tracking-wider">Calendar</button>
-
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 mm:p-4 border-b border-[#e2e8f0] gap-4">
+                <div className="flex gap-1 bg-[#f1f2f6] p-1 rounded-lg w-full sm:w-auto">
+                    <button className="flex-1 sm:flex-none px-2 mm:px-4 py-1.5 text-[10px] mm:text-xs font-bold bg-white text-[#2d3436] shadow-sm rounded-md uppercase tracking-wider whitespace-nowrap">Attendance Log</button>
+                    <button className="flex-1 sm:flex-none px-2 mm:px-4 py-1.5 text-[10px] mm:text-xs font-bold text-[#636e72] hover:text-[#2d3436] uppercase tracking-wider whitespace-nowrap">Calendar</button>
                 </div>
-                <div className="flex items-center gap-2">
-                    <div className="flex bg-white border border-[#e2e8f0] rounded-md overflow-hidden p-1 gap-1">
+                <div className="flex items-center justify-end w-full sm:w-auto">
+                    <div className="flex bg-white border border-[#e2e8f0] rounded-md overflow-hidden p-1 gap-1 w-full sm:w-auto">
                         <button
                             onClick={() => setFilterType('30Days')}
-                            className={`px-3 py-1 text-xs font-bold rounded transition-colors ${filterType === '30Days'
+                            className={`flex-1 sm:flex-none px-2 mm:px-3 py-1 text-[10px] mm:text-xs font-bold rounded transition-colors whitespace-nowrap ${filterType === '30Days'
                                 ? 'bg-[#48327d] text-white'
                                 : 'text-[#636e72] hover:bg-[#f1f2f6]'
                                 }`}
                         >
                             30 DAYS
                         </button>
-                        <div className="relative">
+                        <div className="relative flex-1 sm:flex-none">
                             <select
                                 value={selectedMonth}
                                 onChange={(e) => {
                                     setSelectedMonth(e.target.value);
                                     setFilterType('Month');
                                 }}
-                                className={`appearance-none pl-3 pr-8 py-1 text-xs font-bold rounded outline-none cursor-pointer transition-colors ${filterType === 'Month'
+                                className={`appearance-none w-full pl-2 mm:pl-3 pr-6 mm:pr-8 py-1 text-[10px] mm:text-xs font-bold rounded outline-none cursor-pointer transition-colors ${filterType === 'Month'
                                     ? 'bg-[#48327d] text-white'
                                     : 'text-[#636e72] hover:bg-[#f1f2f6]'
                                     }`}
                             >
                                 {monthOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value} className="text-[#2d3436] bg-white">{opt.label}</option>
+                                    <option key={opt.value} value={opt.value} className="text-[#2d3436] bg-white text-[10px] mm:text-xs">{opt.label}</option>
                                 ))}
                             </select>
-                            <ChevronDown size={12} className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${filterType === 'Month' ? 'text-white' : 'text-[#636e72]'}`} />
+                            <ChevronDown size={10} className={`absolute right-1.5 mm:right-2 top-1/2 -translate-y-1/2 pointer-events-none ${filterType === 'Month' ? 'text-white' : 'text-[#636e72]'}`} />
                         </div>
                     </div>
                 </div>
@@ -142,11 +141,11 @@ const AttendanceLog = ({
 
                             return (
                                 <tr key={index} className={`border-b border-[#e2e8f0] last:border-none hover:bg-[#f9fafb] transition-colors ${isWeekend || isHoliday || isAbsent || isApprovedLeave ? 'bg-[#f5f5f5]' : 'bg-white'}`}>
-                                    <td className="p-4 text-sm font-medium text-[#2d3436] text-center">
-                                        <div className="flex items-center justify-center gap-2">
+                                    <td className="p-2 mm:p-4 text-xs mm:text-sm font-medium text-[#2d3436] text-center">
+                                        <div className="flex flex-col mm:flex-row items-center justify-center gap-1 mm:gap-2">
                                             <span className="whitespace-nowrap">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</span>
                                             {(isWeekend || isHoliday || isAbsent || isApprovedLeave) && (
-                                                <span className={`px-1 text-[7px] rounded-full uppercase font-semibold whitespace-nowrap ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-[#d1d5db] text-[#48327d]'}`}>
+                                                <span className={`px-1 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-[#d1d5db] text-[#48327d]'}`}>
                                                     {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (log.leaveType?.toUpperCase() || 'LEAVE') : 'ABSENT'}
                                                 </span>
                                             )}
