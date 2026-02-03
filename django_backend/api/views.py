@@ -85,10 +85,15 @@ def login(request):
 @api_view(['POST'])
 def send_otp(request):
     phone = request.data.get('phone')
+    print(f"[OTP DEBUG] Received OTP request for phone: {phone}")
+    
     if not phone:
+        print("[OTP DEBUG] Phone number missing in request")
         return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
 
     normalized_input = normalize_phone(phone)
+    print(f"[OTP DEBUG] Normalized phone: {normalized_input}")
+    
     target_phone = normalized_input if phone != 'admin' else 'admin'
 
     # Check if user exists
@@ -98,13 +103,21 @@ def send_otp(request):
             if normalize_phone(emp.contact) == normalized_input:
                 user_exists = True
                 break
+        
+        print(f"[OTP DEBUG] User exists check for {normalized_input}: {user_exists}")
+        
         if not user_exists:
+            print("[OTP DEBUG] User not found")
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
     otp = str(random.randint(100000, 999999))
+    print(f"[OTP DEBUG] Generated OTP: {otp}")
+    
     OTPStore.objects.create(phone=target_phone, otp=otp, created_at=timezone.now())
 
     whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else "919247534762@c.us"
+    print(f"[OTP DEBUG] WhatsApp Recipient: {whatsapp_recipient}")
+    
     headers = {
         "Authorization": f"Bearer {settings.PERISKOPE_API_KEY}",
         "Content-Type": "application/json",
@@ -117,11 +130,16 @@ def send_otp(request):
     }
 
     try:
+        print(f"[OTP DEBUG] Sending to Periskope: {settings.PERISKOPE_URL}")
         response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=30)
+        print(f"[OTP DEBUG] Periskope Response Status: {response.status_code}")
+        print(f"[OTP DEBUG] Periskope Response Body: {response.text}")
+        
         if response.status_code in [200, 201]:
             return Response({'success': True, 'message': 'OTP sent successfully'})
         return Response({'error': f'Failed to send OTP: {response.text}'}, status=500)
     except Exception as e:
+        print(f"[OTP DEBUG] Exception sending OTP: {str(e)}")
         return Response({'error': f'WhatsApp API error: {str(e)}'}, status=500)
 
 @api_view(['POST'])
