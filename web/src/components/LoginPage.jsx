@@ -96,8 +96,8 @@ const LoginPage = ({ onLogin }) => {
             <div className="bg-white w-full max-w-md rounded-2xl shadow-xl border border-[#dfe6e9] overflow-hidden z-10 animate-in fade-in zoom-in duration-300 mx-auto">
                 <div className="p-8">
                     <div className="text-center mb-8">
-                        <div className="w-16 h-16 bg-[#48327d] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#48327d]/20">
-                            <Lock className="text-white" size={32} />
+                        <div className="w-32 h-32 bg-transparent rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <img src="/images/logo.png" alt="Logo" className="w-full h-full object-contain" />
                         </div>
                         <h1 className="text-2xl font-bold text-[#2d3436]">
                             {step === 'input' ? 'Welcome to Markwave HR' : 'Verify Identity'}

@@ -62,7 +62,12 @@ function App() {
     setModalVisible(false);
   };
 
-  const isAdmin = user?.role === 'Admin' || user?.role === 'Administrator' || user?.first_name === 'Admin';
+  if (user) {
+    console.log('Current User:', JSON.stringify(user, null, 2));
+    console.log('Role Check:', user.role, 'Is Admin?', user?.role === 'Admin');
+  }
+
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Administrator' || user?.first_name === 'Admin' || user?.role === 'HR';
 
   const getInitials = () => {
     if (!user) return 'HM';

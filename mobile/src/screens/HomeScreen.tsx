@@ -18,7 +18,8 @@ import {
 import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import Geolocation from '@react-native-community/geolocation';
 import CircularProgress from '../components/CircularProgress';
-import { attendanceApi, feedApi, leaveApi } from '../services/api';
+import { attendanceApi, feedApi, leaveApi, adminApi } from '../services/api';
+import EmployeeOverviewCard from '../components/EmployeeOverviewCard';
 
 const HomeScreen = ({ user }: { user: any }) => {
     if (!user) {
@@ -43,7 +44,9 @@ const HomeScreen = ({ user }: { user: any }) => {
     const [newComment, setNewComment] = useState('');
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
     const [leaveBalance, setLeaveBalance] = useState<any>(null); // Added state for leave balance
+
     const [disabledReason, setDisabledReason] = useState<string | null>(null); // Added state for leave/weekend status
+    const [dashboardStats, setDashboardStats] = useState<any>(null); // Added for Admin Dashboard Stats
 
     const isAdmin = user?.role === 'Admin';
 
@@ -54,11 +57,12 @@ const HomeScreen = ({ user }: { user: any }) => {
             else setIsFeedLoading(true);
 
             // Parallel fetch for speed
-            const [statusData, statsData, postsData, balanceData] = await Promise.all([
+            const [statusData, statsData, postsData, balanceData, adminStatsData] = await Promise.all([
                 attendanceApi.getStatus(user.id).catch(e => { console.log("Status fetch failed", e); return { status: 'OUT' }; }),
                 attendanceApi.getPersonalStats(user.id).catch(e => { console.log("Stats fetch failed", e); return null; }),
                 feedApi.getPosts().catch(e => { console.log("Posts fetch failed", e); return []; }),
-                leaveApi.getBalance(user.id).catch(e => { console.log("Balance fetch failed", e); return null; })
+                leaveApi.getBalance(user.id).catch(e => { console.log("Balance fetch failed", e); return null; }),
+                isAdmin ? adminApi.getDashboardStats().catch(e => { console.log("Admin stats fetch failed", e); return null; }) : Promise.resolve(null)
             ]);
 
             setIsClockedIn(statusData.status === 'IN');
@@ -66,6 +70,7 @@ const HomeScreen = ({ user }: { user: any }) => {
             setPersonalStats(statsData);
             setPosts(postsData || []); // Ensure posts is always an array
             setLeaveBalance(balanceData);
+            setDashboardStats(adminStatsData);
         } catch (error) {
             console.log("Failed to fetch dashboard data:", error);
         } finally {
@@ -311,8 +316,13 @@ const HomeScreen = ({ user }: { user: any }) => {
                 {locationState && <Text style={styles.locationText}>📍 {locationState}</Text>}
             </View>
 
-
-
+            {/* Employee Overview Card (Admin Only) */}
+            {isAdmin && (
+                <EmployeeOverviewCard
+                    stats={dashboardStats}
+                    onShowAbsentees={() => Alert.alert("Coming Soon", "Absentees list view is coming soon!")}
+                />
+            )}
 
             {/* Leave Balance Card */}
             <View style={styles.card}>

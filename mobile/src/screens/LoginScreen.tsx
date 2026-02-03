@@ -9,7 +9,8 @@ import {
     KeyboardAvoidingView,
     Platform,
     Dimensions,
-    StatusBar
+    StatusBar,
+    Image
 } from 'react-native';
 import { authApi } from '../services/api';
 
@@ -101,7 +102,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 <View style={styles.card}>
                     <View style={styles.headerContainer}>
                         <View style={styles.iconContainer}>
-                            <Text style={styles.lockIcon}>{step === 'phone' ? '📱' : '🔒'}</Text>
+                            <Image
+                                source={require('../assets/images/logo.png')}
+                                style={styles.logoImage}
+                                resizeMode="contain"
+                            />
                         </View>
                         <Text style={styles.title}>{step === 'phone' ? 'Welcome to Markwave HR' : 'Verify Identity'}</Text>
                         <Text style={styles.subtitle}>
@@ -235,18 +240,15 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     iconContainer: {
-        width: 64,
-        height: 64,
-        backgroundColor: '#48327d',
-        borderRadius: 16,
+        width: 120,
+        height: 120,
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 16,
-        shadowColor: '#48327d',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 4,
+    },
+    logoImage: {
+        width: '100%',
+        height: '100%',
     },
     lockIcon: {
         fontSize: 28,
