@@ -8,7 +8,8 @@ import {
     Modal,
     TextInput,
     Alert,
-    Platform
+    Platform,
+    ScrollView
 } from 'react-native';
 import { teamApi } from '../services/api';
 
@@ -19,6 +20,13 @@ const TeamManagementScreen = () => {
     const [editingTeam, setEditingTeam] = useState<any>(null);
     const [formData, setFormData] = useState({ name: '', description: '', manager_id: '' });
     const [managers, setManagers] = useState<any[]>([]);
+
+    // Member Management State
+    const [memberModalOpen, setMemberModalOpen] = useState(false);
+    const [selectedTeamMembers, setSelectedTeamMembers] = useState<any[]>([]);
+    const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
+    const [selectedEmployeeToAdd, setSelectedEmployeeToAdd] = useState('');
+    const [pickerModalOpen, setPickerModalOpen] = useState(false);
 
     useEffect(() => {
         fetchTeams();
@@ -96,6 +104,77 @@ const TeamManagementScreen = () => {
         setModalVisible(true);
     };
 
+    const handleManageMembers = async (team: any) => {
+        setEditingTeam(team);
+        setMemberModalOpen(true);
+        fetchTeamMembers(team.id);
+        fetchManagers();
+    };
+
+    const fetchTeamMembers = async (teamId: number) => {
+        try {
+            console.log('Fetching members for team:', teamId);
+            const data = await teamApi.getMembers(teamId);
+            console.log('Team members fetched:', data);
+            setSelectedTeamMembers(data);
+        } catch (error) {
+            console.error("Failed to fetch team members", error);
+            Alert.alert("Error", "Failed to fetch team members");
+        }
+    };
+
+    const handleAddMember = async () => {
+        if (!selectedEmployeeToAdd) return;
+        try {
+            console.log('Adding member:', selectedEmployeeToAdd, 'to team:', editingTeam.id);
+            const result = await teamApi.updateMember(selectedEmployeeToAdd, { team_id: editingTeam.id });
+            console.log('Member added successfully:', result);
+            await fetchTeamMembers(editingTeam.id);
+            await fetchTeams();
+            setSelectedEmployeeToAdd('');
+            Alert.alert("Success", "Member added successfully");
+        } catch (error) {
+            console.error("Failed to add member", error);
+            Alert.alert("Error", `Failed to add member: ${error}`);
+        }
+    };
+
+    const handleRemoveMember = async (memberId: string) => {
+        Alert.alert(
+            "Remove Member",
+            "Remove this member from the team?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            console.log('Removing member:', memberId, 'from team:', editingTeam.id);
+                            const result = await teamApi.updateMember(memberId, { team_id: null });
+                            console.log('Member removed successfully:', result);
+                            await fetchTeamMembers(editingTeam.id);
+                            await fetchTeams();
+                            Alert.alert("Success", "Member removed successfully");
+                        } catch (error) {
+                            console.error("Failed to remove member", error);
+                            Alert.alert("Error", `Failed to remove member: ${error}`);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    // Filter available employees (those not in the team)
+    useEffect(() => {
+        if (memberModalOpen && editingTeam) {
+            const currentMemberIds = selectedTeamMembers.map(m => m.id);
+            const available = managers.filter(emp => !currentMemberIds.includes(emp.id));
+            setAvailableEmployees(available);
+        }
+    }, [selectedTeamMembers, managers, memberModalOpen, editingTeam]);
+
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>
             <View style={styles.header}>
@@ -107,6 +186,9 @@ const TeamManagementScreen = () => {
                     <Text style={styles.cardSubtitle}>{item.member_count} Members</Text>
                 </View>
                 <View style={styles.actions}>
+                    <TouchableOpacity onPress={() => handleManageMembers(item)} style={styles.actionBtn}>
+                        <Text style={styles.manageIcon}>👥</Text>
+                    </TouchableOpacity>
                     <TouchableOpacity onPress={() => openModal(item)} style={styles.actionBtn}>
                         <Text style={styles.editIcon}>✏️</Text>
                     </TouchableOpacity>
@@ -181,6 +263,142 @@ const TeamManagementScreen = () => {
                                 disabled={!formData.name.trim()}
                             >
                                 <Text style={styles.saveText}>Save</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Member Management Modal */}
+            <Modal visible={memberModalOpen} animationType="slide" transparent={true}>
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <View>
+                                <Text style={styles.modalTitle}>Manage Members</Text>
+                                <Text style={{ color: '#636e72', fontSize: 14 }}>{editingTeam?.name}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setMemberModalOpen(false)} style={{ padding: 5 }}>
+                                <Text style={{ fontSize: 20, color: '#636e72' }}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Add Member Section */}
+                        <View style={styles.addMemberSection}>
+                            <Text style={styles.inputLabel}>Add Employee to Team</Text>
+                            <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                                <View style={{ flex: 1 }}>
+                                    <TouchableOpacity
+                                        style={styles.input}
+                                        onPress={() => setPickerModalOpen(true)}
+                                    >
+                                        <Text style={{ fontSize: 14, color: selectedEmployeeToAdd ? '#2d3436' : '#a0aec0' }}>
+                                            {selectedEmployeeToAdd
+                                                ? (() => {
+                                                    const emp = availableEmployees.find(e => e.id === selectedEmployeeToAdd) || managers.find(e => e.id === selectedEmployeeToAdd);
+                                                    return emp ? `${emp.first_name} ${emp.last_name} (${emp.role})` : 'Select an employee...';
+                                                })()
+                                                : 'Select an employee...'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <TouchableOpacity
+                                    onPress={handleAddMember}
+                                    disabled={!selectedEmployeeToAdd}
+                                    style={[styles.addMemberBtn, !selectedEmployeeToAdd && { opacity: 0.5 }]}
+                                >
+                                    <Text style={styles.addMemberBtnText}>Add</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+
+                        {/* Employee Picker Modal */}
+                        <Modal visible={pickerModalOpen} transparent={true} animationType="slide">
+                            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                                <View style={{ backgroundColor: 'white', maxHeight: '60%', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
+                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2d3436' }}>Select Employee</Text>
+                                        <TouchableOpacity onPress={() => setPickerModalOpen(false)}>
+                                            <Text style={{ fontSize: 20, color: '#636e72' }}>✕</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                    <ScrollView>
+                                        <TouchableOpacity
+                                            style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}
+                                            onPress={() => {
+                                                setSelectedEmployeeToAdd('');
+                                                setPickerModalOpen(false);
+                                            }}
+                                        >
+                                            <Text style={{ color: '#a0aec0' }}>Select an employee...</Text>
+                                        </TouchableOpacity>
+                                        {availableEmployees.map(emp => (
+                                            <TouchableOpacity
+                                                key={emp.id}
+                                                style={{
+                                                    padding: 16,
+                                                    borderBottomWidth: 1,
+                                                    borderBottomColor: '#f1f2f6',
+                                                    backgroundColor: selectedEmployeeToAdd === emp.id ? '#f3e5f5' : 'white'
+                                                }}
+                                                onPress={() => {
+                                                    setSelectedEmployeeToAdd(emp.id);
+                                                    setPickerModalOpen(false);
+                                                }}
+                                            >
+                                                <Text style={{ color: '#2d3436', fontWeight: '500' }}>
+                                                    {emp.first_name} {emp.last_name} ({emp.role})
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        </Modal>
+
+                        {/* Current Members List */}
+                        <View style={{ flex: 1, marginTop: 20 }}>
+                            <Text style={[styles.inputLabel, { marginBottom: 10 }]}>
+                                CURRENT MEMBERS ({selectedTeamMembers.length})
+                            </Text>
+
+                            {selectedTeamMembers.length === 0 ? (
+                                <View style={styles.emptyMemberList}>
+                                    <Text style={{ color: '#a0aec0', textAlign: 'center' }}>No members in this team yet.</Text>
+                                </View>
+                            ) : (
+                                <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+                                    <View style={{ gap: 10, paddingBottom: 10 }}>
+                                        {selectedTeamMembers.map(member => (
+                                            <View key={member.id} style={styles.memberItem}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                                                    <View style={styles.memberAvatar}>
+                                                        <Text style={styles.memberAvatarText}>{member.name?.[0]}</Text>
+                                                    </View>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Text style={styles.memberName}>{member.name}</Text>
+                                                        <Text style={styles.memberRole}>{member.role}</Text>
+                                                    </View>
+                                                </View>
+                                                <TouchableOpacity
+                                                    onPress={() => handleRemoveMember(member.id)}
+                                                    style={styles.removeMemberBtn}
+                                                >
+                                                    <Text style={styles.removeMemberText}>Remove</Text>
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </ScrollView>
+                            )}
+                        </View>
+
+                        <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f1f2f6' }}>
+                            <TouchableOpacity
+                                onPress={() => setMemberModalOpen(false)}
+                                style={[styles.modalBtn, styles.saveBtn]}
+                            >
+                                <Text style={styles.saveText}>Done</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -265,8 +483,80 @@ const styles = StyleSheet.create({
     actionBtn: {
         padding: 5
     },
+    manageIcon: { fontSize: 16 },
     editIcon: { fontSize: 16 },
     deleteIcon: { fontSize: 16 },
+    addMemberSection: {
+        backgroundColor: '#f8f9fa',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
+    },
+    addMemberBtn: {
+        backgroundColor: '#48327d',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    addMemberBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14
+    },
+    emptyMemberList: {
+        padding: 40,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderStyle: 'dashed'
+    },
+    memberItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 12,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
+    },
+    memberAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f3e5f5',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    memberAvatarText: {
+        color: '#48327d',
+        fontWeight: 'bold',
+        fontSize: 16
+    },
+    memberName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#2d3436'
+    },
+    memberRole: {
+        fontSize: 12,
+        color: '#636e72'
+    },
+    removeMemberBtn: {
+        backgroundColor: '#fff0f0',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8
+    },
+    removeMemberText: {
+        color: '#ff6b6b',
+        fontWeight: '600',
+        fontSize: 12
+    },
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',

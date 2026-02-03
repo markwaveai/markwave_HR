@@ -48,7 +48,11 @@ const HomeScreen = ({ user }: { user: any }) => {
     const [disabledReason, setDisabledReason] = useState<string | null>(null); // Added state for leave/weekend status
     const [dashboardStats, setDashboardStats] = useState<any>(null); // Added for Admin Dashboard Stats
 
-    const isAdmin = user?.role === 'Admin';
+    const isAdmin = user?.is_admin === true ||
+        user?.role === 'Admin' ||
+        user?.role === 'Administrator' ||
+        user?.role === 'Project Manager' ||
+        user?.role === 'Advisor-Technology & Operations';
 
     // Fetch Data Function
     const fetchData = async (isRefresh = false) => {

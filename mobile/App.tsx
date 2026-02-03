@@ -65,9 +65,14 @@ function App() {
   if (user) {
     console.log('Current User:', JSON.stringify(user, null, 2));
     console.log('Role Check:', user.role, 'Is Admin?', user?.role === 'Admin');
+    console.log('is_admin field:', user.is_admin, 'Type:', typeof user.is_admin);
   }
 
-  const isAdmin = user?.role === 'Admin' || user?.role === 'Administrator' || user?.first_name === 'Admin' || user?.role === 'HR';
+  const isAdmin = user?.is_admin === true ||
+    user?.role === 'Admin' ||
+    user?.role === 'Administrator' ||
+    user?.role === 'Project Manager' ||
+    user?.role === 'Advisor-Technology & Operations';
 
   const getInitials = () => {
     if (!user) return 'HM';
