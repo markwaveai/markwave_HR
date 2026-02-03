@@ -27,6 +27,7 @@ const TeamManagementScreen = () => {
     const [availableEmployees, setAvailableEmployees] = useState<any[]>([]);
     const [selectedEmployeeToAdd, setSelectedEmployeeToAdd] = useState('');
     const [pickerModalOpen, setPickerModalOpen] = useState(false);
+    const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
 
     useEffect(() => {
         fetchTeams();
@@ -166,14 +167,13 @@ const TeamManagementScreen = () => {
         );
     };
 
-    // Filter available employees (those not in the team)
+    // Set available employees (now ALL employees, we will handle "Added" state in UI)
     useEffect(() => {
-        if (memberModalOpen && editingTeam) {
-            const currentMemberIds = selectedTeamMembers.map(m => m.id);
-            const available = managers.filter(emp => !currentMemberIds.includes(emp.id));
-            setAvailableEmployees(available);
+        if (memberModalOpen && editingTeam && Array.isArray(managers)) {
+            // Just pass all managers/employees, we'll check isAdded in the render loop
+            setAvailableEmployees(managers);
         }
-    }, [selectedTeamMembers, managers, memberModalOpen, editingTeam]);
+    }, [managers, memberModalOpen, editingTeam]);
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>
@@ -183,7 +183,11 @@ const TeamManagementScreen = () => {
                 </View>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.cardTitle}>{item.name}</Text>
-                    <Text style={styles.cardSubtitle}>{item.member_count} Members</Text>
+                    <TouchableOpacity onPress={() => handleManageMembers(item)}>
+                        <Text style={[styles.cardSubtitle, { color: '#48327d', fontWeight: 'bold' }]}>
+                            {item.member_count} Members
+                        </Text>
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.actions}>
                     <TouchableOpacity onPress={() => handleManageMembers(item)} style={styles.actionBtn}>
@@ -276,16 +280,16 @@ const TeamManagementScreen = () => {
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                             <View>
                                 <Text style={styles.modalTitle}>Manage Members</Text>
-                                <Text style={{ color: '#636e72', fontSize: 14 }}>{editingTeam?.name}</Text>
+                                <Text style={{ color: '#636e72', fontSize: 14, marginTop: -15, marginBottom: 10 }}>{editingTeam?.name}</Text>
                             </View>
-                            <TouchableOpacity onPress={() => setMemberModalOpen(false)} style={{ padding: 5 }}>
+                            <TouchableOpacity onPress={() => setMemberModalOpen(false)} style={{ padding: 5, marginTop: -20 }}>
                                 <Text style={{ fontSize: 20, color: '#636e72' }}>✕</Text>
                             </TouchableOpacity>
                         </View>
 
                         {/* Add Member Section */}
                         <View style={styles.addMemberSection}>
-                            <Text style={styles.inputLabel}>Add Employee to Team</Text>
+                            <Text style={[styles.inputLabel, { textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 11 }]}>ADD EMPLOYEE TO TEAM</Text>
                             <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
                                 <View style={{ flex: 1 }}>
                                     <TouchableOpacity
@@ -322,43 +326,69 @@ const TeamManagementScreen = () => {
                                             <Text style={{ fontSize: 20, color: '#636e72' }}>✕</Text>
                                         </TouchableOpacity>
                                     </View>
-                                    <ScrollView>
-                                        <TouchableOpacity
-                                            style={{ padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}
-                                            onPress={() => {
-                                                setSelectedEmployeeToAdd('');
-                                                setPickerModalOpen(false);
+                                    <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
+                                        <TextInput
+                                            style={{
+                                                backgroundColor: '#f8f9fa',
+                                                padding: 10,
+                                                borderRadius: 8,
+                                                fontSize: 14,
+                                                color: '#2d3436'
                                             }}
-                                        >
-                                            <Text style={{ color: '#a0aec0' }}>Select an employee...</Text>
-                                        </TouchableOpacity>
-                                        {availableEmployees.map(emp => (
-                                            <TouchableOpacity
-                                                key={emp.id}
-                                                style={{
-                                                    padding: 16,
-                                                    borderBottomWidth: 1,
-                                                    borderBottomColor: '#f1f2f6',
-                                                    backgroundColor: selectedEmployeeToAdd === emp.id ? '#f3e5f5' : 'white'
-                                                }}
-                                                onPress={() => {
-                                                    setSelectedEmployeeToAdd(emp.id);
-                                                    setPickerModalOpen(false);
-                                                }}
-                                            >
-                                                <Text style={{ color: '#2d3436', fontWeight: '500' }}>
-                                                    {emp.first_name} {emp.last_name} ({emp.role})
-                                                </Text>
-                                            </TouchableOpacity>
-                                        ))}
+                                            placeholder="Search employees..."
+                                            value={employeeSearchQuery}
+                                            onChangeText={setEmployeeSearchQuery}
+                                        />
+                                    </View>
+                                    <ScrollView style={{ height: 300 }}>
+                                        {availableEmployees
+                                            .filter(emp => {
+                                                if (!emp) return false;
+                                                const q = (employeeSearchQuery || '').toLowerCase();
+                                                const firstName = (emp.first_name || '').toLowerCase();
+                                                const lastName = (emp.last_name || '').toLowerCase();
+                                                const role = (emp.role || '').toLowerCase();
+
+                                                return firstName.includes(q) || lastName.includes(q) || role.includes(q);
+                                            })
+                                            .map(emp => {
+                                                const isAdded = selectedTeamMembers.some(m => String(m.id) === String(emp.id));
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={emp.id}
+                                                        disabled={isAdded}
+                                                        style={{
+                                                            padding: 16,
+                                                            borderBottomWidth: 1,
+                                                            borderBottomColor: '#f1f2f6',
+                                                            backgroundColor: isAdded ? '#f8f9fa' : (selectedEmployeeToAdd === emp.id ? '#f3e5f5' : 'white'),
+                                                            flexDirection: 'row',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center'
+                                                        }}
+                                                        onPress={() => {
+                                                            setSelectedEmployeeToAdd(emp.id);
+                                                            setPickerModalOpen(false);
+                                                        }}
+                                                    >
+                                                        <Text style={{ color: isAdded ? '#b2bec3' : '#2d3436', fontWeight: '500' }}>
+                                                            {emp.first_name} {emp.last_name} ({emp.role})
+                                                        </Text>
+                                                        {isAdded && (
+                                                            <Text style={{ fontSize: 12, color: '#b2bec3', fontStyle: 'italic' }}>Added</Text>
+                                                        )}
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
                                     </ScrollView>
                                 </View>
                             </View>
                         </Modal>
 
                         {/* Current Members List */}
-                        <View style={{ flex: 1, marginTop: 20 }}>
-                            <Text style={[styles.inputLabel, { marginBottom: 10 }]}>
+                        {/* Current Members List */}
+                        <View style={{ marginTop: 20, minHeight: 200 }}>
+                            <Text style={[styles.inputLabel, { marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 11 }]}>
                                 CURRENT MEMBERS ({selectedTeamMembers.length})
                             </Text>
 
@@ -367,7 +397,7 @@ const TeamManagementScreen = () => {
                                     <Text style={{ color: '#a0aec0', textAlign: 'center' }}>No members in this team yet.</Text>
                                 </View>
                             ) : (
-                                <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={true}>
+                                <ScrollView style={{ height: 300 }} showsVerticalScrollIndicator={true}>
                                     <View style={{ gap: 10, paddingBottom: 10 }}>
                                         {selectedTeamMembers.map(member => (
                                             <View key={member.id} style={styles.memberItem}>
@@ -393,18 +423,23 @@ const TeamManagementScreen = () => {
                             )}
                         </View>
 
-                        <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f1f2f6' }}>
+                        <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f1f2f6', alignItems: 'flex-end' }}>
                             <TouchableOpacity
                                 onPress={() => setMemberModalOpen(false)}
-                                style={[styles.modalBtn, styles.saveBtn]}
+                                style={{
+                                    backgroundColor: '#f1f2f6',
+                                    paddingHorizontal: 24,
+                                    paddingVertical: 12,
+                                    borderRadius: 8,
+                                }}
                             >
-                                <Text style={styles.saveText}>Done</Text>
+                                <Text style={{ color: '#636e72', fontWeight: 'bold' }}>Done</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
-            </Modal>
-        </View>
+                </View >
+            </Modal >
+        </View >
     );
 };
 
@@ -518,11 +553,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 12,
+        padding: 16,
         backgroundColor: 'white',
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e2e8f0'
+        borderColor: '#e2e8f0',
+        marginBottom: 8,
+        // Shadow for "Card" look
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2
     },
     memberAvatar: {
         width: 40,
@@ -547,10 +589,9 @@ const styles = StyleSheet.create({
         color: '#636e72'
     },
     removeMemberBtn: {
-        backgroundColor: '#fff0f0',
-        paddingHorizontal: 12,
+        backgroundColor: 'transparent',
+        paddingHorizontal: 0,
         paddingVertical: 6,
-        borderRadius: 8
     },
     removeMemberText: {
         color: '#ff6b6b',

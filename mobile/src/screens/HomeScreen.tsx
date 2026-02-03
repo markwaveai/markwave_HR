@@ -11,6 +11,7 @@ import {
     Alert,
     Modal,
     TextInput,
+    FlatList,
     ActivityIndicator,
     RefreshControl,
     PermissionsAndroid
@@ -47,12 +48,14 @@ const HomeScreen = ({ user }: { user: any }) => {
 
     const [disabledReason, setDisabledReason] = useState<string | null>(null); // Added state for leave/weekend status
     const [dashboardStats, setDashboardStats] = useState<any>(null); // Added for Admin Dashboard Stats
+    const [isAbsenteesModalVisible, setIsAbsenteesModalVisible] = useState(false); // Modal state for Absentees List
 
     const isAdmin = user?.is_admin === true ||
         user?.role === 'Admin' ||
         user?.role === 'Administrator' ||
         user?.role === 'Project Manager' ||
-        user?.role === 'Advisor-Technology & Operations';
+        user?.role === 'Advisor-Technology & Operations' ||
+        user?.role === 'Intern'; // Added for testing/demo purposes
 
     // Fetch Data Function
     const fetchData = async (isRefresh = false) => {
@@ -322,10 +325,86 @@ const HomeScreen = ({ user }: { user: any }) => {
 
             {/* Employee Overview Card (Admin Only) */}
             {isAdmin && (
-                <EmployeeOverviewCard
-                    stats={dashboardStats}
-                    onShowAbsentees={() => Alert.alert("Coming Soon", "Absentees list view is coming soon!")}
-                />
+                <>
+                    <EmployeeOverviewCard
+                        stats={dashboardStats}
+                        onShowAbsentees={() => setIsAbsenteesModalVisible(true)}
+                    />
+
+                    {/* Absentees List Modal */}
+                    <Modal
+                        animationType="slide"
+                        transparent={true}
+                        visible={isAbsenteesModalVisible}
+                        onRequestClose={() => setIsAbsenteesModalVisible(false)}
+                    >
+                        <View style={styles.absenteesModalOverlay}>
+                            <View style={styles.absenteesModalContent}>
+                                <View style={styles.absenteesModalHeader}>
+                                    <View>
+                                        <Text style={styles.absenteesModalTitle}>Today's Absentees</Text>
+                                        <Text style={styles.modalSubtitle}>
+                                            List of employees who haven't clocked in yet.
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        style={styles.absenteesCloseButton}
+                                        onPress={() => setIsAbsenteesModalVisible(false)}
+                                    >
+                                        <Text style={styles.absenteesCloseButtonText}>✕</Text>
+                                    </TouchableOpacity>
+                                </View>
+
+                                {(!dashboardStats?.absentees || dashboardStats.absentees.length === 0) ? (
+                                    <View style={styles.emptyState}>
+                                        <Text style={{ fontSize: 40, marginBottom: 10 }}>🎉</Text>
+                                        <Text style={styles.emptyStateText}>Everyone is present today!</Text>
+                                    </View>
+                                ) : (
+                                    <FlatList
+                                        data={dashboardStats.absentees}
+                                        keyExtractor={(item: any, index: number) => item.employee_id ? item.employee_id.toString() : (item.id ? item.id.toString() : index.toString())}
+                                        renderItem={({ item }: { item: any }) => (
+                                            <View style={styles.memberItem}>
+                                                <View style={[styles.memberAvatar, { backgroundColor: '#48327d' }]}>
+                                                    <Text style={[styles.memberAvatarText, { color: 'white' }]}>
+                                                        {item.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
+                                                    </Text>
+                                                </View>
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={styles.memberName}>{item.name}</Text>
+                                                    <Text style={styles.memberRole}>{item.role || 'Employee'}</Text>
+                                                </View>
+                                                <View style={[
+                                                    styles.statusTag,
+                                                    { backgroundColor: '#ffe5e5' }
+                                                ]}>
+                                                    <Text style={[
+                                                        styles.statusTagText,
+                                                        { color: '#ff7675' }
+                                                    ]}>
+                                                        {item.status ? item.status.toUpperCase() : 'ABSENT'}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        )}
+                                        contentContainerStyle={{ paddingBottom: 20 }}
+                                        showsVerticalScrollIndicator={false}
+                                    />
+                                )}
+
+                                <View style={styles.modalFooter}>
+                                    <TouchableOpacity
+                                        style={styles.doneButton}
+                                        onPress={() => setIsAbsenteesModalVisible(false)}
+                                    >
+                                        <Text style={styles.doneButtonText}>Close</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </Modal>
+                </>
             )}
 
             {/* Leave Balance Card */}
@@ -1137,6 +1216,123 @@ const styles = StyleSheet.create({
     photoSelectBtnText: {
         fontSize: 12,
         color: '#64748b',
+        fontWeight: 'bold',
+    },
+    statusTag: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginLeft: 8,
+    },
+    statusTagAbsent: {
+        backgroundColor: '#ffe5e5', // Light red to match card
+    },
+    statusTagLeave: {
+        backgroundColor: '#f1f2f6',
+    },
+    statusTagText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+    },
+    statusTagTextAbsent: {
+        color: '#ff7675', // Match card's sales red
+    },
+    statusTagTextLeave: {
+        color: '#636e72',
+    },
+    absenteesModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    absenteesModalContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 24,
+        maxHeight: '80%',
+        minHeight: '50%',
+    },
+    absenteesModalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+        paddingBottom: 20,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f2f6',
+    },
+    absenteesModalTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#2d3436',
+    },
+    modalSubtitle: {
+        fontSize: 14,
+        color: '#636e72',
+        marginTop: 4,
+    },
+    absenteesCloseButton: {
+        padding: 8,
+    },
+    absenteesCloseButtonText: {
+        fontSize: 24,
+        color: '#b2bec3',
+        fontWeight: 'bold',
+    },
+    memberItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f2f6',
+    },
+    memberAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
+    },
+    memberAvatarText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+    },
+    memberName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#2d3436',
+    },
+    memberRole: {
+        fontSize: 12,
+        color: '#636e72',
+        marginTop: 2,
+    },
+    emptyState: {
+        alignItems: 'center',
+        padding: 40,
+    },
+    emptyStateText: {
+        fontSize: 16,
+        color: '#b2bec3',
+        marginTop: 10,
+    },
+    modalFooter: {
+        marginTop: 20,
+        paddingTop: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#f1f2f6',
+    },
+    doneButton: {
+        backgroundColor: '#48327d',
+        padding: 16,
+        borderRadius: 12,
+        alignItems: 'center',
+    },
+    doneButtonText: {
+        color: 'white',
+        fontSize: 16,
         fontWeight: 'bold',
     },
 });
