@@ -65,12 +65,26 @@ function MyTeam({ user }) {
             alert("Failed to add member: " + (error.response?.data?.error || error.message));
         }
     };
+    const handleRemoveMember = async (memberId) => {
+        if (!window.confirm("Are you sure you want to remove this member from your team?")) return;
+        try {
+            await teamApi.updateMember(memberId, {
+                team_id: null,
+                acting_user_id: user?.id
+            });
+            // Refresh local state
+            const updatedMembers = await teamApi.getMembers(user?.team_id);
+            setTeamMembers(updatedMembers);
+            alert("Member removed successfully!");
+        } catch (error) {
+            console.error("Failed to remove member:", error);
+            alert("Failed to remove member: " + (error.response?.data?.error || error.message));
+        }
+    };
 
     if (loading) {
         return <div className="p-6 text-center text-[#636e72]">Loading team data...</div>;
     }
-
-
 
     return (
         <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 bg-[#f5f7fa] relative">
@@ -108,7 +122,11 @@ function MyTeam({ user }) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mm:gap-10">
                     {filteredMembers.map(member => (
-                        <TeamMemberCard key={member.id} member={member} />
+                        <TeamMemberCard
+                            key={member.id}
+                            member={member}
+                            onRemove={isManager ? handleRemoveMember : null}
+                        />
                     ))}
                 </div>
             </div>

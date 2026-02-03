@@ -7,6 +7,17 @@ from core.models import Teams, Employees, Attendance, Leaves
 from .serializers import TeamsSerializer, EmployeesSerializer
 from datetime import datetime, timedelta
 
+def is_user_admin(employee):
+    """Checks if an employee has administrative privileges."""
+    if not employee:
+        return False
+    admin_roles = ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations']
+    return (
+        employee.role in admin_roles or 
+        getattr(employee, 'is_admin', False) or 
+        employee.first_name == 'Admin'
+    )
+
 @api_view(['GET', 'POST'])
 def team_list(request):
     if request.method == 'GET':
@@ -122,11 +133,11 @@ def member_list(request):
                 
                 # Check if authorized
                 is_authorized = Teams.objects.filter(id=team_id, manager=acting_emp).exists()
-                if not is_authorized and (acting_emp.role == 'Admin' or acting_emp.first_name == 'Admin'):
+                if not is_authorized and is_user_admin(acting_emp):
                     is_authorized = True
                     
                 if not is_authorized:
-                    return Response({'error': 'Unauthorized. Only the Team Leader of this team can add members.'}, status=403)
+                    return Response({'error': 'Unauthorized. Only the Team Leader or an Admin can add members.'}, status=403)
             except Employees.DoesNotExist:
                 return Response({'error': 'Acting user not found'}, status=403)
             except Exception as e:
@@ -198,14 +209,25 @@ def member_detail(request, pk):
                 else:
                     acting_emp = Employees.objects.get(employee_id=acting_user_id)
                 
-                # Check if they are a manager of the target team
-                is_authorized = Teams.objects.filter(id=new_team_id, manager=acting_emp).exists()
-                # Also allow if they are Admin
-                if not is_authorized and (acting_emp.role == 'Admin' or acting_emp.first_name == 'Admin'):
+                # Revised Permission Logic
+                is_authorized = False
+                
+                # 1. Broad Admin Check (consistent across app)
+                if is_user_admin(acting_emp):
                     is_authorized = True
+                
+                if not is_authorized:
+                    # 2. Check if they are the manager of the member's CURRENT team
+                    if employee.team and employee.team.manager == acting_emp:
+                        is_authorized = True
+                    
+                    # 3. Check if they are the manager of the member's NEW target team
+                    if not is_authorized and new_team_id:
+                        if Teams.objects.filter(id=new_team_id, manager=acting_emp).exists():
+                            is_authorized = True
                     
                 if not is_authorized:
-                    return Response({'error': 'Unauthorized. Only the Team Leader of this team can add/view members.'}, status=403)
+                    return Response({'error': 'Unauthorized. Only the Team Leader or an Admin can manage members.'}, status=403)
             except Employees.DoesNotExist:
                 return Response({'error': 'Acting user not found'}, status=403)
             except Exception as e:
@@ -214,6 +236,7 @@ def member_detail(request, pk):
 
         data = request.data
         try:
+            # Update basic fields
             employee.first_name = data.get('first_name', employee.first_name)
             if 'last_name' in data: employee.last_name = data['last_name']
             if 'role' in data: employee.role = data['role']
@@ -222,6 +245,18 @@ def member_detail(request, pk):
             if 'aadhar' in data: employee.aadhar = data['aadhar']
             if 'location' in data: employee.location = data['location']
             if 'status' in data: employee.status = data['status']
+            
+            # Update Team if provided
+            if 'team_id' in data:
+                new_team_id = data['team_id']
+                if new_team_id is None or new_team_id == "":
+                    employee.team = None
+                else:
+                    try:
+                        employee.team = Teams.objects.get(id=new_team_id)
+                    except Teams.DoesNotExist:
+                        return Response({'error': f'Team with ID {new_team_id} not found'}, status=404)
+
             employee.save()
             return Response({'message': 'Employee updated successfully'})
         except Exception as e:

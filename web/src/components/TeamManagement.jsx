@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { teamApi } from '../services/api';
 
-const TeamManagement = () => {
+const TeamManagement = ({ user }) => {
     const [teams, setTeams] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -120,7 +120,10 @@ const TeamManagement = () => {
     const handleAddMember = async () => {
         if (!selectedEmployeeToAdd) return;
         try {
-            await teamApi.updateMember(selectedEmployeeToAdd, { team_id: editingTeam.id });
+            await teamApi.updateMember(selectedEmployeeToAdd, {
+                team_id: editingTeam.id,
+                acting_user_id: user?.id
+            });
             fetchTeamMembers(editingTeam.id);
             fetchTeams();
             setSelectedEmployeeToAdd('');
@@ -132,7 +135,10 @@ const TeamManagement = () => {
     const handleRemoveMember = async (memberId) => {
         if (window.confirm("Remove this member from the team?")) {
             try {
-                await teamApi.updateMember(memberId, { team_id: null });
+                await teamApi.updateMember(memberId, {
+                    team_id: null,
+                    acting_user_id: user?.id
+                });
                 fetchTeamMembers(editingTeam.id);
                 fetchTeams();
             } catch (error) {
