@@ -21,7 +21,9 @@ staticfiles/
 mobile/node_modules/
 mobile/.expo/
 mobile/.expo-shared/
+mobile/android/build/
 mobile/android/app/build/
+mobile/android/.cxx/
 mobile/ios/Pods/
 mobile/ios/build/
 
