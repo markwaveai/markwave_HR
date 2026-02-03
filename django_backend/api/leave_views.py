@@ -60,14 +60,11 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
             
             # Action Links - prioritize environment variable, fallback to auto-detection
             import os
-            base_url = os.getenv('BASE_URL')
-            
-            if not base_url:
-                django_env = os.getenv('DJANGO_ENV', 'development')
-                if django_env == 'production':
-                    base_url = 'https://hr.markwave.ai'
-                else:
-                    base_url = 'http://localhost:8000'
+            django_env = os.getenv('DJANGO_ENV', 'development')
+            if django_env == 'production':
+                base_url = 'https://hr.markwave.ai'
+            else:
+                base_url = 'http://localhost:8000'
             
             approve_url = f"{base_url}/api/leaves/email-action/{leave_request.id}/approve/"
             reject_url = f"{base_url}/api/leaves/email-action/{leave_request.id}/reject/"
