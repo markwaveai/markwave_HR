@@ -1,0 +1,17 @@
+{
+    "name": "keka-markwave-monorepo",
+    "private": true,
+    "workspaces": [
+        "web",
+        "mobile",
+        "shared"
+    ],
+    "scripts": {
+        "web": "npm run dev --workspace=web",
+        "mobile": "npm run start --workspace=mobile",
+        "shared:build": "npm run build --workspace=shared"
+    },
+    "devDependencies": {
+        "@react-native/metro-config": "^0.83.1"
+    }
+}

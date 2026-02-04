@@ -2,16 +2,18 @@ import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
-import Dashboard from './components/Dashboard';
-import Me from './components/Me';
-import MyTeam from './components/MyTeam';
-import LeaveAttendance from './components/LeaveAttendance';
-import Settings from './components/Layout/Settings';
-import EmployeeManagement from './components/EmployeeManagement';
-import AdminLeaveManagement from './components/AdminLeaveManagement';
-import TeamManagement from './components/TeamManagement';
-import LoginPage from './components/LoginPage';
-import { authApi } from './services/api';
+import {
+  HomeScreen as Dashboard,
+  MeScreen as Me,
+  MyTeamScreen as MyTeam,
+  LeaveScreen as LeaveAttendance,
+  EmployeeListScreen as EmployeeManagement,
+  AdminLeaveScreen as AdminLeaveManagement,
+  TeamManagementScreen as TeamManagement,
+  ProfileScreen as Settings,
+  authApi
+} from '@markwave/shared';
+// import { authApi } from './services/api';
 import './index.css';
 
 // Protected Route Component
@@ -136,3 +138,4 @@ function App() {
 }
 
 export default App;
+

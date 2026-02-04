@@ -45,3 +45,4 @@ function Header({ user, isSidebarOpen, onMenuClick }) {
 }
 
 export default Header;
+

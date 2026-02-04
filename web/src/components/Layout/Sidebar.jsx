@@ -111,3 +111,4 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
 }
 
 export default Sidebar;
+

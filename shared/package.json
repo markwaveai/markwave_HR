@@ -1,0 +1,13 @@
+{
+    "name": "@markwave/shared",
+    "version": "1.0.0",
+    "main": "src/index.js",
+    "private": true,
+    "peerDependencies": {
+        "react": "*",
+        "react-native": "*"
+    },
+    "dependencies": {
+        "react-native-vector-icons": "^10.3.0"
+    }
+}

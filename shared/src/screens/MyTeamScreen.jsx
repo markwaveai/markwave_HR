@@ -1,0 +1,634 @@
+import React, { useState, useEffect } from 'react';
+import {
+    View,
+    Text,
+    StyleSheet,
+    FlatList,
+    TextInput,
+    TouchableOpacity,
+    ActivityIndicator,
+    Platform,
+    Modal,
+    ScrollView,
+    SafeAreaView
+} from 'react-native';
+import Icon from 'react-native-vector-icons/Feather';
+import { showAlert } from '../utils/platform';
+import { teamApi } from '../services/api';
+
+
+
+const MyTeamScreen = ({ user }) => {
+    const [teamMembers, setTeamMembers] = useState([]);
+    const [stats, setStats] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [allEmployees, setAllEmployees] = useState([]);
+    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+    const [selectedExistingId, setSelectedExistingId] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
+
+    useEffect(() => {
+        fetchTeamData();
+    }, [user]);
+
+    const fetchTeamData = async () => {
+        try {
+            const teamId = user?.team_id;
+            const [membersData, statsData, allEmpsData] = await Promise.all([
+                teamApi.getMembers(teamId),
+                teamApi.getStats(teamId),
+                teamApi.getAttendanceRegistry()
+            ]);
+
+            setTeamMembers(membersData);
+            setStats(statsData);
+            setAllEmployees(allEmpsData);
+        } catch (error) {
+            console.log("Failed to fetch team data:", error);
+            showAlert("Error", "Could not load team data. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleAddMember = async () => {
+        if (!selectedExistingId) {
+            showAlert("Required", "Please select an employee.");
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await teamApi.updateMember(selectedExistingId, {
+                team_id: user?.team_id,
+                acting_user_id: user?.id
+            });
+
+            showAlert("Success", "Team member added successfully!");
+            setIsAddModalVisible(false);
+            setSelectedExistingId('');
+            fetchTeamData(); // Refresh list
+        } catch (error) {
+            console.log("Failed to add member:", error);
+            showAlert("Error", error.message || "Could not add team member.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const filteredMembers = teamMembers.filter(member =>
+        (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+        (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+    );
+
+    const renderHeader = () => (
+        <View style={styles.headerContainer}>
+            <View style={styles.titleRow}>
+                <View style={styles.titleContent}>
+                    <Text style={styles.pageTitle}>My Team</Text>
+                    <Text style={styles.pageSubtitle}>Manage and view your team members</Text>
+                </View>
+                {isManager && (
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => setIsAddModalVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>Add Member</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {/* Search Bar */}
+            <View style={styles.searchContainer}>
+                <Icon name="search" size={14} color="#94a3b8" style={{ marginRight: 8 }} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search members..."
+                    value={searchTerm}
+                    onChangeText={setSearchTerm}
+                    placeholderTextColor="#94a3b8"
+                />
+            </View>
+
+            {/* Stats Grid */}
+            <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Total Members</Text>
+                    <Text style={[styles.statValue, { color: '#1e293b' }]}>{stats?.total || 0}</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Active Now</Text>
+                    <View style={styles.activeRow}>
+                        <Text style={[styles.statValue, { color: '#10b981' }]}>{stats?.active || 0}</Text>
+                        <Text style={styles.onlineBadge}>Online</Text>
+                    </View>
+                </View>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>On Leave</Text>
+                    <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats?.onLeave || 0}</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Remote</Text>
+                    <Text style={[styles.statValue, { color: '#3b82f6' }]}>{stats?.remote || 0}</Text>
+                </View>
+            </View>
+        </View>
+    );
+
+    const renderMemberCard = ({ item }) => (
+        <View style={styles.card}>
+            <View style={styles.cardHeaderRow}>
+                <View style={styles.memberInfo}>
+                    <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">
+                        {item.name}
+                    </Text>
+                    <Text style={styles.memberRole} numberOfLines={1} ellipsizeMode="tail">
+                        {item.role}
+                    </Text>
+                </View>
+                <TouchableOpacity style={styles.moreButton}>
+                    <Icon name="more-vertical" size={20} color="#94a3b8" />
+                </TouchableOpacity>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={styles.cardDetailsRow}>
+                <View style={styles.detailItem}>
+                    <Text style={styles.detailLabel}>STATUS</Text>
+                    <View style={styles.statusRow}>
+                        <View style={[styles.statusDot, { backgroundColor: item.status === 'Active' ? '#10b981' : '#f59e0b' }]} />
+                        <Text style={styles.detailValue}>{item.status}</Text>
+                    </View>
+                </View>
+                <View style={[styles.detailItem, { flex: 1.5 }]}>
+                    <Text style={styles.detailLabel}>LOCATION</Text>
+                    <View style={styles.statusRow}>
+                        <Icon name="map-pin" size={10} color="#64748b" />
+                        <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
+                            {item.location || 'Not Specified'}
+                        </Text>
+                    </View>
+                </View>
+            </View>
+
+            <View style={styles.cardFooter}>
+                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Icon name="mail" size={12} color="#64748b" />
+                    <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
+                        {item.email || 'No email provided'}
+                    </Text>
+                </View>
+                <TouchableOpacity style={styles.viewProfileBtn}>
+                    <Text style={styles.viewProfileText}>View Profile</Text>
+                </TouchableOpacity>
+            </View>
+        </View>
+    );
+
+    if (loading) {
+        return (
+            <View style={styles.centered}>
+                <ActivityIndicator size="large" color="#6366f1" />
+                <Text style={{ marginTop: 10, color: '#64748b', fontWeight: '500' }}>Syncing team...</Text>
+            </View>
+        );
+    }
+
+    return (
+        <SafeAreaView style={styles.container}>
+            <FlatList
+                data={filteredMembers}
+                keyExtractor={item => item.id.toString()}
+                renderItem={renderMemberCard}
+                ListHeaderComponent={renderHeader}
+                contentContainerStyle={styles.listContent}
+                showsVerticalScrollIndicator={false}
+            />
+
+            {/* Add Member Modal */}
+            <Modal
+                visible={isAddModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsAddModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Add Team Member</Text>
+                            <TouchableOpacity onPress={() => setIsAddModalVisible(false)} style={styles.closeButton}>
+                                <Icon name="x" size={20} color="#94a3b8" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
+                            <View>
+                                <Text style={styles.inputLabel}>SELECT EMPLOYEE (TOTAL EMPLOYEES)</Text>
+                                <View style={styles.pickerContainer}>
+                                    {allEmployees
+                                        .filter(emp => !teamMembers.some(m => m.id === emp.id))
+                                        .map(emp => (
+                                            <TouchableOpacity
+                                                key={emp.id}
+                                                onPress={() => setSelectedExistingId(String(emp.id))}
+                                                style={[
+                                                    styles.employeeSelectItem,
+                                                    selectedExistingId === String(emp.id) && styles.employeeSelected
+                                                ]}
+                                            >
+                                                <View>
+                                                    <Text style={[styles.empSelectName, selectedExistingId === String(emp.id) && styles.empSelectedText]}>
+                                                        {emp.first_name} {emp.last_name}
+                                                    </Text>
+                                                    <Text style={styles.empSelectRole}>{emp.role}</Text>
+                                                </View>
+                                                {selectedExistingId === String(emp.id) && <Text style={styles.checkIcon}>✓</Text>}
+                                            </TouchableOpacity>
+                                        ))}
+                                    {allEmployees.filter(emp => !teamMembers.some(m => m.id === emp.id)).length === 0 && (
+                                        <Text style={styles.emptyText}>All available employees are already in your team.</Text>
+                                    )}
+                                </View>
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.submitButton, (!selectedExistingId || isSubmitting) && { opacity: 0.5 }]}
+                                onPress={handleAddMember}
+                                disabled={!selectedExistingId || isSubmitting}
+                            >
+                                <Text style={styles.submitButtonText}>
+                                    {isSubmitting ? "Adding..." : "Add Member"}
+                                </Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+        </SafeAreaView>
+    );
+};
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#F8F9FA',
+    },
+    listContent: {
+        padding: 16,
+        paddingBottom: 100, // Space for tab bar
+    },
+    centered: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F8F9FA',
+    },
+    headerContainer: {
+        marginBottom: 20,
+    },
+    titleRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    titleContent: {
+        flex: 1,
+        paddingRight: 10,
+    },
+    pageTitle: {
+        fontSize: 24,
+        fontWeight: '900',
+        color: '#1e293b',
+        letterSpacing: -0.5,
+    },
+    pageSubtitle: {
+        fontSize: 13,
+        color: '#64748b',
+        marginTop: 2,
+    },
+    addButton: {
+        backgroundColor: '#6366f1',
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 10,
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    addButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 12,
+    },
+    searchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginBottom: 20,
+        height: 44,
+    },
+    searchIcon: {
+        marginRight: 8,
+        fontSize: 14,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        color: '#1e293b',
+        fontWeight: '500',
+    },
+    // Stats
+    statsGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    statCard: {
+        width: '48%',
+        backgroundColor: 'white',
+        padding: 16,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 10,
+        elevation: 1,
+    },
+    statLabel: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+        marginBottom: 6,
+    },
+    statValue: {
+        fontSize: 24,
+        fontWeight: '900',
+    },
+    activeRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        gap: 6,
+    },
+    onlineBadge: {
+        fontSize: 8,
+        fontWeight: 'bold',
+        color: '#10b981',
+        backgroundColor: '#ecfdf5',
+        paddingHorizontal: 4,
+        paddingVertical: 1,
+        borderRadius: 4,
+        marginBottom: 4,
+    },
+    // Member Card
+    card: {
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.03,
+        shadowRadius: 12,
+        elevation: 2,
+    },
+    cardHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    memberInfo: {
+        flex: 1,
+        paddingRight: 12,
+    },
+    memberName: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1e293b',
+        letterSpacing: -0.3,
+    },
+    memberRole: {
+        fontSize: 12,
+        color: '#6366f1',
+        fontWeight: '700',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 4,
+    },
+    moreButton: {
+        padding: 4,
+        marginTop: -4,
+    },
+    moreButtonText: {
+        fontSize: 20,
+        color: '#94a3b8',
+    },
+    divider: {
+        height: 1,
+        backgroundColor: '#f1f5f9',
+        marginVertical: 16,
+    },
+    cardDetailsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    detailItem: {
+        flex: 1,
+    },
+    detailLabel: {
+        fontSize: 9,
+        fontWeight: '900',
+        color: '#94a3b8',
+        letterSpacing: 1,
+        marginBottom: 8,
+    },
+    statusRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+    },
+    detailValue: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#334155',
+    },
+    cardFooter: {
+        marginTop: 20,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: 10,
+    },
+    emailText: {
+        flex: 1,
+        fontSize: 12,
+        color: '#64748b',
+        fontWeight: '500',
+    },
+    viewProfileBtn: {
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: 8,
+        backgroundColor: '#eff6ff',
+    },
+    viewProfileText: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#3b82f6',
+        textTransform: 'uppercase',
+    },
+    // Modal Styles
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    modalContent: {
+        backgroundColor: 'white',
+        borderRadius: 24,
+        maxHeight: '85%',
+        width: '100%',
+        overflow: 'hidden',
+        elevation: 10,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 24,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9',
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '900',
+        color: '#1e293b',
+    },
+    closeButton: {
+        padding: 4,
+    },
+    closeButtonText: {
+        fontSize: 18,
+        color: '#94a3b8',
+    },
+    formContainer: {
+        padding: 24,
+    },
+    formRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    formField: {
+        flex: 1,
+    },
+    inputLabel: {
+        fontSize: 10,
+        fontWeight: '900',
+        color: '#64748b',
+        letterSpacing: 1,
+        marginBottom: 8,
+        marginTop: 16,
+    },
+    input: {
+        backgroundColor: '#f8fafc',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 12,
+        padding: 12,
+        fontSize: 14,
+        color: '#1e293b',
+        fontWeight: '500',
+    },
+    submitButton: {
+        backgroundColor: '#6366f1',
+        borderRadius: 12,
+        padding: 16,
+        alignItems: 'center',
+        marginTop: 32,
+        shadowColor: '#6366f1',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    submitButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 15,
+    },
+    pickerContainer: {
+        marginTop: 10,
+    },
+    employeeSelectItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 12,
+        backgroundColor: '#f8fafc',
+        borderRadius: 12,
+        marginBottom: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    employeeSelected: {
+        borderColor: '#6366f1',
+        backgroundColor: '#f5f3ff',
+    },
+    empSelectName: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1e293b',
+    },
+    empSelectedText: {
+        color: '#6366f1',
+    },
+    empSelectRole: {
+        fontSize: 11,
+        color: '#64748b',
+        marginTop: 2,
+    },
+    checkIcon: {
+        color: '#6366f1',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
+    emptyText: {
+        textAlign: 'center',
+        color: '#94a3b8',
+        fontSize: 12,
+        fontStyle: 'italic',
+        marginTop: 20,
+    }
+});
+
+export default MyTeamScreen;
+
+
+
