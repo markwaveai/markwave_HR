@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { leaveApi, authApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 
@@ -33,9 +34,9 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const EMPLOYEE_ID = user?.id; // Dynamic ID from prop
 
     const LEAVE_CONFIG = {
-        'cl': { name: 'Casual Leave', code: 'cl', total: 6, color: '#3498db', bg: '#e0f2fe' },
-        'sl': { name: 'Sick Leave', code: 'sl', total: 6, color: '#e74c3c', bg: '#fee2e2' },
-        'el': { name: 'Earned Leave', code: 'el', total: 17, color: '#2ecc71', bg: '#dcfce7' },
+        'cl': { name: 'Casual Leave', code: 'cl', total: 6, color: '#3498db', bg: '#e0f2fe', icon: 'airplane' },
+        'sl': { name: 'Sick Leave', code: 'sl', total: 6, color: '#e74c3c', bg: '#fee2e2', icon: 'thermometer' },
+        'el': { name: 'Earned Leave', code: 'el', total: 17, color: '#2ecc71', bg: '#dcfce7', icon: 'leaf' },
     };
 
     const LEAVE_TYPES_LIST = [
@@ -208,7 +209,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                         <View key={index} style={styles.balanceCard}>
                             <View style={styles.balanceHeader}>
                                 <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
-                                    <Text style={{ fontSize: 16 }}>{item.code === 'cl' ? '✈️' : item.code === 'sl' ? '🌡️' : '🌴'}</Text>
+                                    <Ionicons name={item.icon} size={20} color={item.color} />
                                 </View>
                                 <Text style={styles.balanceTitle}>{item.name}</Text>
                             </View>

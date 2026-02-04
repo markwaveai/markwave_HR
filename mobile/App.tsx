@@ -28,19 +28,27 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 /* ... existing interfaces ... */
 
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
+/* ... existing interfaces ... */
+
 interface TabButtonProps {
   title: string;
   isActive: boolean;
   onPress: () => void;
-  icon: string;
+  iconName: string;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, icon }) => (
+const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, iconName }) => (
   <TouchableOpacity
     style={[styles.tabButton, isActive && styles.tabButtonActive]}
     onPress={onPress}
   >
-    <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{icon}</Text>
+    <Ionicons
+      name={isActive ? iconName : `${iconName}-outline`}
+      size={24}
+      color={isActive ? '#6c5ce7' : '#b2bec3'}
+    />
     <Text style={[styles.tabLabel, isActive && styles.tabTextActive]}>{title}</Text>
   </TouchableOpacity>
 );
@@ -145,14 +153,14 @@ function App() {
           <View style={styles.tabBar}>
             <TabButton
               title="Home"
-              icon="🏠"
+              iconName="home"
               isActive={activeTab === 'Home'}
               onPress={() => setActiveTab('Home')}
             />
             {/* Common Tabs for Employee & Admin */}
             <TabButton
               title="Me"
-              icon="👤"
+              iconName="person"
               isActive={activeTab === 'Me'}
               onPress={() => setActiveTab('Me')}
             />
@@ -161,7 +169,7 @@ function App() {
             {!isAdmin && (
               <TabButton
                 title="My Team"
-                icon="👥"
+                iconName="people"
                 isActive={activeTab === 'Team'}
                 onPress={() => setActiveTab('Team')}
               />
@@ -171,7 +179,7 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Employees"
-                icon="👥"
+                iconName="people"
                 isActive={activeTab === 'Employees'}
                 onPress={() => setActiveTab('Employees')}
               />
@@ -180,7 +188,7 @@ function App() {
             {!isAdmin && (
               <TabButton
                 title="Leave"
-                icon="📅"
+                iconName="calendar"
                 isActive={activeTab === 'Menu'}
                 onPress={() => setActiveTab('Menu')}
               />
@@ -188,7 +196,7 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Requests"
-                icon="✓"
+                iconName="checkmark-circle"
                 isActive={activeTab === 'AdminLeave'}
                 onPress={() => setActiveTab('AdminLeave')}
               />
@@ -196,7 +204,7 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Teams"
-                icon="🏢"
+                iconName="business"
                 isActive={activeTab === 'Teams'}
                 onPress={() => setActiveTab('Teams')}
               />
