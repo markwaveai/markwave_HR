@@ -7,9 +7,6 @@ plugins {
 }
 
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
-    // Force Old Architecture unconditionally
-    println("Antigravity: Forcing New Architecture OFF via settings.gradle")
-    ex.newArchEnabled = false
     ex.autolinkLibrariesFromCommand()
 }
 
