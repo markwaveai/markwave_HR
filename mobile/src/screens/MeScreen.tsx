@@ -12,7 +12,7 @@ import {
     Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Geolocation from '@react-native-community/geolocation';
+// import Geolocation from '@react-native-community/geolocation';
 import { attendanceApi, teamApi } from '../services/api';
 
 const { width } = Dimensions.get('window');
@@ -100,79 +100,23 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
 
 
     const handleClockAction = async () => {
+        setClockLoading(true);
+        // Geolocation Logic Removed for Cloud Build Compatibility
+
+        const finalLocation = "Cloud Server (Preview)";
+        const nextType = clockStatus === 'IN' ? 'OUT' : 'IN';
+
         try {
-            setClockLoading(true);
-
-            Geolocation.getCurrentPosition(
-                async (position) => {
-                    const { latitude, longitude } = position.coords;
-                    let finalLocation = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
-
-                    try {
-                        const response = await fetch(
-                            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
-                            { headers: { 'User-Agent': 'Markwave-Mobile-App' } }
-                        );
-                        const data = await response.json();
-
-                        if (data && data.address) {
-                            const addr = data.address;
-                            const buildingTags = [
-                                addr.building, addr.commercial, addr.office, addr.amenity,
-                                addr.house_name, addr.house_number, addr.office, addr.landmark, addr.tourism,
-                                addr.shop, addr.retail, addr.university, addr.hospital,
-                                addr.hotel, addr.industrial, addr.theatre, addr.place_of_worship
-                            ];
-
-                            let buildingName = buildingTags.find(Boolean) || '';
-                            if (!buildingName && data.display_name) {
-                                const primaryName = data.display_name.split(',')[0].trim();
-                                const road = addr.road || addr.pedestrian || '';
-                                if (primaryName && road && !road.includes(primaryName) && !primaryName.includes(road)) {
-                                    buildingName = primaryName;
-                                }
-                            }
-
-                            const roadDetail = addr.road || addr.pedestrian || '';
-                            const areaDetail = addr.neighbourhood || addr.suburb || addr.city_district || '';
-                            const cityDetail = addr.city || addr.town || addr.village || '';
-
-                            const displayAddr = [buildingName, roadDetail, areaDetail, cityDetail].filter(Boolean).join(', ');
-
-                            if (displayAddr) {
-                                finalLocation = displayAddr;
-                            } else if (data.display_name) {
-                                finalLocation = data.display_name.split(',').slice(0, 3).join(',');
-                            }
-                        }
-                    } catch (geoError) {
-                        console.log("Reverse geocoding failed:", geoError);
-                    }
-
-                    try {
-                        const nextType = clockStatus === 'IN' ? 'OUT' : 'IN';
-                        await attendanceApi.clock({
-                            employee_id: user.id,
-                            location: finalLocation,
-                            type: nextType
-                        });
-                        await fetchData();
-                    } catch (err) {
-                        console.log("Clock action failed:", err);
-                        Alert.alert('Error', 'Failed to update attendance');
-                    } finally {
-                        setClockLoading(false);
-                    }
-                },
-                (error) => {
-                    Alert.alert('Error', 'Failed to get location');
-                    setClockLoading(false);
-                },
-                { enableHighAccuracy: false, timeout: 20000, maximumAge: 1000 }
-            );
-
+            await attendanceApi.clock({
+                employee_id: user.id,
+                location: finalLocation,
+                type: nextType
+            });
+            await fetchData();
         } catch (err) {
-            console.log("Unexpected error:", err);
+            console.log("Clock action failed:", err);
+            Alert.alert('Error', 'Failed to update attendance');
+        } finally {
             setClockLoading(false);
         }
     };

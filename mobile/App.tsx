@@ -28,37 +28,33 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
 /* ... existing interfaces ... */
 
-import Ionicons from 'react-native-vector-icons/Ionicons';
-
 /* ... existing interfaces ... */
 
 interface TabButtonProps {
   title: string;
   isActive: boolean;
   onPress: () => void;
-  iconName: string;
+  icon: string;
 }
 
-const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, iconName }) => (
+const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, icon }) => (
   <TouchableOpacity
     style={[styles.tabButton, isActive && styles.tabButtonActive]}
     onPress={onPress}
   >
-    <Ionicons
-      name={isActive ? iconName : `${iconName}-outline`}
-      size={24}
-      color={isActive ? '#6c5ce7' : '#b2bec3'}
-    />
+    <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{icon}</Text>
     <Text style={[styles.tabLabel, isActive && styles.tabTextActive]}>{title}</Text>
   </TouchableOpacity>
 );
 
 function App() {
+  /* ... existing state ... */
   const [activeTab, setActiveTab] = useState('Home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
+  /* ... logout logic ... */
   const handleLogoutPress = () => {
     setModalVisible(true);
   };
@@ -70,11 +66,6 @@ function App() {
     setModalVisible(false);
   };
 
-  if (user) {
-    console.log('Current User:', JSON.stringify(user, null, 2));
-    console.log('Role Check:', user.role, 'Is Admin?', user?.role === 'Admin');
-    console.log('is_admin field:', user.is_admin, 'Type:', typeof user.is_admin);
-  }
 
   const isAdmin = user?.is_admin === true ||
     user?.role === 'Admin' ||
@@ -87,6 +78,8 @@ function App() {
     return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   };
 
+  /* ... return block ... */
+
   return (
     <SafeAreaProvider style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
@@ -95,7 +88,7 @@ function App() {
         <LoginScreen onLogin={(userData) => { setIsLoggedIn(true); setUser(userData); }} />
       ) : (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-          {/* Header with Avatar and Logout */}
+          {/* Header ... */}
           <View style={styles.header}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>{getInitials()}</Text>
@@ -105,12 +98,14 @@ function App() {
             </TouchableOpacity>
           </View>
 
+          {/* Modal ... */}
           <Modal
             animationType="fade"
             transparent={true}
             visible={modalVisible}
             onRequestClose={() => setModalVisible(false)}
           >
+            {/* ... modal content ... */}
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <View style={styles.modalIcon}>
@@ -153,33 +148,31 @@ function App() {
           <View style={styles.tabBar}>
             <TabButton
               title="Home"
-              iconName="home"
+              icon="🏠"
               isActive={activeTab === 'Home'}
               onPress={() => setActiveTab('Home')}
             />
-            {/* Common Tabs for Employee & Admin */}
+
             <TabButton
               title="Me"
-              iconName="person"
+              icon="👤"
               isActive={activeTab === 'Me'}
               onPress={() => setActiveTab('Me')}
             />
 
-            {/* Employee Specific Tabs */}
             {!isAdmin && (
               <TabButton
                 title="My Team"
-                iconName="people"
+                icon="👥"
                 isActive={activeTab === 'Team'}
                 onPress={() => setActiveTab('Team')}
               />
             )}
 
-            {/* Admin Only Tabs */}
             {isAdmin && (
               <TabButton
                 title="Employees"
-                iconName="people"
+                icon="👥"
                 isActive={activeTab === 'Employees'}
                 onPress={() => setActiveTab('Employees')}
               />
@@ -188,7 +181,7 @@ function App() {
             {!isAdmin && (
               <TabButton
                 title="Leave"
-                iconName="calendar"
+                icon="📅"
                 isActive={activeTab === 'Menu'}
                 onPress={() => setActiveTab('Menu')}
               />
@@ -196,7 +189,7 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Requests"
-                iconName="checkmark-circle"
+                icon="✓"
                 isActive={activeTab === 'AdminLeave'}
                 onPress={() => setActiveTab('AdminLeave')}
               />
@@ -204,7 +197,7 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Teams"
-                iconName="business"
+                icon="🏢"
                 isActive={activeTab === 'Teams'}
                 onPress={() => setActiveTab('Teams')}
               />
