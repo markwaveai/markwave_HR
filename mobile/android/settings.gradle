@@ -7,6 +7,10 @@ plugins {
 }
 
 extensions.configure(com.facebook.react.ReactSettingsExtension) { ex ->
+    // Force Old Architecture to avoid build errors with current libraries
+    if (ex.hasProperty("newArchEnabled")) {
+        ex.newArchEnabled = false
+    }
     ex.autolinkLibrariesFromCommand()
 }
 
