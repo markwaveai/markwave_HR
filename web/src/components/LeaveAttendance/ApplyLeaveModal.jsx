@@ -14,44 +14,62 @@ const ApplyLeaveModal = ({
     profile,
     handleLeaveSubmit
 }) => {
+    const [isClosing, setIsClosing] = React.useState(false);
+
+    const closeModal = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setIsModalOpen(false);
+            setIsClosing(false);
+        }, 200);
+    };
+
     const isSingleDay = !toDate || (fromDate && toDate && fromDate === toDate);
 
-    const SessionSelector = ({ label, value, onChange }) => (
-        <div className="mb-2 last:mb-0">
-            <label className="block text-[11px] font-bold text-[#636e72] uppercase tracking-wide mb-1 flex items-center gap-1">
-                {label} <span className="text-red-500">*</span>
-            </label>
-            <div className="flex gap-2">
-                {['Full Day', 'First Half', 'Second Half'].map((s) => (
-                    <button
-                        key={s}
-                        onClick={() => onChange(s)}
-                        className={`flex-1 py-1 text-[10px] font-bold rounded-md border transition-all ${value === s
-                            ? 'bg-[#48327d] border-[#48327d] text-white'
-                            : 'bg-white border-[#e2e8f0] text-[#636e72] hover:bg-[#f8fafc]'
-                            }`}
-                    >
-                        {s}
-                    </button>
-                ))}
+    const SessionSelector = ({ label, value, onChange }) => {
+        const sessions = [
+            { id: 'Full Day', label: 'Full Day' },
+            { id: 'Session 1', label: 'First Half' },
+            { id: 'Session 2', label: 'Second Half' }
+        ];
+
+        return (
+            <div className="mb-2 last:mb-0">
+                <label className="block text-[11px] font-bold text-[#636e72] uppercase tracking-wide mb-1 flex items-center gap-1">
+                    {label} <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                    {sessions.map((s) => (
+                        <button
+                            key={s.id}
+                            onClick={() => onChange(s.id)}
+                            className={`flex-1 py-1 text-[10px] font-bold rounded-md border transition-all ${value === s.id
+                                ? 'bg-[#48327d] border-[#48327d] text-white'
+                                : 'bg-white border-[#e2e8f0] text-[#636e72] hover:bg-[#f8fafc]'
+                                }`}
+                        >
+                            {s.label}
+                        </button>
+                    ))}
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 overflow-y-auto">
             <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-md animate-in fade-in duration-300"
-                onClick={() => setIsModalOpen(false)}
+                className={`fixed inset-0 bg-[#1e293b]/60 backdrop-blur-md ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}
+                onClick={closeModal}
             />
-            <div className="relative bg-white rounded-2xl shadow-2xl border border-[#e2e8f0] overflow-hidden w-full max-w-md my-8 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+            <div className={`relative bg-white rounded-2xl shadow-2xl border border-white/20 overflow-hidden w-full max-w-md my-8 ${isClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
                 <div className="p-4 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Plus size={18} className="text-[#48327d]" />
                         <h3 className="text-sm font-bold text-[#2d3436] uppercase tracking-wider">Apply for Leave</h3>
                     </div>
                     <button
-                        onClick={() => setIsModalOpen(false)}
+                        onClick={closeModal}
                         className="p-1 hover:bg-gray-200 rounded-full transition-colors text-[#636e72]"
                     >
                         <XCircle size={20} />

@@ -140,6 +140,8 @@ function LeaveAttendance({ user }) {
                 toDate: effectiveToDate,
                 days: diffDays,
                 reason: reason.trim(),
+                from_session: fromSession,
+                to_session: toSession,
                 notifyTo: notifyTo.join(', ')
             });
 

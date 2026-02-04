@@ -23,7 +23,7 @@ def get_leaves(request, employee_id):
     serializer = LeavesSerializer(leaves, many=True)
     return Response(serializer.data)
 
-def process_leave_notifications(employee, leave_request, notify_to_str, leave_type, from_date, to_date, days, reason):
+def process_leave_notifications(employee, leave_request, notify_to_str, leave_type, from_date, to_date, days, reason, from_session='Full Day', to_session='Full Day'):
     try:
         from .utils import send_email_via_api
         
@@ -96,7 +96,9 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
                     </tr>
                     <tr>
                         <td style="color: #666666; font-size: 13px; font-weight: bold;">PERIOD:</td>
-                        <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">{formatted_from} to {formatted_to}</td>
+                        <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">
+                            {formatted_from} ({from_session}) to {formatted_to} ({to_session})
+                        </td>
                     </tr>
                     <tr>
                         <td style="color: #666666; font-size: 13px; font-weight: bold;">TOTAL DAYS:</td>
@@ -183,6 +185,8 @@ def apply_leave(request):
             to_date=to_date,
             days=days,
             reason=data.get('reason', ''),
+            from_session=data.get('from_session', 'Full Day'),
+            to_session=data.get('to_session', 'Full Day'),
             status='Pending',
             created_at=timezone.now()
         )
@@ -191,7 +195,7 @@ def apply_leave(request):
         notify_to_str = data.get('notifyTo', '')
         threading.Thread(
             target=process_leave_notifications,
-            args=(employee, new_request, notify_to_str, leave_type, from_date, to_date, days, data.get('reason', 'N/A'))
+            args=(employee, new_request, notify_to_str, leave_type, from_date, to_date, days, data.get('reason', 'N/A'), data.get('from_session', 'Full Day'), data.get('to_session', 'Full Day'))
         ).start()
 
         return Response({'message': 'Leave request submitted', 'id': new_request.id}, status=status.HTTP_201_CREATED)

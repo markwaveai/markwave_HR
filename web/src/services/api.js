@@ -74,6 +74,9 @@ export const teamApi = {
         body: JSON.stringify(data)
     }),
     getAttendanceRegistry: () => apiFetch('/team/registry/'),
+    deleteMember: (id) => apiFetch(`/team/members/${id}/`, {
+        method: 'DELETE'
+    }),
     getStats: (teamId) => apiFetch(`/team/stats/${teamId ? `?team_id=${teamId}` : ''}`),
     getDesignations: () => apiFetch('/team/designations/'),
 };
@@ -85,7 +88,18 @@ export const attendanceApi = {
     }),
     getStatus: (employeeId) => apiFetch(`/attendance/status/${employeeId}/?_t=${new Date().getTime()}`),
     getHistory: (employeeId) => apiFetch(`/attendance/history/${employeeId}/?_t=${new Date().getTime()}`),
-    getPersonalStats: (employeeId) => apiFetch(`/attendance/stats/${employeeId}/?_t=${new Date().getTime()}`)
+    getPersonalStats: (employeeId) => apiFetch(`/attendance/stats/${employeeId}/?_t=${new Date().getTime()}`),
+
+    // Regularization
+    submitRegularization: (data) => apiFetch('/attendance/regularize/', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    getRegularizationRequests: (managerId) => apiFetch(`/attendance/regularization-requests/${managerId}/?_t=${new Date().getTime()}`),
+    actionRegularization: (requestId, action) => apiFetch(`/attendance/regularization/${requestId}/action/`, {
+        method: 'POST',
+        body: JSON.stringify({ action })
+    })
 };
 
 export const feedApi = {

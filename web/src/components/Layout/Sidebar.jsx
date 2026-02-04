@@ -13,6 +13,22 @@ import {
 
 function Sidebar({ user, onLogout, isOpen, onClose }) {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [isClosing, setIsClosing] = useState(false);
+
+    const handleCloseModal = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            setShowLogoutConfirm(false);
+            setIsClosing(false);
+        }, 200);
+    };
+
+    const handleLogoutWithClosing = () => {
+        setIsClosing(true);
+        setTimeout(() => {
+            onLogout();
+        }, 200);
+    };
 
     // Check is_admin flag primarily, with role fallbacks for robustness
     const isAdmin = user?.is_admin === true ||
@@ -80,8 +96,8 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
 
             {/* Custom Logout Modal */}
             {showLogoutConfirm && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200 mx-4">
+                <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e293b]/60 backdrop-blur-sm ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}>
+                    <div className={`bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl ${isClosing ? 'animate-modal-out' : 'animate-modal-in'} mx-4`}>
                         <div className="w-12 h-12 rounded-full bg-[#f3e5f5] flex items-center justify-center mx-auto mb-4">
                             <LogOut className="text-[#48327d]" size={24} />
                         </div>
@@ -91,13 +107,13 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
                         </p>
                         <div className="flex gap-3">
                             <button
-                                onClick={() => setShowLogoutConfirm(false)}
+                                onClick={handleCloseModal}
                                 className="flex-1 px-4 py-2.5 rounded-xl border border-[#e2e8f0] text-[#636e72] font-semibold hover:bg-gray-50 transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
-                                onClick={onLogout}
+                                onClick={handleLogoutWithClosing}
                                 className="flex-1 px-4 py-2.5 rounded-xl bg-[#48327d] text-white font-semibold hover:bg-[#3d2a6a] shadow-lg shadow-purple-500/30 transition-all hover:translate-y-[-1px]"
                             >
                                 Log Out

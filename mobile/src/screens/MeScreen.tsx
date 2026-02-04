@@ -123,17 +123,49 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
 
     const getLeaveCode = (leaveType: string) => {
         const map: Record<string, string> = {
-            'Sick Leave': 'SL',
-            'Casual Leave': 'CL',
-            'Earned Leave': 'EL',
-            'Privilege Leave': 'PL',
-            'Loss of Pay': 'LOP'
+            'Sick Leave': 'SL', 'Casual Leave': 'CL', 'Earned Leave': 'EL',
+            'Privilege Leave': 'PL', 'Loss of Pay': 'LOP',
+            'sl': 'SL', 'cl': 'CL', 'el': 'EL'
         };
-        return map[leaveType] || leaveType?.substring(0, 2).toUpperCase();
+        const isFirst = leaveType?.startsWith('First Half ');
+        const isSecond = leaveType?.startsWith('Second Half ');
+        const isHalf = leaveType?.startsWith('Half Day ');
+
+        const type = isFirst ? leaveType.replace('First Half ', '') :
+            isSecond ? leaveType.replace('Second Half ', '') :
+                isHalf ? leaveType.replace('Half Day ', '') : leaveType || '';
+
+        const code = map[type] || map[type.toLowerCase()] || type.substring(0, 2).toUpperCase();
+
+        if (isFirst) return `FH-${code}`;
+        if (isSecond) return `SH-${code}`;
+        return isHalf ? `HD-${code}` : code;
     };
 
     const getLeaveLabel = (leaveType: string) => {
-        return leaveType || 'Leave';
+        const map: Record<string, string> = {
+            'SL': 'Sick Leave',
+            'CL': 'Casual Leave',
+            'EL': 'Earned Leave',
+            'PL': 'Privilege Leave',
+            'LOP': 'Loss of Pay',
+            'sl': 'Sick Leave',
+            'cl': 'Casual Leave',
+            'el': 'Earned Leave'
+        };
+        if (leaveType?.startsWith('First Half ')) {
+            const type = leaveType.replace('First Half ', '');
+            return `First Half ${map[type] || map[type.toLowerCase()] || type}`;
+        }
+        if (leaveType?.startsWith('Second Half ')) {
+            const type = leaveType.replace('Second Half ', '');
+            return `Second Half ${map[type] || map[type.toLowerCase()] || type}`;
+        }
+        if (leaveType?.startsWith('Half Day ')) {
+            const type = leaveType.replace('Half Day ', '');
+            return `Half Day ${map[type] || map[type.toLowerCase()] || type}`;
+        }
+        return map[leaveType] || map[leaveType?.toLowerCase()] || leaveType || 'Leave';
     };
 
     const parseTime = (timeStr: string) => {
@@ -455,7 +487,7 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.welcomeSection}>
-                    <Text style={styles.greetingTitle}>My Attendance</Text>
+                    <Text style={styles.greetingTitle}>Attendance Stats</Text>
                     <Text style={styles.greetingSubtitle}>Detailed tracking and productivity logs</Text>
                 </View>
 
@@ -479,15 +511,15 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         </View>
                         <View style={styles.statsRowMetric}>
                             <Text style={styles.smallMetricLabel}>AVG HRS /{"\n"}DAY</Text>
-                            <View style={{ alignItems: 'center' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                                 <Text style={styles.statsRowValue}>{meStats.avg.split(' ')[0]}</Text>
-                                <Text style={styles.statsRowValue}>{meStats.avg.split(' ')[1]}</Text>
+                                <Text style={[styles.statsRowValue, { fontSize: 13, marginLeft: 2, opacity: 0.7 }]}>{meStats.avg.split(' ')[1]}</Text>
                             </View>
                         </View>
                         <View style={styles.statsRowMetric}>
                             <Text style={styles.smallMetricLabel}>ON TIME{"\n"}ARRIVAL</Text>
                             <View style={{ flex: 1, justifyContent: 'center' }}>
-                                <Text style={[styles.statsRowValue, { fontSize: 28, marginTop: 4 }]}>{meStats.onTime}</Text>
+                                <Text style={[styles.statsRowValue, { fontSize: 24, marginTop: 4 }]}>{meStats.onTime}</Text>
                             </View>
                         </View>
                     </View>
@@ -502,15 +534,15 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         </View>
                         <View style={styles.statsRowMetric}>
                             <Text style={styles.smallMetricLabel}>AVG HRS /{"\n"}DAY</Text>
-                            <View style={{ alignItems: 'center' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                                 <Text style={styles.statsRowValue}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[0]}</Text>
-                                <Text style={styles.statsRowValue}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[1] || '00m'}</Text>
+                                <Text style={[styles.statsRowValue, { fontSize: 13, marginLeft: 2, opacity: 0.7 }]}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[1] || '00m'}</Text>
                             </View>
                         </View>
                         <View style={styles.statsRowMetric}>
                             <Text style={styles.smallMetricLabel}>ON TIME{"\n"}ARRIVAL</Text>
                             <View style={{ flex: 1, justifyContent: 'center' }}>
-                                <Text style={[styles.statsRowValue, { fontSize: 28, marginTop: 4 }]}>{teamStats?.on_time_arrival || '0%'}</Text>
+                                <Text style={[styles.statsRowValue, { fontSize: 24, marginTop: 4 }]}>{teamStats?.on_time_arrival || '0%'}</Text>
                             </View>
                         </View>
                     </View>
@@ -594,18 +626,18 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         </View>
                         <View style={styles.actionLinksSide}>
                             <TouchableOpacity
-                                style={[styles.actionLinkItem, (clockLoading || !canClock) && { opacity: 0.6 }]}
+                                style={[styles.actionLinkItem, clockLoading && { opacity: 0.6 }]}
                                 onPress={handleClockAction}
                                 disabled={clockLoading || !canClock}
                             >
                                 <Text style={styles.actionLinkIcon}>
-                                    {!canClock && disabledReason === 'On Leave' ? '🏖️' :
-                                        !canClock && disabledReason === 'Holiday' ? '🎉' :
+                                    {disabledReason === 'On Leave' ? '🏖️' :
+                                        disabledReason === 'Holiday' ? '🎉' :
                                             clockStatus === 'IN' ? '⇠' : '➔'}
                                 </Text>
                                 <Text style={styles.actionLabel}>
-                                    {!canClock ? (disabledReason || 'Disabled') :
-                                        clockStatus === 'IN' ? 'Web Clock-Out' : 'Web Clock-In'}
+                                    {clockStatus === 'IN' ? 'Web Clock-Out' : 'Web Clock-In'}
+                                    {disabledReason ? ` (${disabledReason})` : ''}
                                 </Text>
                                 {clockLoading && <ActivityIndicator size="small" color="#48327d" style={{ marginLeft: 8 }} />}
                             </TouchableOpacity>
@@ -661,25 +693,26 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                                 const isWeekend = logDate.getDay() === 0 || logDate.getDay() === 6;
                                 const isHoliday = log.isHoliday;
                                 const isToday = log.date === toLocalDateString(new Date());
-                                const hasActivity = log.checkIn && log.checkIn !== '-';
+                                const hasActualActivity = (log.checkIn && log.checkIn !== '-') || (log.logs && log.logs.length > 0);
                                 const isApprovedLeave = !!log.leaveType;
-                                const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActivity && !isApprovedLeave;
+                                const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActualActivity && !isApprovedLeave;
                                 const isOffRow = isWeekend || isHoliday || isAbsent || isApprovedLeave;
+                                const showAsOffDay = isOffRow && !hasActualActivity;
 
                                 return (
-                                    <View key={index} style={[styles.tableRow, isOffRow && styles.rowOff]}>
+                                    <View key={index} style={[styles.tableRow, showAsOffDay && styles.rowOff]}>
                                         <View style={[styles.cell, { width: COL_WIDTHS.date }]}>
                                             <Text style={styles.dateText}>
                                                 {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
                                             </Text>
-                                            {isOffRow && (
+                                            {showAsOffDay && (
                                                 <Text style={[styles.offBadge, isAbsent && { backgroundColor: '#fef2f2', color: '#ef4444' }]}>
                                                     {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (getLeaveCode(log.leaveType) || 'LEAVE') : 'ABSENT'}
                                                 </Text>
                                             )}
                                         </View>
 
-                                        {isOffRow ? (
+                                        {showAsOffDay ? (
                                             <>
                                                 <View style={{ width: COL_WIDTHS.visual }} />
                                                 <View style={{ width: COL_WIDTHS.inOut }} />
@@ -758,33 +791,50 @@ const styles = StyleSheet.create({
     cardHeaderTitle: { fontSize: 13, fontWeight: '700', color: '#334155' },
     cardHeaderSectionTitle: { fontSize: 13, fontWeight: '600', color: '#64748b', marginBottom: 16 },
 
-    statsRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    statsRowIdentity: { width: 110, flexDirection: 'row', alignItems: 'center', gap: 10 },
-    statsIconCircle: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
+    statsRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    statsRowIdentity: { flex: 0.8, flexDirection: 'row', alignItems: 'center', gap: 10 },
+    statsIconCircle: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     statsRowLabel: { fontSize: 13, fontWeight: '700', color: '#334155' },
-    statsRowMetric: { flex: 1, alignItems: 'center' },
+    statsRowMetric: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
     smallMetricLabel: { fontSize: 8, fontWeight: '800', color: '#8e78b0', letterSpacing: 0.2, marginBottom: 4, textTransform: 'uppercase', textAlign: 'center', lineHeight: 10 },
     statsRowValue: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
 
-    daySelector: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-    dayItem: { alignItems: 'center' },
-    dayCircle: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center', position: 'relative' },
+    daySelector: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 20,
+        width: '100%',
+        paddingHorizontal: 4
+    },
+    dayItem: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    dayCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        justifyContent: 'center',
+        alignItems: 'center',
+        position: 'relative'
+    },
     dayCircleActive: { backgroundColor: '#48327d' },
     dayCircleToday: { backgroundColor: 'rgba(72, 50, 125, 0.08)', borderWidth: 1, borderColor: 'rgba(72, 50, 125, 0.2)' },
     dayCircleInactive: { backgroundColor: '#f8fafc' },
-    dayTextAbbr: { fontSize: 12, fontWeight: '800' },
+    dayTextAbbr: { fontSize: 10, fontWeight: '800' },
     dayTextActive: { color: 'white' },
     dayTextToday: { color: '#48327d' },
     dayTextInactive: { color: '#64748b' },
-    todayOuterDot: { position: 'absolute', top: -2, right: -2, width: 9, height: 9, backgroundColor: 'white', borderRadius: 4.5, justifyContent: 'center', alignItems: 'center' },
-    todayInnerDot: { width: 6, height: 6, backgroundColor: '#ef4444', borderRadius: 3 },
+    todayOuterDot: { position: 'absolute', top: -1, right: -1, width: 8, height: 8, backgroundColor: 'white', borderRadius: 4, justifyContent: 'center', alignItems: 'center' },
+    todayInnerDot: { width: 5, height: 5, backgroundColor: '#ef4444', borderRadius: 2.5 },
 
     timingDetails: { paddingTop: 4 },
-    timingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    timingDayFull: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
-    timingDateSmall: { fontSize: 12, color: '#64748b', fontWeight: '500' },
-    shiftBadge: { backgroundColor: 'rgba(72, 50, 125, 0.08)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
-    shiftBadgeText: { fontSize: 10, color: '#48327d', fontWeight: '800' },
+    timingHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 16 },
+    timingDayFull: { flex: 1, fontSize: 14, fontWeight: '800', color: '#1e293b' },
+    timingDateSmall: { fontSize: 11, color: '#64748b', fontWeight: '500' },
+    shiftBadge: { backgroundColor: 'rgba(72, 50, 125, 0.08)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+    shiftBadgeText: { fontSize: 9, color: '#48327d', fontWeight: '800' },
 
     progressSection: { marginTop: 4 },
     visualBar: { height: 8, backgroundColor: '#f1f5f9', borderRadius: 4, width: '100%', overflow: 'hidden', flexDirection: 'row', marginBottom: 12 },

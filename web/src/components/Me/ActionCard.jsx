@@ -58,8 +58,23 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
         setIsLocating(true);
         setError(null);
 
+        const fallbackToIP = async (reason = "Location Permission Denied") => {
+            try {
+                const response = await fetch('https://ipapi.co/json/');
+                if (response.ok) {
+                    const data = await response.json();
+                    const addr = `${data.city}, ${data.region}, ${data.country_name} (IP Based)`;
+                    performClockAction(addr);
+                } else {
+                    performClockAction(reason);
+                }
+            } catch (e) {
+                performClockAction(reason);
+            }
+        };
+
         if (!navigator.geolocation) {
-            performClockAction("Geolocation Not Supported");
+            fallbackToIP("Geolocation Not Supported");
             return;
         }
 
@@ -75,37 +90,41 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
                     if (response.ok) {
                         const data = await response.json();
                         const addr = data.address;
-                        // Pick the most relevant parts: [Office/Building], [Neighborhood/Road], [City]
-                        const parts = [
-                            addr.office || addr.amenity || addr.building || addr.shop || addr.industrial,
-                            addr.neighbourhood || addr.suburb || addr.road,
-                            addr.city || addr.town || addr.village
-                        ].filter(Boolean);
+                        const buildingTags = [
+                            addr.building, addr.commercial, addr.office, addr.amenity,
+                            addr.house_name, addr.house_number, addr.landmark, addr.tourism,
+                            addr.shop, addr.retail, addr.university, addr.hospital,
+                            addr.hotel, addr.industrial, addr.theatre, addr.place_of_worship
+                        ];
 
-                        const name = parts.length > 0 ? parts.join(', ') : data.display_name.split(',').slice(0, 3).join(', ');
-                        displayAddr = `${name} (${coordsStr})`;
+                        let buildingName = buildingTags.find(Boolean) || '';
+                        const roadDetail = addr.road || addr.pedestrian || '';
+                        const areaDetail = addr.neighbourhood || addr.suburb || addr.city_district || '';
+                        const cityDetail = addr.city || addr.town || addr.village || '';
+
+                        const name = [buildingName, roadDetail, areaDetail, cityDetail].filter(Boolean).join(', ');
+                        displayAddr = name ? `${name} (${coordsStr})` : data.display_name.split(',').slice(0, 3).join(', ');
                     }
                 } catch (e) {
-                    console.warn(e);
+                    console.warn("Reverse Geocoding Failed:", e);
                 }
                 performClockAction(displayAddr);
             },
             (err) => {
                 console.error("Geo Error:", err);
-                // Fallback to clock in anyway!
-                performClockAction("Location Permission Denied");
+                fallbackToIP();
             },
-            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
         );
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-lg p-4 border border-[#e2e8f0]">
+        <div className="bg-white rounded-xl shadow-lg p-2.5 mm:p-4 border border-[#e2e8f0] flex flex-col justify-between h-full">
             {/* ... (lines 90-120 unchanged) ... */}
-            <h3 className="text-sm font-medium text-[#636e72] mb-3">Actions</h3>
+            <h3 className="text-[10px] font-bold text-[#636e72] mb-3 uppercase tracking-wider">Actions</h3>
 
             <div className="flex flex-col items-center justify-center mb-4">
-                <div className="text-3xl font-bold text-[#2d3436] tabular-nums mb-1">
+                <div className="text-lg mm:text-2xl font-bold text-[#2d3436] tabular-nums mb-1">
                     {formatTime(currentTime)}
                 </div>
                 <div className="text-xs text-[#8e78b0] font-medium mb-2">
@@ -133,32 +152,33 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
                 )}
             </div>
 
-            <div className="flex items-center justify-center gap-4 border-t border-gray-100 pt-3">
+            <div className="flex items-center justify-center gap-1 mm:gap-3 border-t border-gray-100 pt-3">
                 {clockStatus === null ? (
-                    <div className="h-10 flex items-center justify-center px-4 bg-gray-50 rounded-lg border border-gray-100 min-w-[130px]">
+                    <div className="h-10 flex items-center justify-center px-4 bg-gray-50 rounded-lg border border-gray-100 min-w-[100px]">
                         <Loader2 size={16} className="animate-spin text-[#48327d]" />
                     </div>
                 ) : (
                     <button
                         onClick={handleClockAction}
                         disabled={!canClock || isLocating || loading}
-                        className={`flex flex-col items-center gap-2 text-[#48327d] hover:bg-purple-50 p-2 rounded-xl transition-all min-w-[100px] ${(!canClock || isLocating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className={`flex flex-col items-center gap-1 text-[#48327d] hover:bg-purple-50 p-1 rounded-xl transition-all min-w-[75px] mm:min-w-[90px] ${(!canClock || isLocating || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
                         {clockStatus === 'IN' ? (
-                            <LogOut size={20} className="shrink-0" />
+                            <LogOut size={16} className="shrink-0" />
                         ) : (
-                            <LogIn size={20} className="shrink-0" />
+                            <LogIn size={16} className="shrink-0" />
                         )}
-                        <span className="text-xs font-semibold">
-                            {clockStatus === 'IN' ? 'Web Clock-Out' : 'Web Clock-In'}
+                        <span className="text-[9px] mm:text-[11px] font-black uppercase tracking-tight">
+                            {clockStatus === 'IN' ? 'OUT' : 'IN'}
+                            {disabledReason && <span className="ml-1 opacity-70">({disabledReason})</span>}
                         </span>
-                        {loading && <Loader2 size={10} className="animate-spin absolute top-2 right-2" />}
+                        {loading && <Loader2 size={10} className="animate-spin absolute top-1 right-1" />}
                     </button>
                 )}
 
-                <button className="flex flex-col items-center gap-2 text-[#48327d] hover:bg-purple-50 p-2 rounded-xl transition-all min-w-[100px]">
-                    <Home size={20} className="shrink-0" />
-                    <span className="text-xs font-semibold">Work From Home</span>
+                <button className="flex flex-col items-center gap-1 text-[#48327d] hover:bg-purple-50 p-1 rounded-xl transition-all min-w-[75px] mm:min-w-[90px]">
+                    <Home size={16} className="shrink-0" />
+                    <span className="text-[9px] mm:text-[11px] font-black uppercase tracking-tight text-center">WFH</span>
                 </button>
             </div>
         </div>

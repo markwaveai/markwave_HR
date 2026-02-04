@@ -66,6 +66,8 @@ class Leaves(models.Model):
     to_date = models.CharField(max_length=10)
     days = models.FloatField()
     reason = models.TextField(blank=True, null=True)
+    from_session = models.CharField(max_length=20, blank=True, null=True)
+    to_session = models.CharField(max_length=20, blank=True, null=True)
     status = models.CharField(max_length=20, blank=True, null=True)
     created_at = models.DateTimeField(null=True, blank=True)
 
@@ -96,3 +98,17 @@ class Teams(models.Model):
     class Meta:
         managed = True
         db_table = 'core_team'
+
+
+class Regularization(models.Model):
+    id = models.AutoField(primary_key=True)
+    employee = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id')
+    attendance = models.ForeignKey(Attendance, models.CASCADE)
+    requested_checkout = models.CharField(max_length=20)
+    reason = models.TextField()
+    status = models.CharField(max_length=20, default='Pending')  # Pending, Approved, Rejected
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'core_regularization'

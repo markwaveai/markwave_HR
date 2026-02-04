@@ -61,17 +61,37 @@ const Me = ({ user }) => {
 
     const parseTime = (timeStr) => {
         if (!timeStr || timeStr === '-') return null;
-        const [time, modifier] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':');
-        if (hours === '12') hours = '00';
-        if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-        const date = new Date();
-        date.setHours(hours, minutes, 0, 0);
-        return date;
+        try {
+            // Normalize: remove spaces, uppercase
+            const cleanStr = timeStr.trim().toUpperCase();
+            let isPM = cleanStr.includes('PM');
+            let isAM = cleanStr.includes('AM');
+
+            // Extract HH and MM
+            // Matches 12:30, 12:30PM, 12:30 PM, 14:00
+            const match = cleanStr.match(/(\d{1,2}):(\d{2})/);
+            if (!match) return null;
+
+            let hours = parseInt(match[1], 10);
+            let minutes = parseInt(match[2], 10);
+
+            if (isPM && hours < 12) hours += 12;
+            if (isAM && hours === 12) hours = 0;
+
+            const date = new Date();
+            date.setHours(hours, minutes, 0, 0);
+            return date;
+        } catch (e) {
+            return null;
+        }
     };
 
     const calculateStats = (log) => {
-        if (log.isWeekend || log.isHoliday || !log.checkIn || log.checkIn === '-') {
+        const hasCheckIn = log.checkIn && log.checkIn !== '-';
+        if (!hasCheckIn && (log.isWeekend || log.isHoliday)) {
+            return { gross: '-', effective: '-', arrivalStatus: '-', arrivalColor: '', scheduledHours: '-', effectiveProgress: 0 };
+        }
+        if (!hasCheckIn) {
             return { gross: '-', effective: '-', arrivalStatus: '-', arrivalColor: '', scheduledHours: '-', effectiveProgress: 0 };
         }
 
@@ -94,30 +114,37 @@ const Me = ({ user }) => {
         let effStr = '-';
         let effectiveProgress = 0;
 
-        if (checkOut) {
-            const grossDiff = (checkOut - checkIn) / (1000 * 60); // minutes
+        if (checkOut && checkIn) {
+            let grossDiff = (checkOut - checkIn) / (1000 * 60); // minutes
+
+            // Handle overnight (if checkOut is before checkIn, assume next day)
+            if (grossDiff < 0) {
+                grossDiff += 24 * 60;
+            }
+
             const grossH = Math.floor(grossDiff / 60);
             const grossM = Math.floor(grossDiff % 60);
             grossStr = `${grossH}h ${grossM}m`;
 
             // Recalculate break minutes from visual logs for consistency
-            let calculatedBreakMinutes = log.breakMinutes;
-            if (log.logs && log.logs.length >= 1) {
+            let calculatedBreakMinutes = log.breakMinutes || 0;
+
+            // Only recalculate from logs if we have multiple sessions (gaps)
+            // If length is 1 or 0, we can't determine breaks from visual logs, so rely on stored breakMinutes
+            if (log.logs && log.logs.length > 1) {
                 let totalBreak = 0;
                 const parseTimeVal = (timeStr) => {
-                    if (!timeStr || timeStr === '-' || !timeStr.includes(' ')) return 0;
-                    const [time, modifier] = timeStr.split(' ');
-                    let [hours, minutes] = time.split(':').map(Number);
-                    if (hours === 12) hours = 0;
-                    if (modifier === 'PM') hours += 12;
-                    return hours * 60 + minutes;
+                    const d = parseTime(timeStr);
+                    return d ? (d.getHours() * 60 + d.getMinutes()) : 0;
                 };
 
                 for (let i = 1; i < log.logs.length; i++) {
                     const prevOut = parseTimeVal(log.logs[i - 1].out);
                     const currIn = parseTimeVal(log.logs[i].in);
                     if (prevOut > 0 && currIn > 0) {
-                        totalBreak += (currIn - prevOut);
+                        let gap = currIn - prevOut;
+                        if (gap < 0) gap += 24 * 60; // Overnight break?
+                        totalBreak += gap;
                     }
                 }
                 calculatedBreakMinutes = totalBreak;
@@ -156,64 +183,49 @@ const Me = ({ user }) => {
 
     const [selectedDayIndex, setSelectedDayIndex] = useState(0);
     const [filterType, setFilterType] = useState('30Days');
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() === 0 ? 'JAN' : 'DEC');
+
+    // Generate months up to current month
+    const monthOptions = useMemo(() => {
+        const months = [
+            { label: 'Jan', value: 'JAN' },
+            { label: 'Feb', value: 'FEB' },
+            { label: 'Mar', value: 'MAR' },
+            { label: 'Apr', value: 'APR' },
+            { label: 'May', value: 'MAY' },
+            { label: 'Jun', value: 'JUN' },
+            { label: 'Jul', value: 'JUL' },
+            { label: 'Aug', value: 'AUG' },
+            { label: 'Sep', value: 'SEP' },
+            { label: 'Oct', value: 'OCT' },
+            { label: 'Nov', value: 'NOV' },
+            { label: 'Dec', value: 'DEC' },
+        ];
+        const currentMonthIdx = new Date().getMonth();
+        return months.slice(0, currentMonthIdx + 1).map((m, i) => ({ ...m, index: i }));
+    }, []);
+
+    const [selectedMonth, setSelectedMonth] = useState(monthOptions[monthOptions.length - 1]?.value || 'JAN');
     const [activeBreakIndex, setActiveBreakIndex] = useState(null);
 
-    const [currentWeekLogs, setCurrentWeekLogs] = useState([]);
-    const [teamStats, setTeamStats] = useState(null);
+    const [stats, setStats] = useState(null);
+
+    const fetchStats = async () => {
+        if (!EMPLOYEE_ID) return;
+        try {
+            const data = await attendanceApi.getPersonalStats(EMPLOYEE_ID);
+            setStats(data);
+        } catch (err) {
+            console.error("Failed to fetch stats:", err);
+        }
+    };
 
     useEffect(() => {
-        const fetchTeamStats = async () => {
-            const teamId = user?.team_id;
-            if (teamId) {
-                try {
-                    const stats = await teamApi.getStats(teamId);
-                    setTeamStats(stats);
-                } catch (err) {
-                    console.error("Failed to fetch team stats:", err);
-                }
-            }
-        };
-        fetchTeamStats();
-    }, [user?.team_id]);
+        fetchStats();
+        const interval = setInterval(fetchStats, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, [EMPLOYEE_ID]);
 
-    const meStats = useMemo(() => {
-        if (!attendanceLogs.length) return { avg: '0h 00m', onTime: '0%' };
-
-        const now = new Date();
-        const monday = new Date(now);
-        const day = now.getDay();
-        const diff = now.getDate() - (day === 0 ? 6 : day - 1);
-        monday.setDate(diff);
-        monday.setHours(0, 0, 0, 0);
-
-        let totalMins = 0;
-        let presentDays = 0;
-        let onTimeDays = 0;
-
-        attendanceLogs.forEach(log => {
-            const logDate = new Date(log.date);
-            if (logDate >= monday && log.checkIn && log.checkIn !== '-') {
-                const stats = calculateStats(log);
-                if (stats.effective !== '-') {
-                    const match = stats.effective.match(/(\d+)h\s+(\d+)m/);
-                    if (match) {
-                        presentDays++;
-                        totalMins += parseInt(match[1]) * 60 + parseInt(match[2]);
-                        if (stats.arrivalStatus === 'On Time') onTimeDays++;
-                    }
-                }
-            }
-        });
-
-        if (presentDays === 0) return { avg: '0h 00m', onTime: '0%' };
-
-        const avgMins = Math.floor(totalMins / presentDays);
-        return {
-            avg: `${Math.floor(avgMins / 60)}h ${String(avgMins % 60).padStart(2, '0')}m`,
-            onTime: `${Math.round((onTimeDays / presentDays) * 100)}%`
-        };
-    }, [attendanceLogs, currentTime]);
+    const [currentWeekLogs, setCurrentWeekLogs] = useState([]);
 
     const getLocalSelectedDateStr = (date) => {
         const y = date.getFullYear();
@@ -277,12 +289,18 @@ const Me = ({ user }) => {
         const { effective, effectiveProgress } = calculateStats(log);
 
         const isWeekend = dateObj.getDay() === 0 || dateObj.getDay() === 6;
+        const hasActivity = log.checkIn && log.checkIn !== '-';
+        const isLeave = !!log.leaveType;
 
-        if (isWeekend || log.status === 'Holiday') {
+        if ((isWeekend || log.status === 'Holiday' || isLeave) && !hasActivity) {
+            let label = 'Weekly Off';
+            if (log.status === 'Holiday') label = 'Holiday';
+            else if (isLeave) label = log.status || 'On Leave';
+
             return {
                 day: dayName,
                 dateStr: formattedDate,
-                range: log.status === 'Holiday' ? 'Holiday' : 'Weekly Off',
+                range: label,
                 duration: '-',
                 break: '-',
                 progress: 0
@@ -292,28 +310,14 @@ const Me = ({ user }) => {
         return {
             day: dayName,
             dateStr: formattedDate,
-            range: (log.checkIn && log.checkIn !== '-') ? `${log.checkIn} - ${log.checkOut || '??'}` : '09:30 AM - 06:30 PM',
-            duration: (log.checkIn && log.checkIn !== '-') ? effective : '9h 00m',
-            break: (log.checkIn && log.checkIn !== '-') ? `${log.breakMinutes} min` : '60 min',
-            progress: (log.checkIn && log.checkIn !== '-') ? (effectiveProgress || 0) : 0
+            range: hasActivity ? `${log.checkIn} - ${log.checkOut || '??'}` : '09:30 AM - 06:30 PM',
+            duration: hasActivity ? effective : '9h 00m',
+            break: hasActivity ? `${log.breakMinutes} min` : '60 min',
+            progress: hasActivity ? (effectiveProgress || 0) : 0
         };
     };
 
     const activeTiming = getActiveTimingData();
-    const monthOptions = [
-        { label: 'Jan', value: 'JAN', index: 0 },
-        { label: 'Feb', value: 'FEB', index: 1 },
-        { label: 'Mar', value: 'MAR', index: 2 },
-        { label: 'Apr', value: 'APR', index: 3 },
-        { label: 'May', value: 'MAY', index: 4 },
-        { label: 'Jun', value: 'JUN', index: 5 },
-        { label: 'Jul', value: 'JUL', index: 6 },
-        { label: 'Aug', value: 'AUG', index: 7 },
-        { label: 'Sep', value: 'SEP', index: 8 },
-        { label: 'Oct', value: 'OCT', index: 9 },
-        { label: 'Nov', value: 'NOV', index: 10 },
-        { label: 'Dec', value: 'DEC', index: 11 },
-    ];
 
     const getFilteredLogs = () => {
         let dates = [];
@@ -407,14 +411,15 @@ const Me = ({ user }) => {
 
         // Fetch source of truth
         fetchHistory();
+        fetchStats();
     };
 
     return (
-        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 space-y-6 mm:space-y-10 bg-[#f8fafc]">
+        <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-2 lg:p-4 xl:p-8 space-y-6 mm:space-y-10 bg-[#f8fafc]">
             <div>
-                <h1 className="text-2xl mm:text-3xl font-black text-[#1e293b] tracking-tight mb-4 mm:mb-6">Attendance Stats</h1>
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mm:gap-10">
-                    <AttendanceStats meStats={meStats} teamStats={teamStats} />
+                <h1 className="text-xl mm:text-2xl font-black text-[#1e293b] tracking-tight mb-4 mm:mb-6">Attendance Stats</h1>
+                <div className="grid grid-cols-1 tab:grid-cols-3 gap-2 mm:gap-4 xl:gap-6">
+                    <AttendanceStats stats={stats} />
 
                     <TimingCard
                         activeTiming={activeTiming}
@@ -448,6 +453,7 @@ const Me = ({ user }) => {
                     activeBreakIndex={activeBreakIndex}
                     setActiveBreakIndex={setActiveBreakIndex}
                     currentTime={currentTime}
+                    user={user}
                 />
             </div>
         </div>

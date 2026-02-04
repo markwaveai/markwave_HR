@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Send, PlusCircle, Calendar, Zap, Image as ImageIcon, X, Trash2 } from 'lucide-react';
 import { feedApi } from '../../services/api';
+import ConfirmDialog from '../Common/ConfirmDialog';
 
 const FeedSection = ({ user }) => {
     const [posts, setPosts] = useState([]);
@@ -11,6 +12,7 @@ const FeedSection = ({ user }) => {
     const [imagePreviews, setImagePreviews] = useState([]);
     const [commentingOn, setCommentingOn] = useState(null);
     const [newComment, setNewComment] = useState('');
+    const [deleteConfig, setDeleteConfig] = useState({ isOpen: false, postId: null });
     const fileInputRef = useRef(null);
 
     const isAdmin = user?.is_admin === true ||
@@ -103,10 +105,17 @@ const FeedSection = ({ user }) => {
         }
     };
 
-    const handleDeletePost = async (postId) => {
-        if (!window.confirm("Are you sure you want to delete this post?")) return;
+    const handleDeletePost = (postId) => {
+        setDeleteConfig({
+            isOpen: true,
+            postId: postId
+        });
+    };
+
+    const confirmDeletePost = async () => {
         try {
-            await feedApi.deletePost(postId);
+            await feedApi.deletePost(deleteConfig.postId);
+            setDeleteConfig({ isOpen: false, postId: null });
             fetchPosts();
         } catch (error) {
             console.error("Delete failed:", error);
@@ -316,6 +325,16 @@ const FeedSection = ({ user }) => {
                     ))}
                 </div>
             )}
+            {/* Deletion confirmation dialog */}
+            <ConfirmDialog
+                isOpen={deleteConfig.isOpen}
+                title="Delete Post"
+                message="Are you sure you want to delete this post? This action cannot be undone."
+                confirmText="Delete Post"
+                onConfirm={confirmDeletePost}
+                onCancel={() => setDeleteConfig({ isOpen: false, postId: null })}
+                type="danger"
+            />
         </div>
     );
 };

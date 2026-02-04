@@ -145,12 +145,24 @@ def member_list(request):
 
         data = request.data
         try:
-            if Employees.objects.filter(email=data.get('email')).exists():
-                return Response({'error': f"Employee with email '{data.get('email')}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            # 1. Mandatory Fields Check
+            required_fields = ['first_name', 'email', 'employee_id', 'contact', 'aadhar', 'location', 'role']
+            for field in required_fields:
+                if not data.get(field):
+                    return Response({'error': f"Field '{field}' is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 2. Duplicate Checks
+            if Employees.objects.filter(employee_id=data.get('employee_id')).exists():
+                return Response({'error': f"Employee ID '{data.get('employee_id')}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
             
-            full_name = data.get('name', '').split(' ')
-            first_name = data.get('first_name') or (full_name[0] if full_name else '')
-            last_name = data.get('last_name') or (' '.join(full_name[1:]) if len(full_name) > 1 else '')
+            if Employees.objects.filter(email=data.get('email')).exists():
+                return Response({'error': f"Email '{data.get('email')}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if Employees.objects.filter(contact=data.get('contact')).exists():
+                return Response({'error': f"Contact number '{data.get('contact')}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            first_name = data.get('first_name')
+            last_name = data.get('last_name', '')
 
             # Get Team
             team_id = data.get('team_id')
@@ -162,7 +174,7 @@ def member_list(request):
                     pass
 
             employee = Employees.objects.create(
-                id=data.get('id'),
+                employee_id=data.get('employee_id'),
                 first_name=first_name,
                 last_name=last_name,
                 role=data.get('role'),
@@ -238,6 +250,7 @@ def member_detail(request, pk):
         try:
             # Update basic fields
             employee.first_name = data.get('first_name', employee.first_name)
+            if 'employee_id' in data: employee.employee_id = data['employee_id']
             if 'last_name' in data: employee.last_name = data['last_name']
             if 'role' in data: employee.role = data['role']
             if 'contact' in data: employee.contact = data['contact']

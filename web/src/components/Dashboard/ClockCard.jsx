@@ -6,7 +6,7 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
         <div className="bg-[#8e78b0] rounded-xl p-3 mm:p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between">
             <div className="flex justify-between items-center mb-4 opacity-90">
                 <span className="text-xs mm:text-sm font-medium">Time Today - {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
-                {disabledReason && <span className="text-[10px] bg-white text-[#8e78b0] px-2 py-0.5 rounded-full font-bold">{disabledReason.toUpperCase()}</span>}
+                {disabledReason && disabledReason.toUpperCase() !== 'ABSENT' && <span className="text-[10px] bg-white text-[#8e78b0] px-2 py-0.5 rounded-full font-bold">{disabledReason.toUpperCase()}</span>}
             </div>
 
             <div className="flex justify-between items-end gap-1 mm:gap-2">

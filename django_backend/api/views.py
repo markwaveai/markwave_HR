@@ -64,6 +64,9 @@ def login(request):
         if not employee:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        if employee.status == 'Inactive':
+            return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+
         return Response({
             'success': True,
             'user': {
@@ -109,6 +112,13 @@ def send_otp(request):
         if not user_exists:
             print("[OTP DEBUG] User not found")
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check for inactive status
+        for emp in Employees.objects.all():
+            if normalize_phone(emp.contact) == normalized_input:
+                if emp.status == 'Inactive':
+                    return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+                break
 
     otp = str(random.randint(100000, 999999))
     print(f"[OTP DEBUG] Generated OTP: {otp}")
@@ -181,6 +191,9 @@ def verify_otp(request):
 
         for emp in Employees.objects.all():
             if normalize_phone(emp.contact) == normalized_input:
+                if emp.status == 'Inactive':
+                    return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+
                 return Response({
                     'success': True,
                     'user': {
@@ -264,6 +277,12 @@ def send_email_otp(request):
     if not user_exists:
         return Response({'error': 'User not found with this email'}, status=status.HTTP_404_NOT_FOUND)
 
+    # Check for inactive status
+    if email != 'admin@markwave.com':
+        inactive_check = Employees.objects.filter(email__iexact=email, status='Inactive').exists()
+        if inactive_check:
+            return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+
     otp = str(random.randint(100000, 999999))
     # Use EmailOTPStore for email OTPs
     EmailOTPStore.objects.create(email=email, otp=otp, created_at=timezone.now())
@@ -316,9 +335,11 @@ def verify_email_otp(request):
             })
 
         employee = Employees.objects.filter(email__iexact=email).first()
-        
         if not employee:
             return Response({'error': 'User not found'}, status=404)
+
+        if employee.status == 'Inactive':
+            return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
 
         return Response({
             'success': True,

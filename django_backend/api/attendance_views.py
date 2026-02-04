@@ -1,7 +1,7 @@
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from core.models import Employees, Attendance, AttendanceLogs, Leaves
+from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regularization, Teams
 from datetime import datetime, timedelta
 from django.db.models import Q
 import pytz
@@ -35,16 +35,16 @@ def clock(request):
     current_time_str = india_time.strftime('%I:%M %p')
     print(f"DEBUG: India Time Calculated: {india_time}")
 
-    # Check for approved leave
-    is_on_leave = Leaves.objects.filter(
-        employee=employee,
-        status='Approved',
-        from_date__lte=current_date_str,
-        to_date__gte=current_date_str
-    ).exists()
-
-    if is_on_leave:
-        return Response({'error': 'Cannot clock in/out while on approved leave.'}, status=status.HTTP_400_BAD_REQUEST)
+    # Removed: Check for approved leave restriction
+    # is_on_leave = Leaves.objects.filter(
+    #     employee=employee,
+    #     status='Approved',
+    #     from_date__lte=current_date_str,
+    #     to_date__gte=current_date_str
+    # ).exists()
+    # 
+    # if is_on_leave:
+    #     return Response({'error': 'Cannot clock in/out while on approved leave.'}, status=status.HTTP_400_BAD_REQUEST)
 
     last_log_today = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str).order_by('-timestamp').first()
     
@@ -70,6 +70,10 @@ def clock(request):
         defaults={'status': 'Present', 'break_minutes': 0}
     )
     
+    # If the record already existed but was marked as something else, update to 'Present'
+    if not created and attendance_summary.status in ['Week Off', 'Holiday', 'Absent', '-', None]:
+        attendance_summary.status = 'Present'
+    
     if clock_type == 'IN':
         if not attendance_summary.check_in:
              attendance_summary.check_in = current_time_str
@@ -78,6 +82,8 @@ def clock(request):
             if attendance_summary.break_minutes is None:
                 attendance_summary.break_minutes = 0
             attendance_summary.break_minutes += int(round(break_duration))
+        # Clear checkout when clocking back in, so it doesn't show an old checkout time while active
+        attendance_summary.check_out = '-'
 
     elif clock_type == 'OUT':
         if attendance_summary.check_in and attendance_summary.check_in != '-':
@@ -139,7 +145,8 @@ def get_status(request, employee_id):
 
         is_weekend = now.weekday() >= 5  # 5=Saturday, 6=Sunday
         
-        can_clock = not (is_on_leave or is_weekend or is_holiday)
+        # Always allow clocking, even on leave/weekend/holiday
+        can_clock = True 
         disabled_reason = None
         
         if is_holiday:
@@ -164,7 +171,12 @@ def get_status(request, employee_id):
         summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
         
         att_status = 'OUT'
-        if last_log and last_log.type == 'IN' and last_log.date == current_date_str:
+        # Prioritize summary (Attendance model) as it includes regularized/manual updates
+        if summary:
+            if summary.check_in and summary.check_in != '-' and (not summary.check_out or summary.check_out == '-'):
+                att_status = 'IN'
+        # Fallback to logs if summary doesn't exist yet (though clock-in should create it)
+        elif last_log and last_log.type == 'IN' and last_log.date == current_date_str:
             att_status = 'IN'
             
         return Response({
@@ -193,71 +205,102 @@ def get_personal_stats(request, employee_id):
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
     now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    current_date_str = now.strftime('%Y-%m-%d')
+    
+    def get_start_dates(d):
+        # Week starts Monday
+        week_start = d - timedelta(days=d.weekday())
+        week_start = week_start.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Month starts 1st
+        month_start = d.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        return week_start, month_start
 
-    def get_week_range(d):
-        start = d - timedelta(days=d.weekday())
-        start = start.replace(hour=0, minute=0, second=0, microsecond=0)
-        end = start + timedelta(days=6)
-        end = end.replace(hour=23, minute=59, second=59)
-        return start, end
+    this_week_start, this_month_start = get_start_dates(now)
+    last_week_start = this_week_start - timedelta(days=7)
+    last_week_end = this_week_start - timedelta(seconds=1)
 
-    this_mon, this_sun = get_week_range(now)
-    last_mon = this_mon - timedelta(days=7)
-    last_sun = this_sun - timedelta(days=7)
+    def is_on_time(check_in):
+        if not check_in or check_in == '-': return False
+        try:
+            # Handle formats like "09:15 AM"
+            t = datetime.strptime(str(check_in), '%I:%M %p').time()
+            cutoff = datetime.strptime('09:30 AM', '%I:%M %p').time()
+            return t <= cutoff
+        except:
+            return False
 
-    def calc_avg_for_range(start_dt, end_dt):
+    def calc_stats_for_range(emp_list, start_dt, end_dt=None):
+        if end_dt is None: end_dt = now
+            
         summaries = Attendance.objects.filter(
-            employee=employee,
+            employee__in=emp_list,
             date__gte=start_dt.strftime('%Y-%m-%d'),
             date__lte=end_dt.strftime('%Y-%m-%d')
         )
         
-        total_eff_mins = 0
-        days_with_activity = 0
+        total_mins = 0
+        present_days = 0
+        on_time_count = 0
         
-        for summary in summaries:
-            punches = AttendanceLogs.objects.filter(employee=employee, date=summary.date).order_by('timestamp')
-            if not punches: continue
-                
-            day_mins = 0
-            current_in = None
-            for p in punches:
-                if p.type == 'IN':
-                    current_in = p.timestamp
-                elif p.type == 'OUT' and current_in:
-                    day_mins += (p.timestamp - current_in).total_seconds() / 60
-                    current_in = None
+        for s in summaries:
+            mins = 0
+            if s.worked_hours and 'h' in s.worked_hours:
+                try:
+                    parts = s.worked_hours.replace('m', '').split('h ')
+                    h = int(parts[0])
+                    m = int(parts[1]) if len(parts) > 1 else 0
+                    mins = h * 60 + m
+                except: pass
             
-            if current_in and summary.date == current_date_str:
-                day_mins += (now - current_in).total_seconds() / 60
-                
-            if day_mins > 0:
-                total_eff_mins += day_mins
-                days_with_activity += 1
-                
-        return total_eff_mins / days_with_activity if days_with_activity > 0 else 0
+            if mins > 0 or (s.check_in and s.check_in != '-'):
+                total_mins += mins
+                present_days += 1
+                if is_on_time(s.check_in):
+                    on_time_count += 1
+                    
+        avg_mins = int(total_mins / present_days) if present_days > 0 else 0
+        on_time_pct = int((on_time_count / present_days) * 100) if present_days > 0 else 0
+        
+        h = int(avg_mins // 60)
+        m = int(avg_mins % 60)
+        return {
+            "avg": f"{h}h {str(m).zfill(2)}m",
+            "avg_mins": avg_mins,
+            "onTime": f"{on_time_pct}%"
+        }
 
-    avg_this = calc_avg_for_range(this_mon, this_sun)
-    avg_last = calc_avg_for_range(last_mon, last_sun)
-    diff = avg_this - avg_last
+    # "Me" Stats
+    me_week = calc_stats_for_range([employee], this_week_start)
+    me_month = calc_stats_for_range([employee], this_month_start)
+    me_last_week = calc_stats_for_range([employee], last_week_start, last_week_end)
+    
+    # Calculate difference vs last week
+    diff_mins = me_week["avg_mins"] - me_last_week["avg_mins"]
+    prefix = "+" if diff_mins >= 0 else "-"
+    abs_mins = abs(diff_mins)
+    diff_h = abs_mins // 60
+    diff_m = abs_mins % 60
+    last_week_diff = f"{prefix}{diff_h}h {str(diff_m).zfill(2)}m"
 
-    def format_mins(m):
-        h = int(m // 60)
-        mins = int(m % 60)
-        return f"{h}h {mins}m"
-
-    diff_abs = abs(int(diff))
-    diff_h = diff_abs // 60
-    diff_m = diff_abs % 60
-    diff_str = f"{diff_h}h {diff_m}m" if diff_abs >= 60 else f"{diff_m}m"
+    # "Team" Stats
+    team_week = {"avg": "0h 00m", "onTime": "0%"}
+    team_month = {"avg": "0h 00m", "onTime": "0%"}
+    
+    if employee.team:
+        team_members = Employees.objects.filter(team=employee.team)
+        team_week = calc_stats_for_range(team_members, this_week_start)
+        team_month = calc_stats_for_range(team_members, this_month_start)
 
     return Response({
-        'avg_working_hours': format_mins(avg_this),
-        'this_week_mins': int(avg_this),
-        'last_week_mins': int(avg_last),
-        'diff_label': f"{'+' if diff >= 0 else '-'}{diff_str} vs last week" if diff_abs > 0 else "Same as last week",
-        'diff_status': 'up' if diff >= 0 else 'down'
+        'avg_working_hours': me_week["avg"], # Legacy support
+        'lastWeekDiff': last_week_diff,
+        'week': {
+            'me': me_week,
+            'team': team_week
+        },
+        'month': {
+            'me': me_month,
+            'team': team_month
+        }
     })
 
 @api_view(['GET'])
@@ -294,7 +337,21 @@ def get_history(request, employee_id):
             end_d = datetime.strptime(leave.to_date, '%Y-%m-%d')
             while current_d <= end_d:
                 d_str = current_d.strftime('%Y-%m-%d')
-                leave_dates[d_str] = leave.type # e.g. "Sick Leave"
+                display_type = leave.type
+                
+                # Determine session for this specific day in the range
+                day_session = 'Full Day'
+                if d_str == leave.from_date:
+                    day_session = leave.from_session
+                elif d_str == leave.to_date:
+                    day_session = leave.to_session
+                
+                if day_session == 'Session 1':
+                    display_type = f"First Half {leave.type}"
+                elif day_session == 'Session 2':
+                    display_type = f"Second Half {leave.type}"
+                
+                leave_dates[d_str] = display_type
                 current_d += timedelta(days=1)
         except ValueError:
             continue
@@ -347,7 +404,7 @@ def get_history(request, employee_id):
                 'status': display_status,
                 'leaveType': leave_type, # Provide explicit field
                 'checkIn': log.check_in or '-',
-                'checkOut': '-' if is_active else (log.check_out or '-'),
+                'checkOut': log.check_out if (log.check_out and log.check_out != '-') else ('-' if is_active else '-'),
                 'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
                 'isHoliday': log.is_holiday,
                 'isWeekend': log.is_weekend,
@@ -376,3 +433,114 @@ def get_history(request, employee_id):
             })
         
     return Response(result)
+@api_view(['POST'])
+def submit_regularization(request):
+    data = request.data
+    employee_id = data.get('employee_id')
+    date = data.get('date')
+    requested_checkout = data.get('check_out_time')
+    reason = data.get('reason')
+
+    if not all([employee_id, date, requested_checkout, reason]):
+        return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+        
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=404)
+
+    attendance = Attendance.objects.filter(employee=employee, date=date).first()
+    if not attendance:
+        return Response({'error': 'Attendance record for this date not found'}, status=404)
+
+    # Prevent duplicate pending requests for the same day
+    existing = Regularization.objects.filter(attendance=attendance, status='Pending').exists()
+    if existing:
+        return Response({'error': 'A pending regularization request already exists for this date'}, status=400)
+
+    Regularization.objects.create(
+        employee=employee,
+        attendance=attendance,
+        requested_checkout=requested_checkout,
+        reason=reason
+    )
+
+    return Response({'message': 'Regularization request submitted successfully'})
+
+@api_view(['GET'])
+def get_regularization_requests(request, manager_id):
+    manager = Employees.objects.filter(employee_id=manager_id).first()
+    if not manager and str(manager_id).isdigit():
+        manager = Employees.objects.filter(pk=manager_id).first()
+    
+    if not manager:
+        return Response({'error': 'Manager not found'}, status=404)
+        
+    teams = Teams.objects.filter(manager=manager)
+    requests = Regularization.objects.filter(
+        employee__team__in=teams,
+        status='Pending'
+    ).select_related('employee', 'attendance').order_by('-created_at')
+    
+    data = []
+    for r in requests:
+        data.append({
+            'id': r.id,
+            'employee_name': f"{r.employee.first_name} {r.employee.last_name}",
+            'employee_id': r.employee.employee_id,
+            'date': r.attendance.date,
+            'check_in': r.attendance.check_in,
+            'requested_checkout': r.requested_checkout,
+            'reason': r.reason,
+            'status': r.status,
+            'created_at': r.created_at.isoformat()
+        })
+    
+    return Response(data)
+
+@api_view(['POST'])
+def action_regularization(request, pk):
+    action = request.data.get('action') # 'Approved' or 'Rejected'
+    if action not in ['Approved', 'Rejected']:
+        return Response({'error': 'Invalid action'}, status=400)
+
+    try:
+        reg = Regularization.objects.get(pk=pk)
+    except Regularization.DoesNotExist:
+        return Response({'error': 'Request not found'}, status=404)
+
+    reg.status = action
+    reg.save()
+
+    if action == 'Approved':
+        # Update the actual attendance record
+        att = reg.attendance
+        att.check_out = reg.requested_checkout
+        
+        # Recalculate working hours if check_in exists
+        if att.check_in and att.check_in != '-':
+            try:
+                # Naive calculation based on string times assuming same day
+                fmt = '%I:%M %p'
+                in_time = datetime.strptime(att.check_in, fmt)
+                out_time = datetime.strptime(att.check_out, fmt)
+                
+                total_mins = (out_time - in_time).total_seconds() / 60
+                if total_mins < 0: # Handle cross-day if necessary, but here we assume same day
+                    total_mins += 1440
+                
+                break_mins = att.break_minutes or 0
+                effective_mins = max(0, total_mins - break_mins)
+                
+                h = int(effective_mins // 60)
+                m = int(effective_mins % 60)
+                att.worked_hours = f"{h}h {m}m"
+            except Exception as e:
+                print(f"Error calculating hours: {e}")
+        
+        att.status = 'Present'
+        att.save()
+
+    return Response({'message': f'Request {action.lower()} successfully'})

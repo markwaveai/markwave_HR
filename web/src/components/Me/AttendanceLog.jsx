@@ -1,14 +1,61 @@
-import React from 'react';
-import { ChevronDown, Info } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ChevronDown, Info, MoreVertical, UserCheck } from 'lucide-react';
 import BreakInfo from './BreakInfo';
+import RegularizationModal from './RegularizationModal';
+import RegularizationRequests from './RegularizationRequests';
+import { attendanceApi } from '../../services/api';
 
 const AttendanceLog = ({
     filterType, setFilterType,
     selectedMonth, setSelectedMonth,
     monthOptions, displayedLogs,
     calculateStats, activeBreakIndex, setActiveBreakIndex,
-    currentTime
+    currentTime, user
 }) => {
+    const [activeTab, setActiveTab] = useState('log'); // 'log' or 'requests'
+    const [regModalOpen, setRegModalOpen] = useState(false);
+    const [selectedLogForReg, setSelectedLogForReg] = useState(null);
+    const [activeMenuIndex, setActiveMenuIndex] = useState(null);
+    const [requestsCount, setRequestsCount] = useState(0);
+
+    // Fetch requests count for badge
+    useEffect(() => {
+        const fetchCount = async () => {
+            if (user && (user.employee_id || user.id)) {
+                try {
+                    const data = await attendanceApi.getRegularizationRequests(user.employee_id || user.id);
+                    if (Array.isArray(data)) {
+                        setRequestsCount(data.length);
+                    }
+                } catch (e) {
+                    console.error("Not a manager or failed to fetch requests");
+                }
+            }
+        };
+        fetchCount();
+        const interval = setInterval(fetchCount, 30000); // Poll every 30s
+        return () => clearInterval(interval);
+    }, [user]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (activeBreakIndex !== null && !event.target.closest('.break-container')) {
+                setActiveBreakIndex(null);
+            }
+            if (activeMenuIndex !== null && !event.target.closest('.menu-container')) {
+                setActiveMenuIndex(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [activeBreakIndex, setActiveBreakIndex, activeMenuIndex]);
+
+    const handleRegularizeClick = (log) => {
+        setSelectedLogForReg(log);
+        setRegModalOpen(true);
+        setActiveMenuIndex(null);
+    };
+
     const parseTimeToMinutes = (timeStr) => {
         if (!timeStr || timeStr === '-') return null;
         const [time, modifier] = timeStr.split(' ');
@@ -33,6 +80,9 @@ const AttendanceLog = ({
         const lastLog = log.logs[log.logs.length - 1];
         if (lastLog.out && lastLog.out !== '-') {
             endMins = parseTimeToMinutes(lastLog.out);
+        } else if (log.checkOut && log.checkOut !== '-') {
+            // Use regularized checkout time if available
+            endMins = parseTimeToMinutes(log.checkOut);
         } else {
             // Active session, use current time
             endMins = currentTime.getHours() * 60 + currentTime.getMinutes();
@@ -75,8 +125,24 @@ const AttendanceLog = ({
         <div className="bg-white rounded-xl shadow-lg border border-[#e2e8f0] overflow-hidden w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 mm:p-4 border-b border-[#e2e8f0] gap-4">
                 <div className="flex gap-1 bg-[#f1f2f6] p-1 rounded-lg w-full sm:w-auto">
-                    <button className="flex-1 sm:flex-none px-2 mm:px-4 py-1.5 text-[10px] mm:text-xs font-bold bg-white text-[#2d3436] shadow-sm rounded-md uppercase tracking-wider whitespace-nowrap">Attendance Log</button>
-                    <button className="flex-1 sm:flex-none px-2 mm:px-4 py-1.5 text-[10px] mm:text-xs font-bold text-[#636e72] hover:text-[#2d3436] uppercase tracking-wider whitespace-nowrap">Calendar</button>
+                    <button
+                        onClick={() => setActiveTab('log')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold rounded-md uppercase tracking-wider whitespace-nowrap transition-all ${activeTab === 'log' ? 'bg-white text-[#2d3436] shadow-sm' : 'text-[#636e72] hover:text-[#2d3436]'}`}
+                    >
+                        Attendance Log
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('requests')}
+                        className={`flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold rounded-md uppercase tracking-wider whitespace-nowrap transition-all flex items-center justify-center gap-1.5 ${activeTab === 'requests' ? 'bg-white text-[#2d3436] shadow-sm' : 'text-[#636e72] hover:text-[#2d3436]'}`}
+                    >
+                        Requests
+                        {requestsCount > 0 && (
+                            <span className="bg-red-500 text-white text-[9px] px-1 rounded-full min-w-[15px] h-[15px] flex items-center justify-center leading-none">
+                                {requestsCount}
+                            </span>
+                        )}
+                    </button>
+                    <button className="flex-1 sm:flex-none px-4 py-1.5 text-xs font-bold text-[#636e72] hover:text-[#2d3436] uppercase tracking-wider whitespace-nowrap opacity-50 cursor-not-allowed">Calendar</button>
                 </div>
                 <div className="flex items-center justify-end w-full sm:w-auto">
                     <div className="flex bg-white border border-[#e2e8f0] rounded-md overflow-hidden p-1 gap-1 w-full sm:w-auto">
@@ -111,123 +177,176 @@ const AttendanceLog = ({
                 </div>
             </div>
 
-            <div className="overflow-x-auto pb-4">
-                <table className="w-full min-w-[1500px]">
-                    <thead>
-                        <tr className="bg-[#f8fafc] border-b border-[#e2e8f0]">
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider w-[120px]">Date</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider w-[180px]">Attendance Visual</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Check-In</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Breaks</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Check-Out</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Gross Hrs</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Effective Hrs</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Arrival Time</th>
-                            <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Arrival Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {displayedLogs.map((log, index) => {
-                            const { gross, effective, arrivalStatus, arrivalColor, effectiveProgress } = calculateStats(log);
-                            const [y, m, d] = log.date.split('-').map(Number);
-                            const logDate = new Date(y, m - 1, d);
-                            const isWeekend = logDate.getDay() === 0 || logDate.getDay() === 6;
-                            const isHoliday = log.isHoliday;
-                            const currentDay = new Date(currentTime);
-                            const isToday = y === currentDay.getFullYear() && (m - 1) === currentDay.getMonth() && d === currentDay.getDate();
-                            const hasActivity = log.checkIn && log.checkIn !== '-';
-                            const isApprovedLeave = !!log.leaveType;
-                            const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActivity && !isApprovedLeave;
+            {activeTab === 'log' ? (
+                <div className="overflow-x-auto pb-4">
+                    <table className="w-full min-w-[1500px]">
+                        <thead>
+                            <tr className="bg-[#f8fafc] border-b border-[#e2e8f0]">
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider w-[120px]">Date</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider w-[180px]">Attendance Visual</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Check-In</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Breaks</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Check-Out</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Gross Hrs</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Effective Hrs</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Arrival Time</th>
+                                <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Arrival Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {displayedLogs.map((log, index) => {
+                                const { gross, effective, arrivalStatus, arrivalColor, effectiveProgress } = calculateStats(log);
+                                const [y, m, d] = log.date.split('-').map(Number);
+                                const logDate = new Date(y, m - 1, d);
+                                const isWeekend = logDate.getDay() === 0 || logDate.getDay() === 6;
+                                const isHoliday = log.isHoliday;
+                                const currentDay = new Date(currentTime);
+                                const isToday = y === currentDay.getFullYear() && (m - 1) === currentDay.getMonth() && d === currentDay.getDate();
+                                const hasActualActivity = (log.checkIn && log.checkIn !== '-') || (log.logs && log.logs.length > 0);
+                                const isApprovedLeave = !!log.leaveType;
+                                const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActualActivity && !isApprovedLeave;
+                                const showAsOffDay = (isWeekend || isHoliday || isAbsent || isApprovedLeave) && !hasActualActivity;
 
-                            return (
-                                <tr key={index} className={`border-b border-[#e2e8f0] last:border-none hover:bg-[#f9fafb] transition-colors ${isWeekend || isHoliday || isAbsent || isApprovedLeave ? 'bg-[#f5f5f5]' : 'bg-white'}`}>
-                                    <td className="p-2 mm:p-4 text-xs mm:text-sm font-medium text-[#2d3436] text-center">
-                                        <div className="flex flex-col mm:flex-row items-center justify-center gap-1 mm:gap-2">
-                                            <span className="whitespace-nowrap">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</span>
-                                            {(isWeekend || isHoliday || isAbsent || isApprovedLeave) && (
-                                                <span className={`px-1 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-[#d1d5db] text-[#48327d]'}`}>
-                                                    {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (log.leaveType?.toUpperCase() || 'LEAVE') : 'ABSENT'}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>
+                                const isMissedCheckout = log.checkOut === '-' && log.checkIn !== '-' && new Date(log.date).setHours(0, 0, 0, 0) < new Date(currentTime).setHours(0, 0, 0, 0);
 
-                                    {(isWeekend || isHoliday || isAbsent || isApprovedLeave) ? (
-                                        <td colSpan="8" className="p-4 text-sm text-[#2d3436] font-medium text-center">
-                                            {(() => {
-                                                const getLeaveLabel = (code) => {
-                                                    const map = {
-                                                        'SL': 'Sick Leave',
-                                                        'CL': 'Casual Leave',
-                                                        'EL': 'Earned Leave',
-                                                        'PL': 'Privilege Leave',
-                                                        'LOP': 'Loss of Pay'
-                                                    };
-                                                    return map[code?.toUpperCase()] || code?.toUpperCase() || 'Leave';
-                                                };
-
-                                                if (isHoliday) return 'Full day Holiday';
-                                                if (isWeekend) return 'Full day Weekly-off';
-                                                if (isApprovedLeave) return `Full Day ${getLeaveLabel(log.leaveType)}`;
-                                                return 'Absent';
-                                            })()}
+                                return (
+                                    <tr key={index} className={`border-b border-[#e2e8f0] last:border-none hover:bg-[#f9fafb] transition-colors ${showAsOffDay ? 'bg-[#f5f5f5]' : 'bg-white'}`}>
+                                        <td className="p-2 mm:p-4 text-xs mm:text-sm font-medium text-[#2d3436] text-center">
+                                            <div className="flex flex-col mm:flex-row items-center justify-center gap-1 mm:gap-2">
+                                                <span className="whitespace-nowrap">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</span>
+                                                {showAsOffDay && (
+                                                    <span className={`px-1 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-[#d1d5db] text-[#48327d]'}`}>
+                                                        {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (log.leaveType?.toUpperCase() || 'LEAVE') : 'ABSENT'}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
-                                    ) : (
-                                        <>
-                                            <td className="p-4">
-                                                <div className="h-2 w-full bg-[#f1f2f6] rounded-full overflow-hidden flex">
-                                                    {getVisualSegments(log).map((seg, i) => (
-                                                        <div
-                                                            key={i}
-                                                            className={`h-full ${seg.type === 'work' ? 'bg-[#48327d]' : 'bg-transparent'}`}
-                                                            style={{ width: `${seg.width}%` }}
-                                                        ></div>
-                                                    ))}
-                                                </div>
+
+                                        {showAsOffDay ? (
+                                            <td colSpan="8" className="p-4 text-sm text-[#2d3436] font-medium text-center">
+                                                {(() => {
+                                                    const getLeaveLabel = (code) => {
+                                                        const map = {
+                                                            'SL': 'Sick Leave',
+                                                            'CL': 'Casual Leave',
+                                                            'EL': 'Earned Leave',
+                                                            'PL': 'Privilege Leave',
+                                                            'LOP': 'Loss of Pay'
+                                                        };
+                                                        if (code?.includes('Half Day')) {
+                                                            const type = code.replace('Half Day ', '');
+                                                            return `Half Day ${map[type.toUpperCase()] || type}`;
+                                                        }
+                                                        if (code?.includes('First Half')) {
+                                                            const type = code.replace('First Half ', '');
+                                                            return `First Half ${map[type.toUpperCase()] || type}`;
+                                                        }
+                                                        if (code?.includes('Second Half')) {
+                                                            const type = code.replace('Second Half ', '');
+                                                            return `Second Half ${map[type.toUpperCase()] || type}`;
+                                                        }
+                                                        return map[code?.toUpperCase()] || code?.toUpperCase() || 'Leave';
+                                                    };
+
+                                                    if (isHoliday) return 'Full day Holiday';
+                                                    if (isWeekend) return 'Full day Weekly-off';
+                                                    if (isApprovedLeave) return `Full Day ${getLeaveLabel(log.leaveType)}`;
+                                                    return 'Absent';
+                                                })()}
                                             </td>
-                                            <td className="p-4 text-center text-xs text-[#2d3436] font-medium">{log.checkIn}</td>
-                                            <td className="p-4 text-center text-xs text-[#636e72] relative">
-                                                {log.breakMinutes > 0 ? (
-                                                    <>
-                                                        <button
-                                                            onClick={() => setActiveBreakIndex(activeBreakIndex === index ? null : index)}
-                                                            className="p-1 hover:bg-gray-100 rounded-full transition-colors inline-flex items-center justify-center text-[#48327d]"
-                                                            title="View break timings"
-                                                        >
-                                                            <Info size={16} />
-                                                        </button>
-                                                        <BreakInfo log={log} activeBreakIndex={activeBreakIndex} index={index} />
-                                                    </>
-                                                ) : (
-                                                    '-'
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-center text-xs text-[#2d3436] font-medium">
-                                                {log.checkOut === '-' && log.checkIn !== '-' && new Date(log.date).setHours(0, 0, 0, 0) < new Date(currentTime).setHours(0, 0, 0, 0) ? (
-                                                    <span className="text-[#ef4444] font-semibold text-[10px] uppercase bg-red-50 px-2 py-0.5 rounded">Missed Check-Out</span>
-                                                ) : (
-                                                    log.checkOut
-                                                )}
-                                            </td>
-                                            <td className="p-4 text-center text-xs text-[#2d3436] font-medium">{gross}</td>
-                                            <td className="p-4 text-center text-sm text-[#48327d] font-bold">{effective}</td>
-                                            <td className="p-4 text-center text-xs text-[#2d3436]">{log.checkIn}</td>
-                                            <td className="p-4 text-center text-xs font-medium">
-                                                {arrivalStatus !== '-' && (
-                                                    <div className={`flex items-center justify-center gap-1.5 ${arrivalColor}`}>
-                                                        <span className="capitalize">{arrivalStatus}</span>
+                                        ) : (
+                                            <>
+                                                <td className="p-4">
+                                                    <div className="h-2 w-full bg-[#f1f2f6] rounded-full overflow-hidden flex">
+                                                        {getVisualSegments(log).map((seg, i) => (
+                                                            <div
+                                                                key={i}
+                                                                className={`h-full ${seg.type === 'work' ? 'bg-[#48327d]' : 'bg-transparent'}`}
+                                                                style={{ width: `${seg.width}%` }}
+                                                            ></div>
+                                                        ))}
                                                     </div>
-                                                )}
-                                                {arrivalStatus === '-' && <span className="text-[#b2bec3]">-</span>}
-                                            </td>
-                                        </>
-                                    )}
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                                </td>
+                                                <td className="p-4 text-center text-xs text-[#2d3436] font-medium">{log.checkIn}</td>
+                                                <td className="p-4 text-center text-xs text-[#636e72] relative">
+                                                    {log.breakMinutes > 0 ? (
+                                                        <div className="break-container">
+                                                            <button
+                                                                onClick={() => setActiveBreakIndex(activeBreakIndex === index ? null : index)}
+                                                                className="p-1 hover:bg-gray-100 rounded-full transition-colors inline-flex items-center justify-center text-[#48327d]"
+                                                                title="View break timings"
+                                                            >
+                                                                <Info size={16} />
+                                                            </button>
+                                                            <BreakInfo log={log} activeBreakIndex={activeBreakIndex} index={index} />
+                                                        </div>
+                                                    ) : (
+                                                        '-'
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-center text-xs text-[#2d3436] font-medium flex items-center justify-center gap-2 relative">
+                                                    {isMissedCheckout ? (
+                                                        <span className="text-[#ef4444] font-semibold text-[10px] uppercase bg-red-50 px-2 py-0.5 rounded">Missed Check-Out</span>
+                                                    ) : (
+                                                        log.checkOut
+                                                    )}
+
+                                                    {isMissedCheckout && (
+                                                        <div className="menu-container relative">
+                                                            <button
+                                                                onClick={() => setActiveMenuIndex(activeMenuIndex === index ? null : index)}
+                                                                className="p-1 text-gray-400 hover:text-[#48327d] hover:bg-gray-100 rounded-full transition-colors"
+                                                            >
+                                                                <MoreVertical size={14} />
+                                                            </button>
+                                                            {activeMenuIndex === index && (
+                                                                <div className="absolute right-0 top-full mt-1 w-32 bg-white rounded-lg shadow-xl border border-gray-100 z-10 overflow-hidden animate-modal-in">
+                                                                    <button
+                                                                        onClick={() => handleRegularizeClick(log)}
+                                                                        className="w-full text-left px-3 py-2 text-xs font-bold text-[#2d3436] hover:bg-[#f8fafc] flex items-center gap-2"
+                                                                    >
+                                                                        <UserCheck size={12} className="text-[#48327d]" />
+                                                                        Regularize
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="p-4 text-center text-xs text-[#2d3436] font-medium">{gross}</td>
+                                                <td className="p-4 text-center text-sm text-[#48327d] font-bold">{effective}</td>
+                                                <td className="p-4 text-center text-xs text-[#2d3436]">{log.checkIn}</td>
+                                                <td className="p-4 text-center text-xs font-medium">
+                                                    {arrivalStatus !== '-' && (
+                                                        <div className={`flex items-center justify-center gap-1.5 ${arrivalColor}`}>
+                                                            <span className="capitalize">{arrivalStatus}</span>
+                                                        </div>
+                                                    )}
+                                                    {arrivalStatus === '-' && <span className="text-[#b2bec3]">-</span>}
+                                                </td>
+                                            </>
+                                        )}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <RegularizationRequests user={user} />
+            )}
+
+            <RegularizationModal
+                isOpen={regModalOpen}
+                onClose={() => setRegModalOpen(false)}
+                log={selectedLogForReg}
+                user={user}
+                onSuccess={() => {
+                    // Refresh data or show toast
+                    // Trigger a refresh of logs if possible, or just close
+                    // Since fetchHistory is in parent, we might just count on auto-poll or simple close
+                }}
+            />
         </div>
     );
 };

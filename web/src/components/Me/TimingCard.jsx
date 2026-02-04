@@ -3,24 +3,24 @@ import { Coffee } from 'lucide-react';
 
 const TimingCard = ({ activeTiming, currentWeekLogs, selectedDayIndex, setSelectedDayIndex, getLocalSelectedDateStr }) => {
     return (
-        <div className="bg-white rounded-xl shadow-lg p-4 mm:p-5 border border-[#e2e8f0]">
-            <h3 className="text-sm font-medium text-[#636e72] mb-5">Timings</h3>
+        <div className="bg-white rounded-xl shadow-lg p-2.5 mm:p-4 border border-[#e2e8f0] flex flex-col justify-between h-full">
+            <h3 className="text-[10px] font-bold text-[#636e72] mb-3 uppercase tracking-wider">Timings</h3>
 
-            <div className="flex justify-between mb-6 gap-1 px-1 pt-2">
+            <div className="flex justify-between items-center mb-6 px-0.5 pt-2 gap-0.5">
                 {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((label, i) => {
                     const log = currentWeekLogs[i];
                     const isToday = log?.date === getLocalSelectedDateStr(new Date());
                     return (
-                        <div key={i} className="flex flex-col items-center gap-1 flex-shrink-0">
+                        <div key={i} className="flex-1 flex flex-col items-center">
                             <button
                                 onClick={() => setSelectedDayIndex(i)}
-                                className={`w-[28px] h-[28px] mm:w-[32px] mm:h-[32px] ml:w-9 ml:h-9 tab:w-10 tab:h-10 rounded-full flex items-center justify-center text-[8px] mm:text-[10px] ml:text-sm font-bold transition-all relative flex-shrink-0 ${selectedDayIndex === i
+                                className={`w-[90%] aspect-square max-w-[40px] rounded-full flex items-center justify-center text-[8px] mm:text-[10px] ml:text-xs font-bold transition-all relative flex-shrink-0 ${selectedDayIndex === i
                                     ? 'bg-[#48327d] text-white shadow-md transform scale-110'
                                     : isToday ? 'bg-[#48327d]/10 text-[#48327d] border border-[#48327d]/30' : 'bg-[#f1f2f6] text-[#636e72] hover:bg-[#e2e8f0]'
                                     }`}
                             >
                                 {label}
-                                {isToday && <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ef4444] rounded-full border-2 border-white"></div>}
+                                {isToday && <div className="absolute -top-0.5 -right-0.5 w-[30%] h-[30%] bg-[#ef4444] rounded-full border border-white"></div>}
                             </button>
                         </div>
                     );
@@ -28,9 +28,9 @@ const TimingCard = ({ activeTiming, currentWeekLogs, selectedDayIndex, setSelect
             </div>
 
             <div className="space-y-5">
-                <div className="text-sm font-medium text-[#2d3436] flex justify-between items-center">
-                    <span>{activeTiming.day}, {activeTiming.dateStr}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${activeTiming.range === 'Weekly Off' || activeTiming.range === 'Holiday' ? 'bg-[#8e78b0]/10 text-[#8e78b0]' : 'bg-[#48327d]/10 text-[#48327d]'}`}>
+                <div className="text-[10px] font-black text-[#2d3436] flex flex-wrap justify-between items-center gap-y-1">
+                    <span className="truncate">{activeTiming.day}, {activeTiming.dateStr}</span>
+                    <span className={`text-[8px] px-1 py-0.5 rounded-full font-black uppercase tracking-tight shrink-0 ${activeTiming.range === 'Weekly Off' || activeTiming.range === 'Holiday' ? 'bg-[#8e78b0]/10 text-[#8e78b0]' : 'bg-[#48327d]/10 text-[#48327d]'}`}>
                         {activeTiming.range}
                     </span>
                 </div>
@@ -40,10 +40,10 @@ const TimingCard = ({ activeTiming, currentWeekLogs, selectedDayIndex, setSelect
                         style={{ width: `${activeTiming.progress}%` }}
                     ></div>
                 </div>
-                <div className="flex justify-between items-center text-xs text-[#8e78b0] font-medium">
-                    <span>Duration: {activeTiming.duration}</span>
-                    <div className="flex items-center gap-1.5 pt-1">
-                        <Coffee size={15} />
+                <div className="flex justify-between items-center text-[9px] mm:text-[10px] text-[#8e78b0] font-black uppercase tracking-tight">
+                    <span>Dur: {activeTiming.duration}</span>
+                    <div className="flex items-center gap-1">
+                        <Coffee size={12} className="shrink-0" />
                         <span>{activeTiming.break}</span>
                     </div>
                 </div>

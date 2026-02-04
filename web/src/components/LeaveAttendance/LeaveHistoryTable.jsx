@@ -26,9 +26,30 @@ const LeaveHistoryTable = ({ history }) => {
                         {history.map((log) => (
                             <tr key={log.id} className="hover:bg-[#f9fafb] transition-colors">
                                 <td className="px-5 py-4">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-[#2d3436]">{log.type?.toUpperCase()}</span>
-                                        <span className="text-[10px] text-[#636e72] italic truncate max-w-[400px]">{log.reason}</span>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-bold text-[#2d3436] tracking-tight">{log.type?.toUpperCase()}</span>
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="flex flex-wrap items-center gap-1">
+                                                <span className="text-[9px] mm:text-[10px] text-[#48327d] font-bold bg-purple-50 px-1.5 py-0.5 rounded-sm inline-flex items-center">
+                                                    {(() => {
+                                                        const fmt = (d) => new Date(d).toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+                                                        const s1 = (s) => {
+                                                            if (s === 'Session 1' || s === 'First Half') return 'First Half';
+                                                            if (s === 'Session 2' || s === 'Second Half') return 'Second Half';
+                                                            return 'Full Day';
+                                                        };
+
+                                                        if (log.fromDate === log.toDate) {
+                                                            return `${fmt(log.fromDate)} (${s1(log.from_session)})`;
+                                                        }
+                                                        return `${fmt(log.fromDate)} (${s1(log.from_session)}) - ${fmt(log.toDate)} (${s1(log.to_session)})`;
+                                                    })()}
+                                                </span>
+                                            </div>
+                                            <span className="text-[10px] leading-relaxed text-[#636e72] font-medium whitespace-normal break-words max-w-[400px]">
+                                                {log.reason}
+                                            </span>
+                                        </div>
                                     </div>
                                 </td>
                                 <td className="px-5 py-4 text-xs font-medium text-[#2d3436]">{log.dates}</td>

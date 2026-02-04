@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
-import Dashboard from './components/Dashboard';
-import Me from './components/Me';
-import MyTeam from './components/MyTeam';
-import LeaveAttendance from './components/LeaveAttendance';
-import Settings from './components/Layout/Settings';
-import EmployeeManagement from './components/EmployeeManagement';
-import AdminLeaveManagement from './components/AdminLeaveManagement';
-import TeamManagement from './components/TeamManagement';
 import LoginPage from './components/LoginPage';
 import { authApi } from './services/api';
 import './index.css';
+
+// Lazy load page components
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const Me = lazy(() => import('./components/Me'));
+const MyTeam = lazy(() => import('./components/MyTeam'));
+const LeaveAttendance = lazy(() => import('./components/LeaveAttendance'));
+const Settings = lazy(() => import('./components/Layout/Settings'));
+const EmployeeManagement = lazy(() => import('./components/EmployeeManagement'));
+const AdminLeaveManagement = lazy(() => import('./components/AdminLeaveManagement'));
+const TeamManagement = lazy(() => import('./components/TeamManagement'));
 
 // Protected Route Component
 const ProtectedRoute = ({ isAuthenticated, children }) => {
@@ -42,7 +44,7 @@ const Layout = ({ user, handleLogout }) => {
         onClose={() => setIsSidebarOpen(false)}
       />
       <div className={`flex-1 flex flex-col h-full min-w-0 transition-all duration-300 ${isSidebarOpen ? 'tab:ml-[240px] lg:ml-0' : ''}`}>
-        <Header user={user} isSidebarOpen={isSidebarOpen} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} />
+        <Header user={user} isSidebarOpen={isSidebarOpen} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} onLogout={handleLogout} />
         <main className="flex-1 relative overflow-y-auto">
           <Outlet />
         </main>
@@ -107,31 +109,40 @@ function App() {
   };
 
   return (
-    <Routes>
-      <Route path="/login" element={
-        !isAuthenticated ? (
-          <LoginPage onLogin={handleLogin} />
-        ) : (
-          <Navigate to="/dashboard" replace />
-        )
-      } />
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-screen bg-[#F5F7FA]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-[#48327d]/20 border-t-[#48327d] rounded-full animate-spin"></div>
+          <span className="text-sm font-medium text-[#636e72]">Loading Markwave...</span>
+        </div>
+      </div>
+    }>
+      <Routes>
+        <Route path="/login" element={
+          !isAuthenticated ? (
+            <LoginPage onLogin={handleLogin} />
+          ) : (
+            <Navigate to="/dashboard" replace />
+          )
+        } />
 
-      {/* Protected Routes */}
-      <Route element={<ProtectedRoute isAuthenticated={isAuthenticated}><Layout user={user} handleLogout={handleLogout} /></ProtectedRoute>}>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<Dashboard user={user} />} />
-        <Route path="/me" element={<Me user={user} />} />
-        <Route path="/team" element={<MyTeam user={user} />} />
-        <Route path="/leaves" element={<LeaveAttendance user={user} />} />
-        <Route path="/employee-management" element={<EmployeeManagement user={user} />} />
-        <Route path="/settings" element={<Settings user={user} />} />
-        <Route path="/admin-leaves" element={<AdminLeaveManagement user={user} />} />
-        <Route path="/team-management" element={<TeamManagement user={user} />} />
-      </Route>
+        {/* Protected Routes */}
+        <Route element={<ProtectedRoute isAuthenticated={isAuthenticated}><Layout user={user} handleLogout={handleLogout} /></ProtectedRoute>}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard user={user} />} />
+          <Route path="/me" element={<Me user={user} />} />
+          <Route path="/team" element={<MyTeam user={user} />} />
+          <Route path="/leaves" element={<LeaveAttendance user={user} />} />
+          <Route path="/employee-management" element={<EmployeeManagement user={user} />} />
+          <Route path="/settings" element={<Settings user={user} />} />
+          <Route path="/admin-leaves" element={<AdminLeaveManagement user={user} />} />
+          <Route path="/team-management" element={<TeamManagement user={user} />} />
+        </Route>
 
-      {/* Catch all - redirect to dashboard if logged in, else login */}
-      <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-    </Routes>
+        {/* Catch all - redirect to dashboard if logged in, else login */}
+        <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
+      </Routes>
+    </Suspense>
   );
 }
 

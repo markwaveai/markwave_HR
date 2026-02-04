@@ -33,6 +33,9 @@ urlpatterns = [
     path('attendance/status/<str:employee_id>/', attendance_views.get_status, name='get-status'),
     path('attendance/stats/<str:employee_id>/', attendance_views.get_personal_stats, name='get-personal-stats'),
     path('attendance/history/<str:employee_id>/', attendance_views.get_history, name='get-history'),
+    path('attendance/regularize/', attendance_views.submit_regularization, name='submit-regularization'),
+    path('attendance/regularization-requests/<str:manager_id>/', attendance_views.get_regularization_requests, name='get-regularization-requests'),
+    path('attendance/regularization/<int:pk>/action/', attendance_views.action_regularization, name='action-regularization'),
     
     # Feed
     path('posts/', feed_views.post_list, name='post-list'),
