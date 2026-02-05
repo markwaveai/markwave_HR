@@ -3,7 +3,7 @@ import AttendanceStats from './Me/AttendanceStats';
 import TimingCard from './Me/TimingCard';
 import ActionCard from './Me/ActionCard';
 import AttendanceLog from './Me/AttendanceLog';
-import { attendanceApi, teamApi } from '../services/api';
+import { attendanceApi, teamApi, adminApi } from '../services/api';
 import { useMemo } from 'react';
 
 const Me = ({ user }) => {
@@ -158,25 +158,35 @@ const Me = ({ user }) => {
             effectiveProgress = Math.min(100, Math.max(0, (effectiveDiff / (9 * 60)) * 100));
         }
 
-        const startTime = new Date();
-        startTime.setHours(9, 30, 0, 0);
+        // Use team-specific shift timings
+        const shiftStart = parseTime(stats?.shift_start || '09:30 AM');
+        const shiftEnd = parseTime(stats?.shift_end || '06:30 PM');
 
         let arrivalStatus = 'On Time';
         let arrivalColor = 'text-[#22c55e]';
 
-        const diffMinutes = (checkIn - startTime) / (1000 * 60);
-
-        if (diffMinutes > 0) {
-            arrivalStatus = 'Late';
-            arrivalColor = 'text-[#ef4444]';
-        } else if (diffMinutes < -15) {
-            arrivalStatus = 'Early';
-            arrivalColor = 'text-[#f59e0b]';
+        if (shiftStart && checkIn) {
+            const diffMinutes = (checkIn - shiftStart) / (1000 * 60);
+            if (diffMinutes > 1) { // 1 min grace
+                arrivalStatus = 'Late';
+                arrivalColor = 'text-[#ef4444]';
+            } else if (diffMinutes < -15) {
+                arrivalStatus = 'Early';
+                arrivalColor = 'text-[#f59e0b]';
+            }
         }
 
         const dateObj = checkInDate;
-        const dayIndex = (dateObj.getDay() + 6) % 7;
-        const scheduledHours = (dayIndex >= 0 && dayIndex <= 4) ? '9h 00m' : '-';
+        const dayIndex = (dateObj.getDay() + 6) % 7; // Mon=0, Sun=6
+        let scheduledHours = '-';
+
+        if (dayIndex >= 0 && dayIndex <= 4 && shiftStart && shiftEnd) {
+            let diff = (shiftEnd - shiftStart) / (1000 * 60);
+            if (diff < 0) diff += 1440;
+            const h = Math.floor(diff / 60);
+            const m = Math.floor(diff % 60);
+            scheduledHours = `${h}h ${String(m).padStart(2, '0')}m`;
+        }
 
         return { gross: grossStr, effective: effStr, arrivalStatus, arrivalColor, scheduledHours, effectiveProgress };
     };
@@ -209,10 +219,17 @@ const Me = ({ user }) => {
 
     const [stats, setStats] = useState(null);
 
+    const isAdmin = user?.is_admin === true || user?.is_admin === 'true' ||
+        user?.role === 'Admin' ||
+        user?.role === 'Administrator' ||
+        user?.role === 'Project Manager' ||
+        user?.role === 'Advisor-Technology & Operations';
+
     const fetchStats = async () => {
         if (!EMPLOYEE_ID) return;
         try {
             const data = await attendanceApi.getPersonalStats(EMPLOYEE_ID);
+
             setStats(data);
         } catch (err) {
             console.error("Failed to fetch stats:", err);

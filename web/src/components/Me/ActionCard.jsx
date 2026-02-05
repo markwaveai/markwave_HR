@@ -58,23 +58,12 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
         setIsLocating(true);
         setError(null);
 
-        const fallbackToIP = async (reason = "Location Permission Denied") => {
-            try {
-                const response = await fetch('https://ipapi.co/json/');
-                if (response.ok) {
-                    const data = await response.json();
-                    const addr = `${data.city}, ${data.region}, ${data.country_name} (IP Based)`;
-                    performClockAction(addr);
-                } else {
-                    performClockAction(reason);
-                }
-            } catch (e) {
-                performClockAction(reason);
-            }
+        const fallback = (reason) => {
+            performClockAction(`Location Unavailable: ${reason}`);
         };
 
         if (!navigator.geolocation) {
-            fallbackToIP("Geolocation Not Supported");
+            fallback("Geolocation Not Supported");
             return;
         }
 
@@ -84,26 +73,9 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
                 const coordsStr = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
                 let displayAddr = coordsStr;
                 try {
-                    const response = await fetch(
-                        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-                    );
-                    if (response.ok) {
-                        const data = await response.json();
-                        const addr = data.address;
-                        const buildingTags = [
-                            addr.building, addr.commercial, addr.office, addr.amenity,
-                            addr.house_name, addr.house_number, addr.landmark, addr.tourism,
-                            addr.shop, addr.retail, addr.university, addr.hospital,
-                            addr.hotel, addr.industrial, addr.theatre, addr.place_of_worship
-                        ];
-
-                        let buildingName = buildingTags.find(Boolean) || '';
-                        const roadDetail = addr.road || addr.pedestrian || '';
-                        const areaDetail = addr.neighbourhood || addr.suburb || addr.city_district || '';
-                        const cityDetail = addr.city || addr.town || addr.village || '';
-
-                        const name = [buildingName, roadDetail, areaDetail, cityDetail].filter(Boolean).join(', ');
-                        displayAddr = name ? `${name} (${coordsStr})` : data.display_name.split(',').slice(0, 3).join(', ');
+                    const data = await attendanceApi.resolveLocation(latitude, longitude);
+                    if (data && data.address) {
+                        displayAddr = `${data.address} (${coordsStr})`;
                     }
                 } catch (e) {
                     console.warn("Reverse Geocoding Failed:", e);
@@ -112,7 +84,7 @@ const ActionCard = ({ currentTime, formatTime, formatDate, onClockAction, employ
             },
             (err) => {
                 console.error("Geo Error:", err);
-                fallbackToIP();
+                fallback("Permission Denied / Error");
             },
             { enableHighAccuracy: false, timeout: 10000, maximumAge: 0 }
         );

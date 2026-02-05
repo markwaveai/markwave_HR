@@ -94,6 +94,8 @@ class Teams(models.Model):
     name = models.CharField(unique=True, max_length=100)
     description = models.CharField(max_length=255, blank=True, null=True)
     manager = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id', blank=True, null=True)
+    shift_start = models.CharField(max_length=20, default='09:30 AM')
+    shift_end = models.CharField(max_length=20, default='06:30 PM')
 
     class Meta:
         managed = True

@@ -3,6 +3,8 @@ import { Search } from 'lucide-react';
 import { teamApi } from '../services/api';
 import TeamStats from './Teams/TeamStats';
 import TeamMemberCard from './Teams/TeamMemberCard';
+import LoadingSpinner from './Common/LoadingSpinner';
+import ConfirmDialog from './Common/ConfirmDialog';
 
 function MyTeam({ user }) {
     const [teamMembers, setTeamMembers] = useState([]);
@@ -10,11 +12,25 @@ function MyTeam({ user }) {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [allEmployees, setAllEmployees] = useState([]);
+    const [isAdding, setIsAdding] = useState(false);
+
+    // Deletion states
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [removeConfig, setRemoveConfig] = useState({ isOpen: false, memberId: null, memberName: '' });
 
     useEffect(() => {
         const fetchTeamData = async () => {
+            const teamId = user?.team_id;
+
+            if (!teamId) {
+                // User has no team, reset states and skip API calls
+                setTeamMembers([]);
+                setStats({ total: 0, active: 0, onLeave: 0, remote: 0 });
+                setLoading(false);
+                return;
+            }
+
             try {
-                const teamId = user?.team_id;
                 const [membersData, statsData, allEmpsData] = await Promise.all([
                     teamApi.getMembers(teamId),
                     teamApi.getStats(teamId),
@@ -46,6 +62,7 @@ function MyTeam({ user }) {
 
     const handleAddMember = async (e) => {
         e.preventDefault();
+        setIsAdding(true);
         try {
             if (!selectedExistingId) throw new Error("Please select an employee");
             await teamApi.updateMember(selectedExistingId, {
@@ -63,27 +80,40 @@ function MyTeam({ user }) {
         } catch (error) {
             console.error("Failed to add member:", error);
             alert("Failed to add member: " + (error.response?.data?.error || error.message));
+        } finally {
+            setIsAdding(false);
         }
     };
-    const handleRemoveMember = async (memberId) => {
-        if (!window.confirm("Are you sure you want to remove this member from your team?")) return;
+
+    const handleRemoveClick = (member) => {
+        setRemoveConfig({
+            isOpen: true,
+            memberId: member.id,
+            memberName: member.name
+        });
+    };
+
+    const confirmRemoveMember = async () => {
+        setIsDeleting(true);
         try {
-            await teamApi.updateMember(memberId, {
+            await teamApi.updateMember(removeConfig.memberId, {
                 team_id: null,
                 acting_user_id: user?.id
             });
             // Refresh local state
             const updatedMembers = await teamApi.getMembers(user?.team_id);
             setTeamMembers(updatedMembers);
-            alert("Member removed successfully!");
+            setRemoveConfig({ ...removeConfig, isOpen: false });
         } catch (error) {
             console.error("Failed to remove member:", error);
             alert("Failed to remove member: " + (error.response?.data?.error || error.message));
+        } finally {
+            setIsDeleting(false);
         }
     };
 
     if (loading) {
-        return <div className="p-6 text-center text-[#636e72]">Loading team data...</div>;
+        return <LoadingSpinner size={40} className="p-10" />;
     }
 
     return (
@@ -121,13 +151,19 @@ function MyTeam({ user }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mm:gap-6">
-                    {filteredMembers.map(member => (
-                        <TeamMemberCard
-                            key={member.id}
-                            member={member}
-                            onRemove={isManager ? handleRemoveMember : null}
-                        />
-                    ))}
+                    {filteredMembers.length > 0 ? (
+                        filteredMembers.map(member => (
+                            <TeamMemberCard
+                                key={member.id}
+                                member={member}
+                                onRemove={isManager ? () => handleRemoveClick(member) : null}
+                            />
+                        ))
+                    ) : (
+                        <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-dashed border-gray-200">
+                            <p className="text-gray-400 font-medium">No team members found.</p>
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -177,15 +213,28 @@ function MyTeam({ user }) {
                                 </button>
                                 <button
                                     type="submit"
-                                    className="flex-1 px-4 py-2 bg-[#6c5ce7] text-white rounded-lg text-sm hover:bg-[#5b4bc4]"
+                                    disabled={isAdding}
+                                    className="flex-1 px-4 py-2 bg-[#6c5ce7] text-white rounded-lg text-sm hover:bg-[#5b4bc4] flex justify-center items-center gap-2"
                                 >
-                                    Add Member
+                                    {isAdding ? <LoadingSpinner size={16} color="border-white" /> : 'Add Member'}
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
+
+            <ConfirmDialog
+                isOpen={removeConfig.isOpen}
+                title="Remove Member"
+                message={`Are you sure you want to remove "${removeConfig.memberName}" from your team?`}
+                confirmText="Remove Member"
+                onConfirm={confirmRemoveMember}
+                onCancel={() => setRemoveConfig({ ...removeConfig, isOpen: false })}
+                type="danger"
+                isLoading={isDeleting}
+                closeOnConfirm={false}
+            />
         </div>
     );
 }

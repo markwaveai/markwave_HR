@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { teamApi } from '../services/api';
 import { UserPlus, Users, MapPin, Mail, Briefcase, Phone, Clock, Calendar, X, ShieldCheck, Trash2 } from 'lucide-react';
 import ConfirmDialog from './Common/ConfirmDialog';
+import LoadingSpinner from './Common/LoadingSpinner';
 
 function EmployeeManagement() {
     const [employees, setEmployees] = useState([]);
@@ -25,6 +26,7 @@ function EmployeeManagement() {
 
     const [message, setMessage] = useState({ type: '', text: '' });
     const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, employee: null });
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const closeModal = () => {
         setIsClosing(true);
@@ -135,18 +137,22 @@ function EmployeeManagement() {
     const handleDelete = async () => {
         if (!deleteConfirm.employee) return;
 
+        setIsDeleting(true);
         const targetId = deleteConfirm.employee.id;
         // Close modal immediately to avoid flicker/re-opening during API call
-        setDeleteConfirm({ isOpen: false, employee: null });
+        // setDeleteConfirm({ isOpen: false, employee: null }); // Don't close immediately
 
         try {
             await teamApi.updateMember(targetId, {
                 status: 'Inactive'
             });
-            fetchEmployees();
+            await fetchEmployees();
+            setDeleteConfirm({ isOpen: false, employee: null });
         } catch (error) {
             console.error('Error deactivating employee:', error);
             alert('Failed to deactivate employee');
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -257,8 +263,8 @@ function EmployeeManagement() {
                                 </div>
                             )}
 
-                            <button type="submit" disabled={isSubmitting} className="w-full py-2.5 bg-[#48327d] text-white rounded-lg font-bold hover:bg-[#3a2865] transition-all disabled:opacity-50 text-sm shadow-md mt-2">
-                                {isSubmitting ? 'Processing...' : 'Register Employee'}
+                            <button type="submit" disabled={isSubmitting} className="w-full py-2.5 bg-[#48327d] text-white rounded-lg font-bold hover:bg-[#3a2865] transition-all disabled:opacity-50 text-sm shadow-md mt-2 flex justify-center items-center gap-2">
+                                {isSubmitting ? <LoadingSpinner size={16} color="border-white" /> : 'Register Employee'}
                             </button>
                         </form>
                     </div>
@@ -293,11 +299,13 @@ function EmployeeManagement() {
                         <tbody className="divide-y divide-[#f1f2f6] text-xs">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-20 text-center text-[#636e72]">Syncing with database...</td>
+                                    <td colSpan="10" className="px-6 py-20 text-center">
+                                        <LoadingSpinner size={40} className="mx-auto" />
+                                    </td>
                                 </tr>
                             ) : employees.length === 0 ? (
                                 <tr>
-                                    <td colSpan="8" className="px-6 py-20 text-center text-[#636e72]">No records found.</td>
+                                    <td colSpan="10" className="px-6 py-20 text-center text-[#636e72]">No records found.</td>
                                 </tr>
                             ) : (
                                 employees.map((emp) => (
@@ -352,6 +360,8 @@ function EmployeeManagement() {
                 onCancel={() => setDeleteConfirm({ isOpen: false, employee: null })}
                 confirmText="Deactivate"
                 type="danger"
+                isLoading={isDeleting}
+                closeOnConfirm={false}
             />
         </div >
     );

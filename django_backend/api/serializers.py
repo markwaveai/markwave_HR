@@ -10,7 +10,7 @@ class TeamsSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'manager', 'manager_name', 'member_count']
 
     def get_member_count(self, obj):
-        return Employees.objects.filter(team=obj).count()
+        return Employees.objects.filter(team=obj, status__in=['Active', 'Remote']).count()
 
     def get_manager_name(self, obj):
         if obj.manager:

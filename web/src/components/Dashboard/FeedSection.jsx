@@ -2,10 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Send, PlusCircle, Calendar, Zap, Image as ImageIcon, X, Trash2 } from 'lucide-react';
 import { feedApi } from '../../services/api';
 import ConfirmDialog from '../Common/ConfirmDialog';
+import LoadingSpinner from '../Common/LoadingSpinner';
 
 const FeedSection = ({ user }) => {
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isPosting, setIsPosting] = useState(false);
     const [newPostContent, setNewPostContent] = useState('');
     const [postType, setPostType] = useState('Activity'); // Activity or Event
     const [selectedImages, setSelectedImages] = useState([]);
@@ -13,6 +15,7 @@ const FeedSection = ({ user }) => {
     const [commentingOn, setCommentingOn] = useState(null);
     const [newComment, setNewComment] = useState('');
     const [deleteConfig, setDeleteConfig] = useState({ isOpen: false, postId: null });
+    const [isDeleting, setIsDeleting] = useState(false);
     const fileInputRef = useRef(null);
 
     const isAdmin = user?.is_admin === true ||
@@ -66,6 +69,7 @@ const FeedSection = ({ user }) => {
         e.preventDefault();
         if (!newPostContent.trim() && imagePreviews.length === 0) return;
 
+        setIsPosting(true);
         try {
             await feedApi.createPost({
                 author_id: user.employee_id,
@@ -80,6 +84,8 @@ const FeedSection = ({ user }) => {
         } catch (error) {
             const errorMsg = error.response?.data?.error || "Failed to create post.";
             alert(errorMsg);
+        } finally {
+            setIsPosting(false);
         }
     };
 
@@ -113,13 +119,18 @@ const FeedSection = ({ user }) => {
     };
 
     const confirmDeletePost = async () => {
+        setIsDeleting(true);
+        const postIdToDelete = deleteConfig.postId;
+
         try {
-            await feedApi.deletePost(deleteConfig.postId);
+            await feedApi.deletePost(postIdToDelete);
+            await fetchPosts();
             setDeleteConfig({ isOpen: false, postId: null });
-            fetchPosts();
         } catch (error) {
             console.error("Delete failed:", error);
             alert("Failed to delete post.");
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -132,6 +143,7 @@ const FeedSection = ({ user }) => {
 
             {isAdmin && (
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e2e8f0]">
+                    {/* ... textarea section ... */}
                     <div className="flex gap-3 mb-3">
                         <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 flex items-center justify-center text-[#6366f1] font-bold shrink-0">
                             {user?.first_name?.[0].toUpperCase()}
@@ -169,6 +181,7 @@ const FeedSection = ({ user }) => {
 
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#f1f5f9]">
                         <div className="flex items-center gap-3 mm:gap-4">
+                            {/* ... type buttons ... */}
                             <div className="flex gap-1.5 mm:gap-2">
                                 <button
                                     onClick={() => setPostType('Activity')}
@@ -203,17 +216,17 @@ const FeedSection = ({ user }) => {
 
                         <button
                             onClick={handleCreatePost}
-                            disabled={!newPostContent.trim() && imagePreviews.length === 0}
+                            disabled={(!newPostContent.trim() && imagePreviews.length === 0) || isPosting}
                             className="bg-[#6366f1] text-white px-5 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 disabled:opacity-50 hover:bg-[#4f46e5] transition-colors ml-auto sm:ml-0"
                         >
-                            Post
+                            {isPosting ? <LoadingSpinner size={16} color="border-white" /> : 'Post'}
                         </button>
                     </div>
                 </div>
             )}
 
             {loading ? (
-                <div className="py-10 text-center text-[#94a3b8] text-sm italic">Loading feed...</div>
+                <LoadingSpinner size={40} className="py-10" />
             ) : posts.length === 0 ? (
                 <div className="py-10 text-center text-[#94a3b8] text-sm">No posts yet. Be the first to start the conversation!</div>
             ) : (
@@ -334,6 +347,8 @@ const FeedSection = ({ user }) => {
                 onConfirm={confirmDeletePost}
                 onCancel={() => setDeleteConfig({ isOpen: false, postId: null })}
                 type="danger"
+                isLoading={isDeleting}
+                closeOnConfirm={false}
             />
         </div>
     );

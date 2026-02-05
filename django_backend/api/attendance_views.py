@@ -1,3 +1,4 @@
+import requests
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -5,6 +6,39 @@ from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regulariz
 from datetime import datetime, timedelta
 from django.db.models import Q
 import pytz
+
+
+@api_view(['GET'])
+def resolve_location(request):
+    lat = request.GET.get('lat')
+    lon = request.GET.get('lon')
+    if not lat or not lon:
+        return Response({'error': 'Lat and Lon are required'}, status=400)
+    
+    try:
+        # Proper User-Agent as per Nominatim Policy
+        headers = {'User-Agent': 'MarkwaveHR-System/1.0 (info@markwave.ai)'}
+        url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={lat}&lon={lon}&zoom=18&addressdetails=1"
+        response = requests.get(url, headers=headers, timeout=5)
+        
+        if response.ok:
+            data = response.json()
+            addr = data.get('address', {})
+            parts = [
+                addr.get('office') or addr.get('amenity') or addr.get('building') or addr.get('shop') or addr.get('industrial'),
+                addr.get('neighbourhood') or addr.get('suburb') or addr.get('road'),
+                addr.get('city') or addr.get('town') or addr.get('village')
+            ]
+            parts = [p for p in parts if p]
+            
+            name = ", ".join(parts) if parts else data.get('display_name', '').split(',')[0:3]
+            if isinstance(name, list): name = ", ".join(name)
+            
+            return Response({'address': name})
+    except Exception as e:
+        print(f"Location resolution failed: {e}")
+        
+    return Response({'address': None})
 
 
 @api_view(['POST'])
@@ -206,6 +240,10 @@ def get_personal_stats(request, employee_id):
 
     now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     
+    # Get team-specific timings
+    team_shift_start = employee.team.shift_start if employee.team else '09:30 AM'
+    team_shift_end = employee.team.shift_end if employee.team else '06:30 PM'
+
     def get_start_dates(d):
         # Week starts Monday
         week_start = d - timedelta(days=d.weekday())
@@ -218,17 +256,17 @@ def get_personal_stats(request, employee_id):
     last_week_start = this_week_start - timedelta(days=7)
     last_week_end = this_week_start - timedelta(seconds=1)
 
-    def is_on_time(check_in):
+    def is_on_time(check_in, cutoff_str):
         if not check_in or check_in == '-': return False
         try:
             # Handle formats like "09:15 AM"
             t = datetime.strptime(str(check_in), '%I:%M %p').time()
-            cutoff = datetime.strptime('09:30 AM', '%I:%M %p').time()
+            cutoff = datetime.strptime(cutoff_str, '%I:%M %p').time()
             return t <= cutoff
         except:
             return False
 
-    def calc_stats_for_range(emp_list, start_dt, end_dt=None):
+    def calc_stats_for_range(emp_list, start_dt, end_dt=None, cutoff_str='09:30 AM'):
         if end_dt is None: end_dt = now
             
         summaries = Attendance.objects.filter(
@@ -254,7 +292,7 @@ def get_personal_stats(request, employee_id):
             if mins > 0 or (s.check_in and s.check_in != '-'):
                 total_mins += mins
                 present_days += 1
-                if is_on_time(s.check_in):
+                if is_on_time(s.check_in, cutoff_str):
                     on_time_count += 1
                     
         avg_mins = int(total_mins / present_days) if present_days > 0 else 0
@@ -268,10 +306,10 @@ def get_personal_stats(request, employee_id):
             "onTime": f"{on_time_pct}%"
         }
 
-    # "Me" Stats
-    me_week = calc_stats_for_range([employee], this_week_start)
-    me_month = calc_stats_for_range([employee], this_month_start)
-    me_last_week = calc_stats_for_range([employee], last_week_start, last_week_end)
+    # "Me" Stats - use personal team timing
+    me_week = calc_stats_for_range([employee], this_week_start, cutoff_str=team_shift_start)
+    me_month = calc_stats_for_range([employee], this_month_start, cutoff_str=team_shift_start)
+    me_last_week = calc_stats_for_range([employee], last_week_start, last_week_end, cutoff_str=team_shift_start)
     
     # Calculate difference vs last week
     diff_mins = me_week["avg_mins"] - me_last_week["avg_mins"]
@@ -287,12 +325,15 @@ def get_personal_stats(request, employee_id):
     
     if employee.team:
         team_members = Employees.objects.filter(team=employee.team)
-        team_week = calc_stats_for_range(team_members, this_week_start)
-        team_month = calc_stats_for_range(team_members, this_month_start)
+        # For team stats, use the team's own shift_start
+        team_week = calc_stats_for_range(team_members, this_week_start, cutoff_str=team_shift_start)
+        team_month = calc_stats_for_range(team_members, this_month_start, cutoff_str=team_shift_start)
 
     return Response({
         'avg_working_hours': me_week["avg"], # Legacy support
         'lastWeekDiff': last_week_diff,
+        'shift_start': team_shift_start,
+        'shift_end': team_shift_end,
         'week': {
             'me': me_week,
             'team': team_week
@@ -377,24 +418,39 @@ def get_history(request, employee_id):
             calculated_break_mins = 0
             last_out_timestamp = None
             current_pair = {}
+            
             for punch in punches:
                 t_str = punch.timestamp.strftime('%I:%M %p')
                 if punch.type == 'IN':
+                    if current_pair and current_pair.get('in'):
+                        # Previous was an IN without OUT
+                        current_pair['out'] = None
+                        logs_data.append(current_pair)
+                    
                     if last_out_timestamp:
                         break_dur = (punch.timestamp - last_out_timestamp).total_seconds() / 60
                         calculated_break_mins += int(round(break_dur))
                     current_pair = {'in': t_str}
-                elif punch.type == 'OUT' and 'in' in current_pair:
-                    current_pair['out'] = t_str
-                    logs_data.append(current_pair)
-                    last_out_timestamp = punch.timestamp
-                    current_pair = {}
+                elif punch.type == 'OUT':
+                    if not current_pair:
+                        # OUT without IN (Missed Check-in)
+                        current_pair = {'in': None, 'out': t_str}
+                        logs_data.append(current_pair)
+                        last_out_timestamp = punch.timestamp
+                        current_pair = {}
+                    else:
+                        current_pair['out'] = t_str
+                        logs_data.append(current_pair)
+                        last_out_timestamp = punch.timestamp
+                        current_pair = {}
             
-            if 'in' in current_pair:
+            if current_pair:
                  current_pair['out'] = None
                  logs_data.append(current_pair)
 
-            is_active = punches.last().type == 'IN' if punches.exists() else False
+            india_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+            today_str = india_now.strftime('%Y-%m-%d')
+            is_active = (log.date == today_str) and (punches.last().type == 'IN' if punches.exists() else False)
 
             # Override status if leave exists for this date
             display_status = leave_type if leave_type else log.status
@@ -402,9 +458,10 @@ def get_history(request, employee_id):
             result.append({
                 'date': log.date,
                 'status': display_status,
-                'leaveType': leave_type, # Provide explicit field
+                'leaveType': leave_type, 
                 'checkIn': log.check_in or '-',
-                'checkOut': log.check_out if (log.check_out and log.check_out != '-') else ('-' if is_active else '-'),
+                # If active, check_out must be '-' to trigger 'Active'/'Missed' status on frontend
+                'checkOut': '-' if is_active else (log.check_out or '-'),
                 'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
                 'isHoliday': log.is_holiday,
                 'isWeekend': log.is_weekend,

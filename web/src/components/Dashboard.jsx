@@ -31,6 +31,12 @@ function Dashboard({ user }) {
     // Use dynamic user ID
     const EMPLOYEE_ID = user?.id;
 
+    const isAdmin = user?.is_admin === true || user?.is_admin === 'true' ||
+        user?.role === 'Admin' ||
+        user?.role === 'Administrator' ||
+        user?.role === 'Project Manager' ||
+        user?.role === 'Advisor-Technology & Operations';
+
     // Update time every second
     useEffect(() => {
         const timer = setInterval(() => {
@@ -57,23 +63,36 @@ function Dashboard({ user }) {
 
             const statsData = await attendanceApi.getPersonalStats(EMPLOYEE_ID);
             setPersonalStats(statsData);
+        } catch (error) {
+            console.error("Failed to fetch personal dashboard data:", error);
+            setIsClockedIn(false);
+        }
+    };
 
-            // Fetch admin dashboard stats
+    const fetchAdminStats = async () => {
+        try {
             const adminStats = await adminApi.getDashboardStats();
             setDashboardStats(adminStats);
         } catch (error) {
-            console.error("Failed to fetch dashboard data:", error);
-            setIsClockedIn(false);
+            console.error("Failed to fetch admin dashboard stats:", error);
         }
     };
 
     useEffect(() => {
         fetchData();
+        fetchAdminStats();
 
-        // Poll every 30 seconds for cross-platform sync
+        // Standard poll for personal status info
         const statusTimer = setInterval(fetchData, 30000);
-        return () => clearInterval(statusTimer);
-    }, [EMPLOYEE_ID]);
+
+        // High-frequency poll for admin stats (absentees, etc) to provide "immediate" feeling
+        const adminTimer = setInterval(fetchAdminStats, 5000);
+
+        return () => {
+            clearInterval(statusTimer);
+            clearInterval(adminTimer);
+        };
+    }, [EMPLOYEE_ID, isAdmin]);
 
     const getGreeting = () => {
         const hour = currentTime.getHours();
@@ -97,63 +116,34 @@ function Dashboard({ user }) {
                 let finalLocation = coordsStr;
 
                 try {
-                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        const addr = data.address;
-                        const parts = [
-                            addr.office || addr.amenity || addr.building || addr.shop || addr.industrial,
-                            addr.neighbourhood || addr.suburb || addr.road,
-                            addr.city || addr.town || addr.village
-                        ].filter(Boolean);
-
-                        const name = parts.length > 0 ? parts.join(', ') : data.display_name.split(',').slice(0, 3).join(', ');
-                        finalLocation = `${name} (${coordsStr})`;
+                    const data = await attendanceApi.resolveLocation(latitude, longitude);
+                    if (data && data.address) {
+                        finalLocation = `${data.address} (${coordsStr})`;
                     }
                 } catch (e) {
-                    console.error("Error fetching location name:", e);
+                    console.warn("Could not resolve location address, using coordinates:", e);
                 }
 
-                // Call Backend API
-                try {
-                    const nextType = isClockedIn ? 'OUT' : 'IN';
-                    await attendanceApi.clock({
-                        employee_id: EMPLOYEE_ID,
-                        location: finalLocation,
-                        type: nextType
-                    });
+                const nextType = isClockedIn ? 'OUT' : 'IN';
+                const response = await attendanceApi.clock({
+                    employee_id: EMPLOYEE_ID,
+                    location: finalLocation,
+                    type: nextType
+                });
 
-                    // Update Local State ONLY after success
-                    setIsClockedIn(nextType === 'IN');
-                    setLocationState(finalLocation);
+                // Update Local State after success
+                setIsClockedIn(nextType === 'IN');
+                setLocationState(finalLocation);
 
-                } catch (apiError) {
-                    console.error("API Error:", apiError);
-                    const msg = apiError.response?.data?.error || "Failed to update clock status. Please try again.";
-                    alert(msg);
-                }
+                // Refresh stats
+                adminApi.getDashboardStats().then(setDashboardStats).catch(console.error);
+                fetchData(); // Refresh summary/greeting
 
-                // Clear location after 5 seconds
                 setTimeout(() => setLocationState(null), 5000);
-            } catch (error) {
-                console.error("Error fetching location name:", error);
-
-                // Even if location name fails, try to clock with coords
-                try {
-                    const fallbackLoc = `Lat: ${position.coords.latitude.toFixed(2)}, Lon: ${position.coords.longitude.toFixed(2)}`;
-                    const nextType = isClockedIn ? 'OUT' : 'IN';
-                    await attendanceApi.clock({
-                        employee_id: EMPLOYEE_ID,
-                        location: fallbackLoc,
-                        type: nextType
-                    });
-                    setIsClockedIn(nextType === 'IN');
-                    setLocationState(fallbackLoc);
-                } catch (e) {
-                    const msg = e.response?.data?.error || "Failed to clock action.";
-                    alert(msg);
-                }
-                setTimeout(() => setLocationState(null), 5000);
+            } catch (err) {
+                console.error("Clock action failed:", err);
+                const msg = err.response?.data?.error || "Failed to update clock status. Please try again.";
+                alert(msg);
             } finally {
                 setIsLoadingLocation(false);
             }
@@ -222,7 +212,7 @@ function Dashboard({ user }) {
 
                     <AvgHoursCard stats={personalStats} />
 
-                    <LeaveBalanceCard user={user} />
+                    {!isAdmin && <LeaveBalanceCard user={user} />}
 
                     <HolidayCard
                         holidays={holidays}

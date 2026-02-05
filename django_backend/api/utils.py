@@ -1,8 +1,10 @@
 import requests
 import json
 
+from django.conf import settings
+
 def send_email_via_api(to_email, subject, body, cc_emails=None):
-    url = "https://mark-email-server-jn6cma3vvq-el.a.run.app/send_email_by_subject_body_attachment"
+    url = settings.EMAIL_API_URL
     
     if cc_emails is None:
         cc_emails = []

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock } from 'lucide-react';
+import LoadingSpinner from '../Common/LoadingSpinner';
 
 const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState, handleClockAction, canClock = true, disabledReason }) => {
     return (
@@ -28,7 +29,7 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
                         disabled={!canClock || isLoadingLocation}
                     >
                         {isLoadingLocation || isClockedIn === null ? (
-                            isClockedIn === null ? '...' : 'Locating'
+                            <LoadingSpinner size={16} color="border-[#8e78b0]" />
                         ) : (
                             <span className="whitespace-nowrap">
                                 {window.innerWidth < 350 ? (isClockedIn ? 'Out' : 'In') : (isClockedIn ? 'Clock-Out' : 'Clock-In')}

@@ -125,7 +125,7 @@ def send_otp(request):
     
     OTPStore.objects.create(phone=target_phone, otp=otp, created_at=timezone.now())
 
-    whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else "919247534762@c.us"
+    whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else f"{settings.ADMIN_WHATSAPP_NUMBER}@c.us"
     print(f"[OTP DEBUG] WhatsApp Recipient: {whatsapp_recipient}")
     
     headers = {

@@ -19,23 +19,31 @@ const AttendanceLog = ({
     const [requestsCount, setRequestsCount] = useState(0);
 
     // Fetch requests count for badge
-    useEffect(() => {
-        const fetchCount = async () => {
-            if (user && (user.employee_id || user.id)) {
-                try {
-                    const data = await attendanceApi.getRegularizationRequests(user.employee_id || user.id);
-                    if (Array.isArray(data)) {
-                        setRequestsCount(data.length);
-                    }
-                } catch (e) {
-                    console.error("Not a manager or failed to fetch requests");
+    const fetchCount = async () => {
+        if (user && (user.employee_id || user.id)) {
+            try {
+                const data = await attendanceApi.getRegularizationRequests(user.employee_id || user.id);
+                if (Array.isArray(data)) {
+                    setRequestsCount(data.length);
                 }
+            } catch (e) {
+                console.error("Not a manager or failed to fetch requests");
             }
-        };
+        }
+    };
+
+    useEffect(() => {
         fetchCount();
-        const interval = setInterval(fetchCount, 30000); // Poll every 30s
+        const interval = setInterval(fetchCount, 10000); // Poll every 10s for near real-time updates
         return () => clearInterval(interval);
     }, [user]);
+
+    const handleRequestProcessed = () => {
+        // Decrement local count immediately for better UX
+        setRequestsCount(prev => Math.max(0, prev - 1));
+        // Also trigger a refresh to be sure
+        fetchCount();
+    };
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -96,25 +104,33 @@ const AttendanceLog = ({
         log.logs.forEach((session, idx) => {
             const sIn = parseTimeToMinutes(session.in);
             let sOut = 0;
+
             if (session.out && session.out !== '-') {
                 sOut = parseTimeToMinutes(session.out);
-            } else {
+            } else if (idx === log.logs.length - 1) {
                 sOut = endMins;
+            } else {
+                // If middle session is missing an OUT, use the next IN or endMins
+                sOut = parseTimeToMinutes(log.logs[idx + 1]?.in) || endMins;
             }
 
             // Gap before this session (Break)
             if (idx > 0) {
                 const prevOut = parseTimeToMinutes(log.logs[idx - 1].out);
-                const gap = sIn - prevOut;
-                if (gap > 0) {
-                    segments.push({ type: 'break', width: (gap / totalSpan) * 100 });
+                if (prevOut !== null && sIn !== null) {
+                    const gap = sIn - prevOut;
+                    if (gap > 0) {
+                        segments.push({ type: 'break', width: (gap / totalSpan) * 100 });
+                    }
                 }
             }
 
             // Work Session
-            const duration = sOut - sIn;
-            if (duration > 0) {
-                segments.push({ type: 'work', width: (duration / totalSpan) * 100 });
+            if (sIn !== null && sOut !== null) {
+                const duration = sOut - sIn;
+                if (duration > 0) {
+                    segments.push({ type: 'work', width: (duration / totalSpan) * 100 });
+                }
             }
         });
 
@@ -205,20 +221,43 @@ const AttendanceLog = ({
                                 const hasActualActivity = (log.checkIn && log.checkIn !== '-') || (log.logs && log.logs.length > 0);
                                 const isApprovedLeave = !!log.leaveType;
                                 const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActualActivity && !isApprovedLeave;
-                                const showAsOffDay = (isWeekend || isHoliday || isAbsent || isApprovedLeave) && !hasActualActivity;
+                                const isHalfDayLeave = isApprovedLeave && (log.leaveType.toLowerCase().includes('half') || log.leaveType.toLowerCase().includes('session'));
+                                const isFullDayLeave = isApprovedLeave && !isHalfDayLeave;
+
+                                // Collapse row for Weekend, Holiday, Absent, or Full Day Leave (if no activity)
+                                const showAsOffDay = (isWeekend || isHoliday || isAbsent || isFullDayLeave) && !hasActualActivity;
 
                                 const isMissedCheckout = log.checkOut === '-' && log.checkIn !== '-' && new Date(log.date).setHours(0, 0, 0, 0) < new Date(currentTime).setHours(0, 0, 0, 0);
+                                const isMissedCheckin = log.checkIn === '-' && (log.checkOut && log.checkOut !== '-') && new Date(log.date).setHours(0, 0, 0, 0) < new Date(currentTime).setHours(0, 0, 0, 0);
+
+                                const getLeaveBadge = (type) => {
+                                    if (!type) return null;
+                                    let label = type.toUpperCase();
+                                    // Shorten common half day strings for badges
+                                    label = label.replace('FIRST HALF ', '1ST HALF ');
+                                    label = label.replace('SECOND HALF ', '2ND HALF ');
+                                    return (
+                                        <span className="px-1.5 py-0.5 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                            {label}
+                                        </span>
+                                    );
+                                };
 
                                 return (
                                     <tr key={index} className={`border-b border-[#e2e8f0] last:border-none hover:bg-[#f9fafb] transition-colors ${showAsOffDay ? 'bg-[#f5f5f5]' : 'bg-white'}`}>
                                         <td className="p-2 mm:p-4 text-xs mm:text-sm font-medium text-[#2d3436] text-center">
                                             <div className="flex flex-col mm:flex-row items-center justify-center gap-1 mm:gap-2">
                                                 <span className="whitespace-nowrap">{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</span>
-                                                {showAsOffDay && (
-                                                    <span className={`px-1 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap ${isAbsent ? 'bg-red-100 text-red-600' : 'bg-[#d1d5db] text-[#48327d]'}`}>
-                                                        {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (log.leaveType?.toUpperCase() || 'LEAVE') : 'ABSENT'}
-                                                    </span>
-                                                )}
+
+                                                {/* Status Badges */}
+                                                <div className="flex items-center gap-1">
+                                                    {(isHoliday || isWeekend || isAbsent) && (showAsOffDay || isAbsent) && (
+                                                        <span className={`px-1.5 py-0.5 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap ${isAbsent ? 'bg-[#fff1f2] text-[#f43f5e] border border-[#ffe4e6]' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+                                                            {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : 'ABSENT'}
+                                                        </span>
+                                                    )}
+                                                    {isApprovedLeave && getLeaveBadge(log.leaveType)}
+                                                </div>
                                             </div>
                                         </td>
 
@@ -267,7 +306,13 @@ const AttendanceLog = ({
                                                         ))}
                                                     </div>
                                                 </td>
-                                                <td className="p-4 text-center text-xs text-[#2d3436] font-medium">{log.checkIn}</td>
+                                                <td className="p-4 text-center text-xs text-[#2d3436] font-medium">
+                                                    {isMissedCheckin ? (
+                                                        <span className="text-[#ef4444] font-semibold text-[10px] uppercase bg-red-50 px-2 py-0.5 rounded">Missed Check-In</span>
+                                                    ) : (
+                                                        log.checkIn
+                                                    )}
+                                                </td>
                                                 <td className="p-4 text-center text-xs text-[#636e72] relative">
                                                     {log.breakMinutes > 0 ? (
                                                         <div className="break-container">
@@ -333,7 +378,7 @@ const AttendanceLog = ({
                     </table>
                 </div>
             ) : (
-                <RegularizationRequests user={user} />
+                <RegularizationRequests user={user} onAction={handleRequestProcessed} />
             )}
 
             <RegularizationModal

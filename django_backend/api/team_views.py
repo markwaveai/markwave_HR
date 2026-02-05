@@ -89,7 +89,7 @@ def team_detail(request, pk):
 def member_list(request):
     if request.method == 'GET':
         team_id = request.query_params.get('team_id')
-        query = Employees.objects.all()
+        query = Employees.objects.filter(status__in=['Active', 'Remote'])
         if team_id:
             query = query.filter(team_id=team_id)
         
@@ -191,7 +191,7 @@ def member_list(request):
 
 @api_view(['GET'])
 def registry_list(request):
-    members = Employees.objects.all().order_by('id')
+    members = Employees.objects.filter(status__in=['Active', 'Remote']).order_by('id')
     serializer = EmployeesSerializer(members, many=True)
     return Response(serializer.data)
 
@@ -286,7 +286,7 @@ def member_detail(request, pk):
 def team_stats(request):
     try:
         team_id = request.query_params.get('team_id')
-        query = Employees.objects.all()
+        query = Employees.objects.filter(status__in=['Active', 'Remote'])
         if team_id:
             query = query.filter(team_id=team_id)
             
@@ -389,18 +389,18 @@ def dashboard_stats(request):
         active_employees = Employees.objects.filter(status='Active')
         total_count = active_employees.count()
         
-        # Get IDs of employees who have attendance records for today with a valid check-in
-        # Accessing the related field's to_field value directly
-        present_employee_ids = Attendance.objects.filter(
+        # --- Absentees Logic ---
+        present_employee_ids = list(Attendance.objects.filter(
             date=current_date_str,
             check_in__isnull=False
-        ).exclude(check_in='-').values_list('employee', flat=True)
+        ).exclude(check_in='-').values_list('employee', flat=True))
         
-        # Absentees are active employees not in the present list (Compare employee_id strings)
+        # Filter out None to avoid SQL 'NOT IN (..., NULL)' which excludes everything in some DBs
+        present_employee_ids = [pid for pid in present_employee_ids if pid is not None]
+        
         absentees = active_employees.exclude(employee_id__in=present_employee_ids)
         absentees_count = absentees.count()
         
-        # Check for approved leaves for these absentees
         on_leave_employee_ids = Leaves.objects.filter(
             employee__in=absentees,
             status='Approved',
@@ -421,11 +421,94 @@ def dashboard_stats(request):
                 'location': emp.location,
                 'status': 'On Leave' if is_on_leave else 'Absent'
             })
+            
+        # --- Global Avg Hours Logic ---
+        def get_week_range(d):
+            start = d - timedelta(days=d.weekday())
+            start = start.replace(hour=0, minute=0, second=0, microsecond=0)
+            end = start + timedelta(days=6)
+            end = end.replace(hour=23, minute=59, second=59)
+            return start, end
+
+        this_mon, this_sun = get_week_range(india_time)
+        last_mon = this_mon - timedelta(days=7)
+        last_sun = this_sun - timedelta(days=7)
         
+        # Helper to calc avg for a date range for ALL employees
+        def calc_global_avg(start_dt, end_dt):
+            # We use Attendance summaries for speed
+            summaries = Attendance.objects.filter(
+                date__gte=start_dt.strftime('%Y-%m-%d'),
+                date__lte=end_dt.strftime('%Y-%m-%d')
+            ).exclude(worked_hours__isnull=True).exclude(worked_hours='-')
+            
+            total_mins = 0
+            count = 0
+            
+            for s in summaries:
+                # Parse worked_hours string "8h 30m"
+                if not s.worked_hours: continue
+                try:
+                    parts = s.worked_hours.replace('m', '').split('h ')
+                    h = int(parts[0])
+                    m = int(parts[1]) if len(parts) > 1 else 0
+                    mins = h * 60 + m
+                    if mins > 0:
+                        total_mins += mins
+                        count += 1
+                except:
+                    pass
+            
+            # Average per present-person-day
+            return total_mins / count if count > 0 else 0
+
+        avg_this = calc_global_avg(this_mon, this_sun)
+        avg_last = calc_global_avg(last_mon, last_sun)
+        
+        # Format "This Week"
+        h = int(avg_this // 60)
+        m = int(avg_this % 60)
+        avg_working_hours = f"{h}h {str(m).zfill(2)}m"
+        
+        # Calc Diff
+        diff = avg_this - avg_last
+        diff_abs = abs(int(diff))
+        diff_h = diff_abs // 60
+        diff_m = diff_abs % 60
+        prefix = "+" if diff >= 0 else "-"
+        last_week_diff = f"{prefix}{diff_h}h {str(diff_m).zfill(2)}m"
+
+        # --- Global On Time Arrival ---
+        def is_on_time(check_in):
+            if not check_in or ':' not in check_in: return False
+            try:
+                t = datetime.strptime(check_in, '%I:%M %p')
+                cutoff = datetime.strptime('09:30 AM', '%I:%M %p')
+                return t <= cutoff
+            except:
+                return False
+
+        # Check records for THIS WEEK (this_mon to this_sun)
+        week_records = Attendance.objects.filter(
+             date__gte=this_mon.strftime('%Y-%m-%d'),
+             date__lte=this_sun.strftime('%Y-%m-%d')
+        ).exclude(check_in__isnull=True).exclude(check_in='-')
+
+        present_count = week_records.count()
+        on_time_count = 0
+        for rec in week_records:
+            if is_on_time(rec.check_in):
+                on_time_count += 1
+                
+        on_time_arrival = f"{int((on_time_count / present_count) * 100)}%" if present_count > 0 else "0%"
+
         return Response({
             'total_employees': total_count,
             'absentees_count': absentees_count,
-            'absentees': absentees_list
+            'absentees': absentees_list,
+            'avg_working_hours': avg_working_hours,
+            'lastWeekDiff': last_week_diff,
+            'on_time_arrival': on_time_arrival
         })
     except Exception as e:
         print(f"Error in dashboard_stats: {str(e)}")

@@ -1,7 +1,5 @@
 const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-export const API_BASE_URL = isLocalhost
-    ? 'http://localhost:8000/api'
-    : 'https://hr.markwave.ai/api'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalhost ? 'http://localhost:8000/api' : '/api');
 
 const apiFetch = async (endpoint, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -99,7 +97,8 @@ export const attendanceApi = {
     actionRegularization: (requestId, action) => apiFetch(`/attendance/regularization/${requestId}/action/`, {
         method: 'POST',
         body: JSON.stringify({ action })
-    })
+    }),
+    resolveLocation: (lat, lon) => apiFetch(`/attendance/resolve-location/?lat=${lat}&lon=${lon}`)
 };
 
 export const feedApi = {

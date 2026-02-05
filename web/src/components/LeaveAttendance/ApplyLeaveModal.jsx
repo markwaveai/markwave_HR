@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, XCircle } from 'lucide-react';
+import LoadingSpinner from '../Common/LoadingSpinner';
 
 const ApplyLeaveModal = ({
     setIsModalOpen,
@@ -12,7 +13,8 @@ const ApplyLeaveModal = ({
     notifyTo, setNotifyTo,
     user,
     profile,
-    handleLeaveSubmit
+    handleLeaveSubmit,
+    isSubmitting
 }) => {
     const [isClosing, setIsClosing] = React.useState(false);
 
@@ -190,13 +192,13 @@ const ApplyLeaveModal = ({
 
                     <button
                         onClick={handleLeaveSubmit}
-                        disabled={!fromDate || !reason.trim() || notifyTo.length === 0}
-                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 ${!fromDate || !reason.trim() || notifyTo.length === 0
+                        disabled={!fromDate || !reason.trim() || notifyTo.length === 0 || isSubmitting}
+                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 flex justify-center items-center gap-2 ${!fromDate || !reason.trim() || notifyTo.length === 0 || isSubmitting
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                             : 'bg-[#48327d] text-white shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c]'
                             }`}
                     >
-                        Submit Request
+                        {isSubmitting ? <LoadingSpinner size={16} color="border-white" /> : 'Submit Request'}
                     </button>
                 </div>
             </div>

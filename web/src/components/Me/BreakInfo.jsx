@@ -11,8 +11,14 @@ const BreakInfo = ({ log, activeBreakIndex, index }) => {
             const currentSession = log.logs[sIdx];
 
             const parseTimeToMinutes = (timeStr) => {
-                const [time, modifier] = timeStr.split(' ');
-                let [hours, minutes] = time.split(':').map(Number);
+                if (!timeStr || timeStr === '-') return null;
+                const parts = timeStr.split(' ');
+                if (parts.length < 2) return null;
+                const [time, modifier] = parts;
+                const [hStr, mStr] = time.split(':');
+                if (!hStr || !mStr) return null;
+                let hours = parseInt(hStr, 10);
+                let minutes = parseInt(mStr, 10);
                 if (hours === 12) hours = 0;
                 if (modifier === 'PM') hours += 12;
                 return hours * 60 + minutes;
@@ -20,13 +26,15 @@ const BreakInfo = ({ log, activeBreakIndex, index }) => {
 
             const breakStart = parseTimeToMinutes(prevSession.out);
             const breakEnd = parseTimeToMinutes(currentSession.in);
-            const breakDuration = breakEnd - breakStart;
 
-            breaks.push({
-                start: prevSession.out,
-                end: currentSession.in,
-                duration: breakDuration
-            });
+            if (breakStart !== null && breakEnd !== null) {
+                const breakDuration = breakEnd - breakStart;
+                breaks.push({
+                    start: prevSession.out,
+                    end: currentSession.in,
+                    duration: breakDuration > 0 ? breakDuration : 0
+                });
+            }
         }
     }
 

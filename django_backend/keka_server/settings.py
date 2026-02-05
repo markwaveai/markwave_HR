@@ -28,12 +28,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-p%0&lc+t4hlgk07*azekv9auu6z(j&tev$673)m)n!urq1!9r='
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'change-me-in-production')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 
 # Application definition
@@ -169,6 +169,12 @@ REST_FRAMEWORK = {
 }
 
 # Periskope API Configuration
-PERISKOPE_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCIgOiAiNjg3ZmIyMTktMzUwMi00NzM0LWFmNDgtN2YyMDRhN2M1MTAxIiwgInJvbGUiIDogImFwaSIsICJ0eXBlIiA6ICJhcGkiLCAibmFtZSIgOiAiYW5pbWFsa2FydCIsICJleHAiIDogMjA4MDcxMjEzNywgImlhdCIgOiAxNzY1MTc5MzM3LCAic3ViIiA6ICI0ZjgwZDgyNi1iNDIwLTQ0ZDItYjBlOS03YmIyNzJlY2IzNDAiLCAiaXNzIiA6ICJwZXJpc2tvcGUuYXBwIiwgIm1ldGFkYXRhIiA6IHsic2NvcGVzIjogWyI5MTkyNDc1MzQ3NjJAYy51cyJdfX0.2w7H95C2HhCVitZwvd7t688FUow_Vhj0tVcGpVg-QSs"
-PERISKOPE_SENDER_PHONE = "919247534762"
-PERISKOPE_URL = "https://api.periskope.app/v1/message/send"
+PERISKOPE_API_KEY = os.getenv('PERISKOPE_API_KEY', '')
+PERISKOPE_SENDER_PHONE = os.getenv('PERISKOPE_SENDER_PHONE', '')
+PERISKOPE_URL = os.getenv('PERISKOPE_URL', 'https://api.periskope.app/v1/message/send')
+
+# External API URLs
+EMAIL_API_URL = os.getenv('EMAIL_API_URL', 'https://mark-email-server-jn6cma3vvq-el.a.run.app/send_email_by_subject_body_attachment')
+
+# Admin Fallback Configuration
+ADMIN_WHATSAPP_NUMBER = os.getenv('ADMIN_WHATSAPP_NUMBER', '919247534762')

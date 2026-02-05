@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, X, Clock, Calendar, User, FileText } from 'lucide-react';
 import { attendanceApi } from '../../services/api';
 
-const RegularizationRequests = ({ user }) => {
+const RegularizationRequests = ({ user, onAction }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -29,6 +29,8 @@ const RegularizationRequests = ({ user }) => {
         try {
             await attendanceApi.actionRegularization(id, action);
             setRequests(prev => prev.filter(req => req.id !== id));
+            // Trigger parent count update
+            if (onAction) onAction();
         } catch (error) {
             console.error('Action failed:', error);
             alert('Failed to process request');

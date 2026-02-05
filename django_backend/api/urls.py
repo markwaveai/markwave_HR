@@ -29,6 +29,7 @@ urlpatterns = [
     path('leaves/email-action/<int:request_id>/<str:action>/', leave_views.email_leave_action, name='email-leave-action'),
     
     # Attendance
+    path('attendance/resolve-location/', attendance_views.resolve_location, name='resolve-location'),
     path('attendance/clock/', attendance_views.clock, name='clock'),
     path('attendance/status/<str:employee_id>/', attendance_views.get_status, name='get-status'),
     path('attendance/stats/<str:employee_id>/', attendance_views.get_personal_stats, name='get-personal-stats'),

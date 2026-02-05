@@ -10,6 +10,7 @@ import LeaveBalanceGrid from './LeaveAttendance/LeaveBalanceGrid';
 import LeaveHistoryTable from './LeaveAttendance/LeaveHistoryTable';
 import ApplyLeaveModal from './LeaveAttendance/ApplyLeaveModal';
 import Toast from './Common/Toast';
+import LoadingSpinner from './Common/LoadingSpinner';
 
 function LeaveAttendance({ user }) {
     const [leaveType, setLeaveType] = useState('cl');
@@ -21,11 +22,11 @@ function LeaveAttendance({ user }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const [notifyTo, setNotifyTo] = useState([]);
     const [profile, setProfile] = useState(null);
     const [toast, setToast] = useState(null);
     const EMPLOYEE_ID = user?.id;
-
     const LEAVE_TYPES = {
         'cl': { name: 'CASUAL LEAVE', code: 'CL', total: 6, icon: <Plane size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' },
         'sl': { name: 'SICK LEAVE', code: 'SL', total: 6, icon: <Thermometer size={20} />, color: 'text-red-600', bg: 'bg-red-50' },
@@ -132,6 +133,7 @@ function LeaveAttendance({ user }) {
             if (toSession !== 'Full Day') diffDays -= 0.5;
         }
 
+        setIsSubmitting(true);
         try {
             await leaveApi.apply({
                 employeeId: EMPLOYEE_ID,
@@ -164,11 +166,13 @@ function LeaveAttendance({ user }) {
             } else {
                 setToast({ message: errorMessage, type: 'error' });
             }
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     if (loading) {
-        return <div className="p-6 text-center text-[#636e72]">Loading leave data...</div>;
+        return <LoadingSpinner size={40} className="p-10" />;
     }
 
     return (
@@ -218,6 +222,7 @@ function LeaveAttendance({ user }) {
                         user={user}
                         profile={profile}
                         handleLeaveSubmit={handleLeaveSubmit}
+                        isSubmitting={isSubmitting}
                     />
                 )}
             </div>

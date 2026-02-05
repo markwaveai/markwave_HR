@@ -1,7 +1,9 @@
 import React from 'react';
 import { AlertCircle, X } from 'lucide-react';
 
-const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', type = 'primary' }) => {
+import LoadingSpinner from './LoadingSpinner';
+
+const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmText = 'Confirm', cancelText = 'Cancel', type = 'primary', isLoading = false, closeOnConfirm = true }) => {
     const [isClosing, setIsClosing] = React.useState(false);
 
     React.useEffect(() => {
@@ -18,6 +20,14 @@ const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmTex
         }, 200);
     };
 
+    const handleConfirmClick = () => {
+        if (!closeOnConfirm) {
+            onConfirm();
+        } else {
+            handleClose(onConfirm);
+        }
+    };
+
     const isDanger = type === 'danger';
 
     return (
@@ -31,7 +41,7 @@ const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmTex
                             </div>
                             <h3 className="text-lg font-bold text-gray-900">{title}</h3>
                         </div>
-                        <button onClick={() => handleClose(onCancel)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                        <button onClick={() => handleClose(onCancel)} disabled={isLoading} className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50">
                             <X size={20} />
                         </button>
                     </div>
@@ -43,18 +53,20 @@ const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmTex
                     <div className="flex justify-end gap-3 ml-11">
                         <button
                             onClick={() => handleClose(onCancel)}
-                            className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all active:scale-95"
+                            disabled={isLoading}
+                            className="px-5 py-2.5 text-sm font-bold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                         >
                             {cancelText}
                         </button>
                         <button
-                            onClick={() => handleClose(onConfirm)}
-                            className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all shadow-lg active:scale-95 ${isDanger
+                            onClick={handleConfirmClick}
+                            disabled={isLoading}
+                            className={`px-6 py-2.5 text-sm font-bold text-white rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:active:scale-100 flex items-center justify-center gap-2 min-w-[80px] ${isDanger
                                 ? 'bg-[#ef4444] hover:bg-[#dc2626] shadow-red-200'
                                 : 'bg-[#48327d] hover:bg-[#3d2a6a] shadow-purple-200'
                                 }`}
                         >
-                            {confirmText}
+                            {isLoading ? <LoadingSpinner size={16} color="border-white" /> : confirmText}
                         </button>
                     </div>
                 </div>
