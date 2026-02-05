@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Lock, Phone, ArrowRight, AlertCircle, Mail } from 'lucide-react';
-import { API_BASE_URL, authApi } from '../services/api';
+import { authApi } from '../services/api';
 
 const LoginPage = ({ onLogin }) => {
     const [phone, setPhone] = useState('');
@@ -17,30 +17,15 @@ const LoginPage = ({ onLogin }) => {
         setIsLoading(true);
 
         try {
-            let response;
             if (loginMethod === 'phone') {
-                response = await fetch(`${API_BASE_URL}/auth/send-otp/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    setStep('otp');
-                } else {
-                    setError(data.error || 'Failed to send OTP');
-                }
+                await authApi.sendOTP(phone);
+                setStep('otp');
             } else {
-                // Email login
-                try {
-                    await authApi.sendEmailOTP(email);
-                    setStep('otp');
-                } catch (err) {
-                    setError(err.message || 'Failed to send OTP');
-                }
+                await authApi.sendEmailOTP(email);
+                setStep('otp');
             }
         } catch (err) {
-            setError('Connection failed. Please check backend.');
+            setError(err.message || 'Failed to send OTP');
         } finally {
             setIsLoading(false);
         }
@@ -52,33 +37,24 @@ const LoginPage = ({ onLogin }) => {
         setIsLoading(true);
 
         try {
+            let data;
             if (loginMethod === 'phone') {
-                const response = await fetch(`${API_BASE_URL}/auth/verify-otp/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, otp })
-                });
-                const data = await response.json();
-                if (response.ok) {
+                data = await authApi.verifyOTP(phone, otp);
+                if (data.success) {
                     onLogin(data.user);
                 } else {
                     setError(data.error || 'Invalid OTP');
                 }
             } else {
-                // Email verify
-                try {
-                    const data = await authApi.verifyEmailOTP(email, otp);
-                    if (data.success) {
-                        onLogin(data.user);
-                    } else {
-                        setError('Invalid OTP');
-                    }
-                } catch (err) {
-                    setError(err.message || 'Invalid OTP');
+                data = await authApi.verifyEmailOTP(email, otp);
+                if (data.success) {
+                    onLogin(data.user);
+                } else {
+                    setError('Invalid OTP');
                 }
             }
         } catch (err) {
-            setError('Connection failed. Please check backend.');
+            setError(err.message || 'Connection failed. Please check backend.');
         } finally {
             setIsLoading(false);
         }

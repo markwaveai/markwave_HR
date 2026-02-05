@@ -22,68 +22,13 @@ def normalize_phone(phone_str):
 
 @api_view(['POST'])
 def login(request):
-    data = request.data
-    phone = data.get('phone')
-    password = data.get('password')
-
-    if not phone or not password:
-        return Response({'error': 'Phone number and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    if password != '000000':
-        return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    if phone == 'admin':
-        return Response({
-            'success': True,
-            'user': {
-                'id': '0',
-                'employee_id': 'MW-ADMIN',
-                'first_name': 'Admin',
-                'last_name': 'User',
-                'email': 'admin@markwave.com',
-                'role': 'Administrator',
-                'team_id': None,
-                'team_lead_name': 'Management',
-                'is_manager': True,
-                'is_admin': True
-            }
-        })
-
-    normalized_input = normalize_phone(phone)
-    if not normalized_input:
-        return Response({'error': 'Invalid phone number format'}, status=status.HTTP_400_BAD_REQUEST)
-
-    try:
-        employees = Employees.objects.all()
-        employee = None
-        for emp in employees:
-            if normalize_phone(emp.contact) == normalized_input:
-                employee = emp
-                break
-        
-        if not employee:
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        if employee.status == 'Inactive':
-            return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
-
-        return Response({
-            'success': True,
-            'user': {
-                'id': employee.id,
-                'employee_id': employee.employee_id,
-                'first_name': employee.first_name,
-                'last_name': employee.last_name,
-                'email': employee.email,
-                'role': employee.role,
-                'team_id': employee.team.id if employee.team else None,
-                'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead",
-                'is_manager': Teams.objects.filter(manager=employee).exists(),
-                'is_admin': getattr(employee, 'is_admin', False)
-            }
-        })
-    except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    """
+    Static password login has been disabled for security.
+    Please use OTP-based login (Phone or Email) instead.
+    """
+    return Response({
+        'error': 'Static password login is disabled. Please use Phone or Email OTP to sign in.'
+    }, status=status.HTTP_403_FORBIDDEN)
 
 @api_view(['POST'])
 def send_otp(request):
