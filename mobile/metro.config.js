@@ -16,6 +16,11 @@ const config = {
             path.resolve(__dirname, 'node_modules'),
             path.resolve(root, 'node_modules'),
         ],
+        extraNodeModules: {
+            'react': path.resolve(__dirname, 'node_modules/react'),
+            'react-native': path.resolve(__dirname, 'node_modules/react-native'),
+            '@markwave/shared': path.resolve(root, 'shared'),
+        },
     },
 };
 
