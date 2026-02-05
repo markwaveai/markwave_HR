@@ -1,0 +1,11 @@
+
+> mobile@0.0.1 android
+> react-native run-android
+
+info Launching emulator...
+error Failed to launch emulator. Reason: The emulator (Pixel_6) quit before it finished opening. You can try starting the emulator manually from the terminal with: D:\Android\Sdk/emulator/emulator @Pixel_6.
+warn Please launch an emulator manually or connect a device. Otherwise app may fail to launch.
+info Installing the app...
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.0.0/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Terminate batch job (Y/N)? Terminate batch job (Y/N)? 

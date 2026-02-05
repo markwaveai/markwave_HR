@@ -11,6 +11,7 @@ export default defineConfig({
       'react-native-vector-icons': path.resolve(__dirname, 'src/mocks/react-native-vector-icons.jsx'),
       'react-native-image-picker': path.resolve(__dirname, 'src/mocks/react-native-image-picker.jsx'),
       'react-native-safe-area-context': 'react-native-web',
+      '@react-native-community/geolocation': path.resolve(__dirname, 'src/mocks/geolocation.js'),
       '@markwave/shared': path.resolve(__dirname, '../shared/src'),
     },
     extensions: ['.web.js', '.js', '.jsx', '.ts', '.tsx', '.json', '.mjs'],
