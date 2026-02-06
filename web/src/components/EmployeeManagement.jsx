@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { teamApi } from '../services/api';
-import { UserPlus, Users, MapPin, Mail, Briefcase, Phone, Clock, Calendar, X, ShieldCheck, Trash2 } from 'lucide-react';
+import { UserPlus, Users, MapPin, Mail, Briefcase, Phone, Clock, Calendar, X, ShieldCheck, Trash2, Search } from 'lucide-react';
 import ConfirmDialog from './Common/ConfirmDialog';
 import LoadingSpinner from './Common/LoadingSpinner';
 
@@ -10,6 +10,7 @@ function EmployeeManagement() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     const [formData, setFormData] = useState({
         employeeId: '',
@@ -72,6 +73,26 @@ function EmployeeManagement() {
         }
         setFormData({ ...formData, [name]: value });
     };
+
+    const filteredEmployees = employees.filter(emp => {
+        const query = searchQuery.toLowerCase();
+        return (
+            emp.first_name?.toLowerCase().includes(query) ||
+            emp.last_name?.toLowerCase().includes(query) ||
+            emp.employee_id?.toLowerCase().includes(query) ||
+            emp.email?.toLowerCase().includes(query) ||
+            emp.role?.toLowerCase().includes(query)
+        );
+    });
+
+    const isFormValid =
+        formData.employeeId &&
+        formData.firstName &&
+        formData.email &&
+        formData.role &&
+        formData.contact && formData.contact.length === 10 &&
+        formData.aadhar && formData.aadhar.length === 12 &&
+        formData.location;
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -174,6 +195,16 @@ function EmployeeManagement() {
                     <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Personnel registry and employee records</p>
                 </div>
                 <div className="flex items-center gap-4">
+                    <div className="relative hidden md:block">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                        <input
+                            type="text"
+                            placeholder="Search employees..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-9 pr-4 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#48327d]/20 w-64"
+                        />
+                    </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
                         className="bg-[#48327d] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#3a2865] transition-all shadow-md"
@@ -263,7 +294,14 @@ function EmployeeManagement() {
                                 </div>
                             )}
 
-                            <button type="submit" disabled={isSubmitting} className="w-full py-2.5 bg-[#48327d] text-white rounded-lg font-bold hover:bg-[#3a2865] transition-all disabled:opacity-50 text-sm shadow-md mt-2 flex justify-center items-center gap-2">
+                            <button
+                                type="submit"
+                                disabled={isSubmitting || !isFormValid}
+                                className={`w-full py-2.5 rounded-lg font-bold text-sm shadow-md mt-2 flex justify-center items-center gap-2 transition-all ${isSubmitting || !isFormValid
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-[#48327d] text-white hover:bg-[#3a2865]'
+                                    }`}
+                            >
                                 {isSubmitting ? <LoadingSpinner size={16} color="border-white" /> : 'Register Employee'}
                             </button>
                         </form>
@@ -303,12 +341,14 @@ function EmployeeManagement() {
                                         <LoadingSpinner size={40} className="mx-auto" />
                                     </td>
                                 </tr>
-                            ) : employees.length === 0 ? (
+                            ) : filteredEmployees.length === 0 ? (
                                 <tr>
-                                    <td colSpan="10" className="px-6 py-20 text-center text-[#636e72]">No records found.</td>
+                                    <td colSpan="10" className="px-6 py-20 text-center text-[#636e72]">
+                                        {employees.length === 0 ? 'No records found.' : 'No matching employees found.'}
+                                    </td>
                                 </tr>
                             ) : (
-                                employees.map((emp) => (
+                                filteredEmployees.map((emp) => (
                                     <tr key={emp.id} className={`hover:bg-[#f8f9fa] transition-all group ${emp.status === 'Inactive' ? 'opacity-50 grayscale-[0.5]' : ''}`}>
                                         <td className="px-6 py-4 font-mono text-[#48327d] font-bold text-center">
                                             {emp.id || '----'}

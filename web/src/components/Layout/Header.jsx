@@ -127,7 +127,7 @@ function Header({ user, isSidebarOpen, onMenuClick, onLogout }) {
                                 <LogOut size={16} className="group-hover:translate-x-1 transition-transform" />
                                 <span>Sign Out</span>
                             </button>
-                            <p className="text-center text-[9px] font-bold text-[#cbd5e1] mt-3 uppercase tracking-[0.2em]">Markwave HR v1.0</p>
+                            <p className="text-center text-[9px] font-bold text-[#cbd5e1] mt-3 uppercase tracking-[0.2em]">Markwave HR v1.0.02</p>
                         </div>
                     </div>
                 )}

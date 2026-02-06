@@ -63,7 +63,7 @@ const HolidayModal = ({ setShowCalendar, holidays = [] }) => {
                                 </button>
                             </div>
                         </div>
-                        <p className="text-[10px] text-slate-500 font-medium ml-6 mt-0.5">Holiday Calendar</p>
+
                     </div>
                     <button
                         onClick={() => setShowCalendar(false)}

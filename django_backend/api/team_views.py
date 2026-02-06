@@ -163,6 +163,9 @@ def member_list(request):
             
             if Employees.objects.filter(contact=data.get('contact')).exists():
                 return Response({'error': f"Contact number '{data.get('contact')}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if Employees.objects.filter(aadhar=data.get('aadhar')).exists():
+                return Response({'error': f"Aadhar number '{data.get('aadhar')}' already exists."}, status=status.HTTP_400_BAD_REQUEST)
             
             first_name = data.get('first_name')
             last_name = data.get('last_name', '')

@@ -71,11 +71,7 @@ const LeaveBalanceCard = ({ user }) => {
                 ))}
             </div>
 
-            <div className="mt-2 pt-2 border-t border-gray-100">
-                <p className="text-[7px] mm:text-[8px] text-gray-400 text-center italic">
-                    LWP: Available when insufficient balance
-                </p>
-            </div>
+
         </div>
     );
 };

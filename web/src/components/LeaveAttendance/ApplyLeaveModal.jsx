@@ -184,10 +184,12 @@ const ApplyLeaveModal = ({
                             {(() => {
                                 // Get names from user or profile
                                 // Prefer profile as it has the latest fetched data including dynamic managers
+                                // Update: Support multiple team leads (array)
+                                const teamLeads = profile?.team_leads || user?.team_leads || [];
                                 let teamLeadName = profile?.team_lead_name || user?.team_lead_name;
 
                                 // Fallback to "Team Lead" only if we really have no name from backend
-                                if (!teamLeadName) {
+                                if (!teamLeadName && teamLeads.length === 0) {
                                     teamLeadName = "Team Lead";
                                 }
 
@@ -196,13 +198,18 @@ const ApplyLeaveModal = ({
 
                                 const suggestions = [];
 
-                                // ALWAYS add the Team Lead name. 
-                                // logic: If I am a TL of Team A, but Member of Team B, this 'teamLeadName' 
-                                // will be the Manager of Team B (my boss). I should see it.
-                                // If I am a standard member, this is my boss. I should see it.
-                                // The filtering below will remove it if it happens to be ME.
-                                if (teamLeadName) {
-                                    suggestions.push(teamLeadName);
+                                // Add all Team Leads
+                                if (teamLeads.length > 0) {
+                                    teamLeads.forEach(lead => {
+                                        if (lead) suggestions.push(lead);
+                                    });
+                                } else if (teamLeadName) {
+                                    // Fallback for single legacy string (could be comma separated now too)
+                                    if (teamLeadName.includes(',')) {
+                                        teamLeadName.split(',').forEach(s => suggestions.push(s.trim()));
+                                    } else {
+                                        suggestions.push(teamLeadName);
+                                    }
                                 }
 
                                 if (pmName) suggestions.push(pmName);

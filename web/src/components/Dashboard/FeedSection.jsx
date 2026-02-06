@@ -91,11 +91,29 @@ const FeedSection = ({ user }) => {
 
     const handleToggleLike = async (postId) => {
         if (!user?.employee_id) return;
+
+        // Optimistic UI update
+        const previousPosts = [...posts];
+        setPosts(currentPosts => currentPosts.map(post => {
+            if (post.id === postId) {
+                const isLiked = post.likes.includes(user.employee_id);
+                return {
+                    ...post,
+                    likes: isLiked
+                        ? post.likes.filter(id => id !== user.employee_id)
+                        : [...post.likes, user.employee_id],
+                    likes_count: isLiked ? post.likes_count - 1 : post.likes_count + 1
+                };
+            }
+            return post;
+        }));
+
         try {
             await feedApi.toggleLike(postId, user.employee_id);
-            fetchPosts();
+            // No need to fetchPosts() immediately as state is already updated
         } catch (error) {
             console.error("Like failed:", error);
+            setPosts(previousPosts); // Revert on failure
         }
     };
 

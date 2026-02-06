@@ -69,11 +69,11 @@ const LoginPage = ({ onLogin }) => {
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-[#48327d]/5 rounded-full blur-3xl"></div>
             </div>
 
-            <div className="bg-white w-full max-w-[320px] mm:max-w-md rounded-2xl shadow-xl border border-[#dfe6e9] overflow-hidden z-10 animate-in fade-in zoom-in duration-300 mx-auto">
-                <div className="p-5 mm:p-7 ml:p-8">
-                    <div className="text-center mb-5 mm:mb-7 ml:mb-8">
-                        <div className="w-24 h-24 mm:w-28 ml:w-32 bg-transparent rounded-2xl flex items-center justify-center mx-auto mb-2 mm:mb-3 ml:mb-4">
-                            <img src="/images/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            <div className="bg-white w-full max-w-[300px] mm:max-w-md rounded-2xl shadow-xl border border-[#dfe6e9] overflow-hidden z-10 animate-in fade-in zoom-in duration-300 mx-auto">
+                <div className="px-6 py-12">
+                    <div className="text-center mb-6">
+                        <div className="w-52 h-auto bg-transparent flex items-center justify-center mx-auto mb-8">
+                            <img src="/images/logo.png" alt="Logo" className="w-[87%] object-contain" />
                         </div>
                         <h1 className="text-xl mm:text-xl ml:text-2xl font-bold text-[#2d3436]">
                             {step === 'input' ? 'Welcome to Markwave HR' : 'Verify Identity'}
@@ -86,7 +86,7 @@ const LoginPage = ({ onLogin }) => {
                     </div>
 
                     {step === 'input' && (
-                        <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
+                        <div className="flex bg-gray-100 p-1 rounded-xl mb-4">
                             <button
                                 type="button"
                                 onClick={() => { setLoginMethod('phone'); setError(''); }}
@@ -110,7 +110,7 @@ const LoginPage = ({ onLogin }) => {
                         </div>
                     )}
 
-                    <form onSubmit={step === 'input' ? handleSendOTP : handleVerifyOTP} className="space-y-6" autoComplete="off">
+                    <form onSubmit={step === 'input' ? handleSendOTP : handleVerifyOTP} className="space-y-4" autoComplete="off">
                         {step === 'input' ? (
                             <div className="space-y-2">
                                 <label className="text-xs font-bold text-[#636e72] uppercase tracking-wider block">
@@ -127,7 +127,14 @@ const LoginPage = ({ onLogin }) => {
                                     <input
                                         type={loginMethod === 'phone' ? 'tel' : 'email'}
                                         value={loginMethod === 'phone' ? phone : email}
-                                        onChange={(e) => loginMethod === 'phone' ? setPhone(e.target.value) : setEmail(e.target.value)}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (loginMethod === 'phone') {
+                                                if (/^\d*$/.test(val) && val.length <= 10) setPhone(val);
+                                            } else {
+                                                setEmail(val);
+                                            }
+                                        }}
                                         className="block w-full pl-10 pr-3 py-2.5 border border-[#dfe6e9] rounded-xl text-sm placeholder-[#b2bec3] focus:outline-none focus:border-[#48327d] focus:ring-1 focus:ring-[#48327d] transition-all bg-[#fbfcff]"
                                         placeholder={loginMethod === 'phone' ? "Enter your mobile number" : "Enter your email address"}
                                         required
@@ -172,8 +179,12 @@ const LoginPage = ({ onLogin }) => {
 
                         <button
                             type="submit"
-                            disabled={isLoading}
-                            className="w-full flex items-center justify-center gap-2 bg-[#48327d] hover:bg-[#3a2865] text-white py-3 px-4 rounded-xl font-bold text-sm transition-all transform active:scale-[0.98] shadow-md shadow-[#48327d]/20 disabled:opacity-70 disabled:cursor-not-allowed"
+                            disabled={isLoading || (step === 'input' && (loginMethod === 'phone' ? phone.length !== 10 : !email))}
+                            className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl font-bold text-sm transition-all transform active:scale-[0.98] shadow-md 
+                                ${isLoading || (step === 'input' && (loginMethod === 'phone' ? phone.length !== 10 : !email))
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+                                    : 'bg-[#48327d] hover:bg-[#3a2865] text-white shadow-[#48327d]/20'
+                                }`}
                         >
                             {isLoading ? (
                                 <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -186,11 +197,7 @@ const LoginPage = ({ onLogin }) => {
                         </button>
                     </form>
                 </div>
-                <div className="bg-[#fbfcff] p-4 text-center border-t border-[#dfe6e9]">
-                    <p className="text-xs text-[#636e72]">
-                        Don't have an account? <span className="text-[#48327d] font-bold cursor-pointer hover:underline">Contact Admin</span>
-                    </p>
-                </div>
+
             </div>
         </div>
     );
