@@ -14,18 +14,22 @@ function MyTeam({ user }) {
     const [allEmployees, setAllEmployees] = useState([]);
 
     // Determine initial selected team
-    // If 'teams' array exists and has length, use the first one. Otherwise fallback to 'team_id'.
-    const initialTeamId = (user?.teams && user.teams.length > 0) ? user.teams[0].id : user?.team_id;
+    // Use optional chaining for safety. If teams is valid array, use first. Else fallback.
+    const initialTeamId = (user?.teams?.length > 0) ? user.teams[0].id : (user?.team_id || null);
     const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
 
-    // Update selected team if user prop changes (e.g. initial load)
+    // Update selected team if user prop changes (e.g. initial load or re-fetch)
     useEffect(() => {
-        if (user?.teams && user.teams.length > 0) {
-            setSelectedTeamId(user.teams[0].id);
+        if (user?.teams?.length > 0) {
+            // Only update if currently selected is not in the list (or not set)
+            // But usually we want to default to first if the user object refreshes completely
+            if (!selectedTeamId || !user.teams.find(t => t.id == selectedTeamId)) {
+                setSelectedTeamId(user.teams[0].id);
+            }
         } else if (user?.team_id) {
             setSelectedTeamId(user.team_id);
         }
-    }, [user]);
+    }, [user, user?.teams]);
 
     useEffect(() => {
         const fetchTeamData = async () => {

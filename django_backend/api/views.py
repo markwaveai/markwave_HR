@@ -32,70 +32,76 @@ def login(request):
 
 @api_view(['POST'])
 def send_otp(request):
-    phone = request.data.get('phone')
-    print(f"[OTP DEBUG] Received OTP request for phone: {phone}")
-    
-    if not phone:
-        print("[OTP DEBUG] Phone number missing in request")
-        return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
-
-    normalized_input = normalize_phone(phone)
-    print(f"[OTP DEBUG] Normalized phone: {normalized_input}")
-    
-    target_phone = normalized_input if phone != 'admin' else 'admin'
-
-    # Check if user exists
-    if phone != 'admin':
-        user_exists = False
-        for emp in Employees.objects.all():
-            if normalize_phone(emp.contact) == normalized_input:
-                user_exists = True
-                break
-        
-        print(f"[OTP DEBUG] User exists check for {normalized_input}: {user_exists}")
-        
-        if not user_exists:
-            print("[OTP DEBUG] User not found")
-            return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        # Check for inactive status
-        for emp in Employees.objects.all():
-            if normalize_phone(emp.contact) == normalized_input:
-                if emp.status == 'Inactive':
-                    return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
-                break
-
-    otp = str(random.randint(100000, 999999))
-    print(f"[OTP DEBUG] Generated OTP: {otp}")
-    
-    OTPStore.objects.create(phone=target_phone, otp=otp, created_at=timezone.now())
-
-    whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else f"{settings.ADMIN_WHATSAPP_NUMBER}@c.us"
-    print(f"[OTP DEBUG] WhatsApp Recipient: {whatsapp_recipient}")
-    
-    headers = {
-        "Authorization": f"Bearer {settings.PERISKOPE_API_KEY}",
-        "Content-Type": "application/json",
-        "x-phone": settings.PERISKOPE_SENDER_PHONE
-    }
-    payload = {
-        "chat_id": whatsapp_recipient,
-        "type": "text",
-        "message": f"Your MarkwaveHR login OTP is: {otp}"
-    }
-
     try:
-        print(f"[OTP DEBUG] Sending to Periskope: {settings.PERISKOPE_URL}")
-        response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=30)
-        print(f"[OTP DEBUG] Periskope Response Status: {response.status_code}")
-        print(f"[OTP DEBUG] Periskope Response Body: {response.text}")
+        phone = request.data.get('phone')
+        print(f"[OTP DEBUG] Received OTP request for phone: {phone}")
         
-        if response.status_code in [200, 201]:
-            return Response({'success': True, 'message': 'OTP sent successfully'})
-        return Response({'error': f'Failed to send OTP: {response.text}'}, status=500)
+        if not phone:
+            print("[OTP DEBUG] Phone number missing in request")
+            return Response({'error': 'Phone number is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        normalized_input = normalize_phone(phone)
+        print(f"[OTP DEBUG] Normalized phone: {normalized_input}")
+        
+        target_phone = normalized_input if phone != 'admin' else 'admin'
+
+        # Check if user exists
+        if phone != 'admin':
+            user_exists = False
+            for emp in Employees.objects.all():
+                if normalize_phone(emp.contact) == normalized_input:
+                    user_exists = True
+                    break
+            
+            print(f"[OTP DEBUG] User exists check for {normalized_input}: {user_exists}")
+            
+            if not user_exists:
+                print("[OTP DEBUG] User not found")
+                return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Check for inactive status
+            for emp in Employees.objects.all():
+                if normalize_phone(emp.contact) == normalized_input:
+                    if emp.status == 'Inactive':
+                        return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+                    break
+
+        otp = str(random.randint(100000, 999999))
+        print(f"[OTP DEBUG] Generated OTP: {otp}")
+        
+        OTPStore.objects.create(phone=target_phone, otp=otp, created_at=timezone.now())
+
+        whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else f"{settings.ADMIN_WHATSAPP_NUMBER}@c.us"
+        print(f"[OTP DEBUG] WhatsApp Recipient: {whatsapp_recipient}")
+        
+        headers = {
+            "Authorization": f"Bearer {settings.PERISKOPE_API_KEY}",
+            "Content-Type": "application/json",
+            "x-phone": settings.PERISKOPE_SENDER_PHONE
+        }
+        payload = {
+            "chat_id": whatsapp_recipient,
+            "type": "text",
+            "message": f"Your MarkwaveHR login OTP is: {otp}"
+        }
+
+        print(f"[OTP DEBUG] Sending to Periskope: {settings.PERISKOPE_URL}")
+        try:
+            response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=30)
+            print(f"[OTP DEBUG] Periskope Response Status: {response.status_code}")
+            print(f"[OTP DEBUG] Periskope Response Body: {response.text}")
+            
+            if response.status_code in [200, 201]:
+                return Response({'success': True, 'message': 'OTP sent successfully'})
+            return Response({'error': f'Failed to send OTP: {response.text}'}, status=500)
+        except Exception as e:
+             print(f"[OTP DEBUG] Exception sending OTP request: {str(e)}")
+             return Response({'error': f'WhatsApp API connection error: {str(e)}'}, status=500)
+
     except Exception as e:
-        print(f"[OTP DEBUG] Exception sending OTP: {str(e)}")
-        return Response({'error': f'WhatsApp API error: {str(e)}'}, status=500)
+        import traceback
+        traceback.print_exc()
+        return Response({'error': f"Internal Server Error: {str(e)}"}, status=500)
 
 @api_view(['POST'])
 def verify_otp(request):
@@ -149,7 +155,7 @@ def verify_otp(request):
                         'email': emp.email,
                         'role': emp.role,
                         'team_id': emp.teams.first().id if emp.teams.exists() else None,
-                        'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in emp.teams.all()],
+                        'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
                         'team_lead_name': f"{emp.teams.first().manager.first_name} {emp.teams.first().manager.last_name}" if emp.teams.exists() and emp.teams.first().manager else "Team Lead",
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
                         'is_admin': getattr(emp, 'is_admin', False)
@@ -191,7 +197,7 @@ def get_profile(request, employee_id):
             'last_name': emp.last_name,
             'role': emp.role,
             'team_id': emp.teams.first().id if emp.teams.exists() else None,
-            'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in emp.teams.all()],
+            'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
             'team_lead_name': f"{emp.teams.first().manager.first_name} {emp.teams.first().manager.last_name}" if emp.teams.exists() and emp.teams.first().manager else "Team Lead",
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': getattr(emp, 'is_admin', False),
@@ -298,7 +304,7 @@ def verify_email_otp(request):
                 'email': employee.email,
                 'role': employee.role,
                 'team_id': employee.teams.first().id if employee.teams.exists() else None,
-                'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in employee.teams.all()],
+                'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in (list(employee.teams.all()) + list(Teams.objects.filter(manager=employee)))],
                 'team_lead_name': f"{employee.teams.first().manager.first_name} {employee.teams.first().manager.last_name}" if employee.teams.exists() and employee.teams.first().manager else "Team Lead",
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
                 'is_admin': getattr(employee, 'is_admin', False)
