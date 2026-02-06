@@ -303,7 +303,7 @@ def team_stats(request):
         team_id = request.query_params.get('team_id')
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
         if team_id:
-            query = query.filter(team_id=team_id)
+            query = query.filter(teams__id=team_id)
             
         members = query.all()
         
