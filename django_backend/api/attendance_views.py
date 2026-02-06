@@ -551,20 +551,66 @@ def submit_regularization(request):
 
     return Response({'message': 'Regularization request submitted successfully'})
 
+from django.db.models import Q, F, Exists, OuterRef
+
 @api_view(['GET'])
 def get_regularization_requests(request, manager_id):
-    manager = Employees.objects.filter(employee_id=manager_id).first()
-    if not manager and str(manager_id).isdigit():
-        manager = Employees.objects.filter(pk=manager_id).first()
+    role = request.GET.get('role', 'manager')
     
-    if not manager:
-        return Response({'error': 'Manager not found'}, status=404)
+    if role == 'employee':
+        # Fetch requests where the user is the requester
+        requests = Regularization.objects.filter(
+            employee__employee_id=manager_id
+        ).select_related('employee', 'attendance').order_by('-created_at')
+    else:
+        # Manager role: Fetch requests from team members or orphaned requests for admins
+        manager = Employees.objects.filter(employee_id=manager_id).first()
+        if not manager and str(manager_id).isdigit():
+            manager = Employees.objects.filter(pk=manager_id).first()
         
-    teams = Teams.objects.filter(manager=manager)
-    requests = Regularization.objects.filter(
-        employee__teams__in=teams,
-        status='Pending'
-    ).select_related('employee', 'attendance').distinct().order_by('-created_at')
+        # More inclusive admin check (matches frontend logic)
+        admin_roles = ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations']
+        is_admin = (manager_id == 'MW-ADMIN') or \
+                   (manager and (getattr(manager, 'is_admin', False) or manager.role in admin_roles))
+        
+        if is_admin:
+            # Detect "orphaned" requests: those where the requester has no manager OTHER than themselves.
+            # This correctly catches TLs who don't have another TL above them.
+            
+            # Subquery to check for external managers
+            external_manager_exists = Teams.objects.filter(
+                members__employee_id=OuterRef('employee__employee_id'),
+                manager__isnull=False
+            ).exclude(
+                manager__employee_id=OuterRef('employee__employee_id')
+            )
+            
+            requests_qs = Regularization.objects.annotate(
+                has_external_manager=Exists(external_manager_exists)
+            )
+            
+            # An "orphan" request is one where has_external_manager is False
+            orphans_q = Q(has_external_manager=False)
+            
+            if manager:
+                # For a specific Admin user:
+                # 1. Requests from teams they directly manage
+                # 2. PLUS all "orphaned" requests in the system.
+                teams = Teams.objects.filter(manager=manager)
+                requests = requests_qs.filter(
+                    orphans_q | Q(employee__teams__in=teams)
+                ).select_related('employee', 'attendance').distinct().order_by('-created_at')
+            else:
+                # Hardcoded MW-ADMIN or logic where manager object isn't found
+                requests = requests_qs.filter(orphans_q).select_related('employee', 'attendance').order_by('-created_at')
+        else:
+            if not manager:
+                return Response({'error': 'Manager not found'}, status=404)
+                
+            teams = Teams.objects.filter(manager=manager)
+            requests = Regularization.objects.filter(
+                employee__teams__in=teams
+            ).select_related('employee', 'attendance').distinct().order_by('-created_at')
     
     data = []
     for r in requests:

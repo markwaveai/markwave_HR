@@ -471,6 +471,7 @@ const Me = ({ user }) => {
                     setActiveBreakIndex={setActiveBreakIndex}
                     currentTime={currentTime}
                     user={user}
+                    onRefresh={fetchHistory}
                 />
             </div>
         </div>

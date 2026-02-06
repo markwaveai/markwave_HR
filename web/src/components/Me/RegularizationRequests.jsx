@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Check, X, Clock, Calendar, User, FileText } from 'lucide-react';
 import { attendanceApi } from '../../services/api';
 
-const RegularizationRequests = ({ user, onAction }) => {
+const RegularizationRequests = ({ user, onAction, role = 'manager' }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
     const fetchRequests = async () => {
         setLoading(true);
         try {
-            // Using user.id or user.employee_id as manager_id
-            const data = await attendanceApi.getRegularizationRequests(user.employee_id || user.id);
+            // Using user.id or user.employee_id as userId
+            const data = await attendanceApi.getRegularizationRequests(user.employee_id || user.id, role);
             setRequests(data);
         } catch (error) {
             console.error(error);
@@ -23,17 +23,29 @@ const RegularizationRequests = ({ user, onAction }) => {
         if (user) {
             fetchRequests();
         }
-    }, [user]);
+    }, [user, role]);
 
     const handleAction = async (id, action) => {
         try {
             await attendanceApi.actionRegularization(id, action);
-            setRequests(prev => prev.filter(req => req.id !== id));
+            // Instead of filtering out, we update the status locally for better feedback
+            setRequests(prev => prev.map(req => req.id === id ? { ...req, status: action } : req));
             // Trigger parent count update
             if (onAction) onAction();
         } catch (error) {
             console.error('Action failed:', error);
             alert('Failed to process request');
+        }
+    };
+
+    const getStatusBadge = (status) => {
+        switch (status) {
+            case 'Approved':
+                return <span className="px-2 py-1 text-[10px] font-bold text-green-700 bg-green-50 rounded-full border border-green-100">APPROVED</span>;
+            case 'Rejected':
+                return <span className="px-2 py-1 text-[10px] font-bold text-red-700 bg-red-50 rounded-full border border-red-100">REJECTED</span>;
+            default:
+                return <span className="px-2 py-1 text-[10px] font-bold text-amber-700 bg-amber-50 rounded-full border border-amber-100">PENDING</span>;
         }
     };
 
@@ -45,7 +57,7 @@ const RegularizationRequests = ({ user, onAction }) => {
         return (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400">
                 <FileText size={48} className="mb-4 opacity-20" />
-                <p>No pending regularization requests</p>
+                <p>No {role === 'manager' ? 'team' : 'personal'} regularization requests</p>
             </div>
         );
     }
@@ -59,6 +71,7 @@ const RegularizationRequests = ({ user, onAction }) => {
                             <div className="flex items-center gap-3 mb-1">
                                 <span className="font-bold text-[#2d3436] text-sm md:text-base">{request.employee_name}</span>
                                 <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-mono">{request.employee_id}</span>
+                                {getStatusBadge(request.status)}
                             </div>
 
                             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
@@ -81,20 +94,22 @@ const RegularizationRequests = ({ user, onAction }) => {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
-                            <button
-                                onClick={() => handleAction(request.id, 'Rejected')}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
-                            >
-                                <X size={14} /> REJECT
-                            </button>
-                            <button
-                                onClick={() => handleAction(request.id, 'Approved')}
-                                className="flex-1 md:flex-none flex items-center justify-center gap-1 px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-200 rounded-lg transition-all active:scale-95"
-                            >
-                                <Check size={14} /> APPROVE
-                            </button>
-                        </div>
+                        {role === 'manager' && request.status === 'Pending' && (
+                            <div className="flex items-center gap-2 w-full md:w-auto mt-2 md:mt-0">
+                                <button
+                                    onClick={() => handleAction(request.id, 'Rejected')}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-1 px-3 py-2 text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                                >
+                                    <X size={14} /> REJECT
+                                </button>
+                                <button
+                                    onClick={() => handleAction(request.id, 'Approved')}
+                                    className="flex-1 md:flex-none flex items-center justify-center gap-1 px-4 py-2 text-xs font-bold text-white bg-green-600 hover:bg-green-700 shadow-sm shadow-green-200 rounded-lg transition-all active:scale-95"
+                                >
+                                    <Check size={14} /> APPROVE
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

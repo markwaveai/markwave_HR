@@ -10,9 +10,10 @@ const AttendanceLog = ({
     selectedMonth, setSelectedMonth,
     monthOptions, displayedLogs,
     calculateStats, activeBreakIndex, setActiveBreakIndex,
-    currentTime, user
+    currentTime, user, onRefresh
 }) => {
     const [activeTab, setActiveTab] = useState('log'); // 'log' or 'requests'
+    const [requestMode, setRequestMode] = useState(user?.is_manager ? 'team' : 'me');
     const [regModalOpen, setRegModalOpen] = useState(false);
     const [selectedLogForReg, setSelectedLogForReg] = useState(null);
     const [activeMenuIndex, setActiveMenuIndex] = useState(null);
@@ -20,21 +21,35 @@ const AttendanceLog = ({
 
     // Fetch requests count for badge
     const fetchCount = async () => {
-        if (user && (user.employee_id || user.id)) {
-            try {
-                const data = await attendanceApi.getRegularizationRequests(user.employee_id || user.id);
-                if (Array.isArray(data)) {
-                    setRequestsCount(data.length);
-                }
-            } catch (e) {
-                console.error("Not a manager or failed to fetch requests");
+        if (!user || (!user.employee_id && !user.id)) return;
+
+        try {
+            const uid = user.employee_id || user.id;
+            let totalPending = 0;
+
+            // 1. Always check for personal pending requests
+            const myRequests = await attendanceApi.getRegularizationRequests(uid, 'employee');
+            if (Array.isArray(myRequests)) {
+                totalPending += myRequests.filter(r => r.status === 'Pending').length;
             }
+
+            // 2. If manager, also check for team pending requests
+            if (user.is_manager || user.role === 'Administrator') {
+                const teamRequests = await attendanceApi.getRegularizationRequests(uid, 'manager');
+                if (Array.isArray(teamRequests)) {
+                    totalPending += teamRequests.filter(r => r.status === 'Pending').length;
+                }
+            }
+
+            setRequestsCount(totalPending);
+        } catch (e) {
+            console.error("Failed to fetch requests count:", e);
         }
     };
 
     useEffect(() => {
         fetchCount();
-        const interval = setInterval(fetchCount, 10000); // Poll every 10s for near real-time updates
+        const interval = setInterval(fetchCount, 15000); // Poll every 15s
         return () => clearInterval(interval);
     }, [user]);
 
@@ -192,6 +207,23 @@ const AttendanceLog = ({
                     </div>
                 </div>
             </div>
+
+            {activeTab === 'requests' && user?.is_manager && (
+                <div className="px-4 py-2 bg-[#f8fafc] border-b border-[#e2e8f0] flex gap-4">
+                    <button
+                        onClick={() => setRequestMode('team')}
+                        className={`text-[10px] font-bold uppercase tracking-tight px-3 py-1 rounded-full transition-all ${requestMode === 'team' ? 'bg-[#48327d] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    >
+                        Team Requests
+                    </button>
+                    <button
+                        onClick={() => setRequestMode('me')}
+                        className={`text-[10px] font-bold uppercase tracking-tight px-3 py-1 rounded-full transition-all ${requestMode === 'me' ? 'bg-[#48327d] text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                    >
+                        My Requests
+                    </button>
+                </div>
+            )}
 
             {activeTab === 'log' ? (
                 <div className="overflow-x-auto pb-4">
@@ -381,7 +413,7 @@ const AttendanceLog = ({
                     </table>
                 </div>
             ) : (
-                <RegularizationRequests user={user} onAction={handleRequestProcessed} />
+                <RegularizationRequests user={user} onAction={handleRequestProcessed} role={requestMode === 'team' ? 'manager' : 'employee'} />
             )}
 
             <RegularizationModal
@@ -390,9 +422,8 @@ const AttendanceLog = ({
                 log={selectedLogForReg}
                 user={user}
                 onSuccess={() => {
-                    // Refresh data or show toast
-                    // Trigger a refresh of logs if possible, or just close
-                    // Since fetchHistory is in parent, we might just count on auto-poll or simple close
+                    fetchCount();
+                    if (onRefresh) onRefresh();
                 }}
             />
         </div>

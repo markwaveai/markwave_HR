@@ -101,7 +101,7 @@ export const attendanceApi = {
         method: 'POST',
         body: JSON.stringify(data)
     }),
-    getRegularizationRequests: (managerId) => apiFetch(`/attendance/regularization-requests/${managerId}/?_t=${new Date().getTime()}`),
+    getRegularizationRequests: (userId, role = 'manager') => apiFetch(`/attendance/regularization-requests/${userId}/?role=${role}&_t=${new Date().getTime()}`),
     actionRegularization: (requestId, action) => apiFetch(`/attendance/regularization/${requestId}/action/`, {
         method: 'POST',
         body: JSON.stringify({ action })
