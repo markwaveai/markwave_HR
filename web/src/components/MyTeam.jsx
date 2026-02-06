@@ -13,11 +13,23 @@ function MyTeam({ user }) {
     const [searchTerm, setSearchTerm] = useState('');
     const [allEmployees, setAllEmployees] = useState([]);
 
+    // Determine initial selected team
+    // If 'teams' array exists and has length, use the first one. Otherwise fallback to 'team_id'.
+    const initialTeamId = (user?.teams && user.teams.length > 0) ? user.teams[0].id : user?.team_id;
+    const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
+
+    // Update selected team if user prop changes (e.g. initial load)
+    useEffect(() => {
+        if (user?.teams && user.teams.length > 0) {
+            setSelectedTeamId(user.teams[0].id);
+        } else if (user?.team_id) {
+            setSelectedTeamId(user.team_id);
+        }
+    }, [user]);
+
     useEffect(() => {
         const fetchTeamData = async () => {
-            const teamId = user?.team_id;
-
-            if (!teamId) {
+            if (!selectedTeamId) {
                 // User has no team, reset states and skip API calls
                 setTeamMembers([]);
                 setStats({ total: 0, active: 0, onLeave: 0, remote: 0 });
@@ -25,10 +37,11 @@ function MyTeam({ user }) {
                 return;
             }
 
+            setLoading(true);
             try {
                 const [membersData, statsData, allEmpsData] = await Promise.all([
-                    teamApi.getMembers(teamId),
-                    teamApi.getStats(teamId),
+                    teamApi.getMembers(selectedTeamId),
+                    teamApi.getStats(selectedTeamId),
                     teamApi.getAttendanceRegistry()
                 ]);
                 setTeamMembers(membersData);
@@ -41,14 +54,14 @@ function MyTeam({ user }) {
             }
         };
         fetchTeamData();
-    }, [user?.team_id]);
+    }, [selectedTeamId]);
 
     const filteredMembers = teamMembers.filter(member =>
         (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
-    if (loading) {
+    if (loading && !stats) { // Only show full loader on initial load, not when switching teams if we want smoother transition, or just show it simply
         return <LoadingSpinner size={40} className="p-10" />;
     }
 
@@ -58,7 +71,28 @@ function MyTeam({ user }) {
                 <header className="mb-6 mm:mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mm:gap-6">
                     <div className="text-left">
                         <h1 className="text-2xl mm:text-3xl font-black text-[#1e293b] tracking-tight">My Team</h1>
-                        <p className="text-[12px] mm:text-sm text-[#64748b] font-medium mt-1 italic">Manage and view your team members</p>
+
+                        {/* Team Selector Dropdown */}
+                        {user?.teams && user.teams.length > 1 ? (
+                            <div className="mt-2">
+                                <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider block mb-1">Select Team:</label>
+                                <select
+                                    className="px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent outline-none shadow-sm min-w-[200px]"
+                                    value={selectedTeamId || ''}
+                                    onChange={(e) => setSelectedTeamId(e.target.value)}
+                                >
+                                    {user.teams.map(team => (
+                                        <option key={team.id} value={team.id}>
+                                            {team.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                        ) : (
+                            <p className="text-[12px] mm:text-sm text-[#64748b] font-medium mt-1 italic">
+                                {user?.teams && user.teams.length === 1 ? user.teams[0].name : 'Manage and view your team members'}
+                            </p>
+                        )}
                     </div>
                     <div className="flex items-center gap-4 shrink-0">
                         <div className="relative block">
@@ -79,7 +113,9 @@ function MyTeam({ user }) {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mm:gap-6">
-                    {filteredMembers.length > 0 ? (
+                    {loading ? (
+                        <div className="col-span-full flex justify-center py-20"><LoadingSpinner /></div>
+                    ) : filteredMembers.length > 0 ? (
                         filteredMembers.map(member => (
                             <TeamMemberCard
                                 key={member.id}

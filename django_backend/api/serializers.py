@@ -10,7 +10,7 @@ class TeamsSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'manager', 'manager_name', 'member_count']
 
     def get_member_count(self, obj):
-        return Employees.objects.filter(team=obj, status__in=['Active', 'Remote']).count()
+        return Employees.objects.filter(teams=obj, status__in=['Active', 'Remote']).count()
 
     def get_manager_name(self, obj):
         if obj.manager:
@@ -22,7 +22,7 @@ class EmployeesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Employees
-        fields = ['id', 'employee_id', 'first_name', 'last_name', 'name', 'role', 'status', 'location', 'email', 'contact', 'aadhar', 'qualification', 'team']
+        fields = ['id', 'employee_id', 'first_name', 'last_name', 'name', 'role', 'status', 'location', 'email', 'contact', 'aadhar', 'qualification', 'teams']
 
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"

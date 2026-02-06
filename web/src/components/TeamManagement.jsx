@@ -41,8 +41,8 @@ const TeamManagement = ({ user }) => {
         fetchPotentialManagers();
     }, []);
 
-    const fetchTeams = async () => {
-        setLoading(true);
+    const fetchTeams = async (isRefreshing = false) => {
+        if (!isRefreshing) setLoading(true);
         try {
             const data = await teamApi.getTeams();
             setTeams(data);
@@ -68,8 +68,13 @@ const TeamManagement = ({ user }) => {
             const data = await teamApi.getMembers(teamId);
             setSelectedTeamMembers(data);
 
-            // Also update available employees (those not in this team)
-            const allEmployees = await teamApi.getAttendanceRegistry();
+            // Use cached managers (all employees) if available, otherwise fetch
+            let allEmployees = managers;
+            if (allEmployees.length === 0) {
+                allEmployees = await teamApi.getAttendanceRegistry();
+                setManagers(allEmployees);
+            }
+
             const memberIds = new Set(data.map(m => m.id));
             setAvailableEmployees(allEmployees.filter(emp => !memberIds.has(emp.id)));
         } catch (error) {
@@ -90,7 +95,7 @@ const TeamManagement = ({ user }) => {
             setIsModalOpen(false);
             setEditingTeam(null);
             setFormData({ name: '', description: '', manager_id: '' });
-            fetchTeams();
+            fetchTeams(true);
         } catch (error) {
             console.error("Failed to save team", error);
             alert("Failed to save team");
@@ -107,7 +112,7 @@ const TeamManagement = ({ user }) => {
             });
             setSelectedEmployeeToAdd('');
             fetchTeamMembers(editingTeam.id);
-            fetchTeams();
+            fetchTeams(true);
         } catch (error) {
             alert("Failed to add member");
         } finally {
@@ -119,7 +124,7 @@ const TeamManagement = ({ user }) => {
         setIsDeleting(true);
         try {
             await teamApi.deleteTeam(deleteConfig.teamId);
-            await fetchTeams();
+            await fetchTeams(true);
             setDeleteConfig({ ...deleteConfig, isOpen: false });
         } catch (error) {
             console.error("Failed to delete team", error);
@@ -131,19 +136,26 @@ const TeamManagement = ({ user }) => {
 
     const openMemberModal = (team) => {
         setEditingTeam(team);
+        setSelectedEmployeeToAdd('');
         fetchTeamMembers(team.id);
         setMemberModalOpen(true);
+    };
+
+    const closeMemberModal = () => {
+        setMemberModalOpen(false);
+        setSelectedEmployeeToAdd('');
+        setEditingTeam(null);
     };
 
     const confirmRemoveMember = async () => {
         setIsDeleting(true);
         try {
             await teamApi.updateMember(removeMemberConfig.memberId, {
-                team_id: null,
+                remove_team_id: editingTeam.id,
                 acting_user_id: user?.id
             });
             await fetchTeamMembers(editingTeam.id);
-            await fetchTeams();
+            await fetchTeams(true);
             setRemoveMemberConfig({ ...removeMemberConfig, isOpen: false });
         } catch (error) {
             alert("Failed to remove member");
@@ -299,7 +311,7 @@ const TeamManagement = ({ user }) => {
                             <div>
                                 <h2 className="font-bold text-lg">Manage Members: {editingTeam?.name}</h2>
                             </div>
-                            <button onClick={() => setMemberModalOpen(false)}><X size={20} /></button>
+                            <button onClick={closeMemberModal}><X size={20} /></button>
                         </div>
                         <div className="p-6">
                             <div className="flex gap-2 mb-6">

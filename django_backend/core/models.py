@@ -44,7 +44,8 @@ class Employees(models.Model):
     contact = models.CharField(max_length=20, blank=True, null=True)
     aadhar = models.CharField(max_length=20, blank=True, null=True)
     qualification = models.CharField(max_length=100, blank=True, null=True)
-    team = models.ForeignKey('Teams', models.DO_NOTHING, blank=True, null=True)
+    # team = models.ForeignKey('Teams', models.DO_NOTHING, blank=True, null=True)
+    teams = models.ManyToManyField('Teams', blank=True, related_name='members')
     joining_date = models.DateField(null=True, blank=True)
 
     class Meta:
@@ -87,7 +88,7 @@ class Posts(models.Model):
 class Teams(models.Model):
     name = models.CharField(unique=True, max_length=100)
     description = models.CharField(max_length=255, blank=True, null=True)
-    manager = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id', blank=True, null=True)
+    manager = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id', blank=True, null=True, related_name='managed_teams')
     shift_start = models.CharField(max_length=20, default='09:30 AM')
     shift_end = models.CharField(max_length=20, default='06:30 PM')
 

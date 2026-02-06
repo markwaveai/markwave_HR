@@ -248,8 +248,10 @@ def get_personal_stats(request, employee_id):
     now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     
     # Get team-specific timings
-    team_shift_start = employee.team.shift_start if employee.team else '09:30 AM'
-    team_shift_end = employee.team.shift_end if employee.team else '06:30 PM'
+    # Get team-specific timings (use first team as primary for now)
+    primary_team = employee.teams.first()
+    team_shift_start = primary_team.shift_start if primary_team else '09:30 AM'
+    team_shift_end = primary_team.shift_end if primary_team else '06:30 PM'
 
     def get_start_dates(d):
         # Week starts Monday
@@ -330,8 +332,10 @@ def get_personal_stats(request, employee_id):
     team_week = {"avg": "0h 00m", "onTime": "0%"}
     team_month = {"avg": "0h 00m", "onTime": "0%"}
     
-    if employee.team:
-        team_members = Employees.objects.filter(team=employee.team)
+    if employee.teams.exists():
+
+        primary_team = employee.teams.first()
+        team_members = Employees.objects.filter(teams=primary_team)
         # For team stats, use the team's own shift_start
         team_week = calc_stats_for_range(team_members, this_week_start, cutoff_str=team_shift_start)
         team_month = calc_stats_for_range(team_members, this_month_start, cutoff_str=team_shift_start)
@@ -558,9 +562,9 @@ def get_regularization_requests(request, manager_id):
         
     teams = Teams.objects.filter(manager=manager)
     requests = Regularization.objects.filter(
-        employee__team__in=teams,
+        employee__teams__in=teams,
         status='Pending'
-    ).select_related('employee', 'attendance').order_by('-created_at')
+    ).select_related('employee', 'attendance').distinct().order_by('-created_at')
     
     data = []
     for r in requests:

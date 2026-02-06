@@ -79,7 +79,10 @@ def team_detail(request, pk):
 
     elif request.method == 'DELETE':
         try:
-            Employees.objects.filter(team=team).update(team=None)
+            # For M2M, removing team just means removing the association
+            # But here we are deleting the TEAM itself.
+            # When deleting a team, just remove it from all employees
+            team.members.clear()
             team.delete()
             return Response({'message': 'Team deleted successfully'})
         except Exception as e:
@@ -91,7 +94,7 @@ def member_list(request):
         team_id = request.query_params.get('team_id')
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
         if team_id:
-            query = query.filter(team_id=team_id)
+            query = query.filter(teams__id=team_id)
         
         members = list(query)
         if not team_id and len(members) > 6:
@@ -182,9 +185,10 @@ def member_list(request):
                 location=data.get('location'),
                 email=data.get('email'),
                 contact=data.get('contact'),
-                aadhar=data.get('aadhar'),
-                team=team
+                aadhar=data.get('aadhar')
             )
+            if team:
+                employee.teams.add(team)
             return Response({'message': 'Employee added successfully', 'id': employee.id}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
@@ -229,8 +233,9 @@ def member_detail(request, pk):
                     is_authorized = True
                 
                 if not is_authorized:
-                    # 2. Check if they are the manager of the member's CURRENT team
-                    if employee.team and employee.team.manager == acting_emp:
+                    # 2. Check if they are the manager of ANY of member's CURRENT teams
+                    # In M2M, employee.teams is a queryset
+                    if employee.teams.filter(manager=acting_emp).exists():
                         is_authorized = True
                     
                     # 3. Check if they are the manager of the member's NEW target team
@@ -260,15 +265,25 @@ def member_detail(request, pk):
             if 'status' in data: employee.status = data['status']
             
             # Update Team if provided
+            # Update Team if provided
             if 'team_id' in data:
                 new_team_id = data['team_id']
-                if new_team_id is None or new_team_id == "":
-                    employee.team = None
-                else:
+                if new_team_id:
                     try:
-                        employee.team = Teams.objects.get(id=new_team_id)
+                        team_to_add = Teams.objects.get(id=new_team_id)
+                        employee.teams.add(team_to_add)
                     except Teams.DoesNotExist:
                         return Response({'error': f'Team with ID {new_team_id} not found'}, status=404)
+            
+            # Handle removal if provided
+            if 'remove_team_id' in data:
+                remove_id = data['remove_team_id']
+                if remove_id:
+                    try:
+                         team_to_remove = Teams.objects.get(id=remove_id)
+                         employee.teams.remove(team_to_remove)
+                    except Teams.DoesNotExist:
+                        pass # Ignore if team doesn't exist
 
             employee.save()
             return Response({'message': 'Employee updated successfully'})

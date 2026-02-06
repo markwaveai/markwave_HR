@@ -148,8 +148,9 @@ def verify_otp(request):
                         'last_name': emp.last_name,
                         'email': emp.email,
                         'role': emp.role,
-                        'team_id': emp.team.id if emp.team else None,
-                        'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead",
+                        'team_id': emp.teams.first().id if emp.teams.exists() else None,
+                        'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in emp.teams.all()],
+                        'team_lead_name': f"{emp.teams.first().manager.first_name} {emp.teams.first().manager.last_name}" if emp.teams.exists() and emp.teams.first().manager else "Team Lead",
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
                         'is_admin': getattr(emp, 'is_admin', False)
                     }
@@ -189,8 +190,9 @@ def get_profile(request, employee_id):
             'first_name': emp.first_name,
             'last_name': emp.last_name,
             'role': emp.role,
-            'team_id': emp.team.id if emp.team else None,
-            'team_lead_name': f"{emp.team.manager.first_name} {emp.team.manager.last_name}" if emp.team and emp.team.manager else "Team Lead",
+            'team_id': emp.teams.first().id if emp.teams.exists() else None,
+            'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in emp.teams.all()],
+            'team_lead_name': f"{emp.teams.first().manager.first_name} {emp.teams.first().manager.last_name}" if emp.teams.exists() and emp.teams.first().manager else "Team Lead",
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': getattr(emp, 'is_admin', False),
             'project_manager_name': f"{pm.first_name} {pm.last_name}" if pm else None,
@@ -295,8 +297,9 @@ def verify_email_otp(request):
                 'last_name': employee.last_name,
                 'email': employee.email,
                 'role': employee.role,
-                'team_id': employee.team.id if employee.team else None,
-                'team_lead_name': f"{employee.team.manager.first_name} {employee.team.manager.last_name}" if employee.team and employee.team.manager else "Team Lead",
+                'team_id': employee.teams.first().id if employee.teams.exists() else None,
+                'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in employee.teams.all()],
+                'team_lead_name': f"{employee.teams.first().manager.first_name} {employee.teams.first().manager.last_name}" if employee.teams.exists() and employee.teams.first().manager else "Team Lead",
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
                 'is_admin': getattr(employee, 'is_admin', False)
             }
