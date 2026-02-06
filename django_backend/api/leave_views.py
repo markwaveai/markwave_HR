@@ -153,7 +153,10 @@ def apply_leave(request):
         if not employee:
             return Response({'error': f'Employee with ID {employee_id} not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        LEAVE_LIMITS = {'cl': 6, 'sl': 6, 'el': 17}
+        from core.models import LeaveType, EmployeeLeaveBalance
+        from datetime import datetime
+        
+        current_year = datetime.now().year
 
         # Check for overlapping leaves
         existing_overlap = Leaves.objects.filter(
@@ -166,17 +169,54 @@ def apply_leave(request):
         if existing_overlap:
             return Response({'error': 'Leave already applied for this date range'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check Leave Balance
-        if leave_type in LEAVE_LIMITS:
-            limit = LEAVE_LIMITS[leave_type]
+        # Check eligibility based on tenure
+        leave_code_upper = leave_type.upper()
+        
+        # Calculate tenure
+        tenure_years = 0
+        if employee.joining_date:
+            from datetime import date
+            today = date.today()
+            tenure_days = (today - employee.joining_date).days
+            tenure_years = tenure_days / 365.25
+        
+        # Eligibility rules based on policy
+        eligibility_rules = {
+            'EL': {'min_years': 2, 'message': 'Earned Leave requires 240 days attendance or 2 years of work experience.'},
+            'SCL': {'min_years': 2, 'message': 'Special Casual Leave is only for employees who have completed 2 years.'},
+            'LL': {'min_years': 5, 'message': 'Long Leave is only for employees who have completed 5 years.'}
+        }
+        
+        if leave_code_upper in eligibility_rules:
+            rule = eligibility_rules[leave_code_upper]
+            if tenure_years < rule['min_years']:
+                return Response({'error': rule['message']}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check Leave Balance using new system
+        # Get allocated days for this leave type
+        balance_record = EmployeeLeaveBalance.objects.filter(
+            employee=employee,
+            leave_type__code=leave_code_upper,
+            year=current_year
+        ).select_related('leave_type').first()
+        
+        # LWP is always available when other leaves are insufficient
+        if leave_code_upper == 'LWP':
+            # No balance check for LWP - it's unlimited
+            pass
+        elif balance_record:
+            allocated = balance_record.allocated_days
             used_days = Leaves.objects.filter(
                 employee=employee,
                 type=leave_type,
                 status__in=['Pending', 'Approved']
             ).aggregate(total=Sum('days'))['total'] or 0
             
-            if used_days + days > limit:
-                 return Response({'error': 'Insufficient leave balance. You cannot apply for more leave than your available balance.'}, status=status.HTTP_400_BAD_REQUEST)
+            if used_days + days > allocated:
+                return Response({'error': 'Insufficient leave balance. You cannot apply for more leave than your available balance.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # If no balance record exists and it's not LWP, deny
+            return Response({'error': f'You do not have allocation for {leave_code_upper}. Please contact HR.'}, status=status.HTTP_400_BAD_REQUEST)
 
         new_request = Leaves.objects.create(
             employee=employee,
@@ -341,6 +381,9 @@ def leave_action(request, request_id):
 
 @api_view(['GET'])
 def get_leave_balance(request, employee_id):
+    from core.models import LeaveType, EmployeeLeaveBalance
+    from datetime import datetime
+    
     employee = Employees.objects.filter(employee_id=employee_id).first()
     if not employee and str(employee_id).isdigit():
         employee = Employees.objects.filter(pk=employee_id).first()
@@ -348,23 +391,45 @@ def get_leave_balance(request, employee_id):
     if not employee:
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    LEAVE_LIMITS = {'cl': 6, 'sl': 6, 'el': 17}
+    current_year = datetime.now().year
     
+    # Get all leave balances for this employee for current year
+    balances = EmployeeLeaveBalance.objects.filter(
+        employee=employee,
+        year=current_year
+    ).select_related('leave_type')
+    
+    # Calculate used leaves from Leaves table
     used_leaves = Leaves.objects.filter(
         employee=employee,
         status__in=['Pending', 'Approved']
     )
     
-    usage = {'cl': 0, 'sl': 0, 'el': 0}
-    for l in used_leaves:
-        if l.type in usage:
-            usage[l.type] += l.days
-
-    balance = {
-        'cl': max(0, LEAVE_LIMITS['cl'] - usage['cl']),
-        'sl': max(0, LEAVE_LIMITS['sl'] - usage['sl']),
-        'el': max(0, LEAVE_LIMITS['el'] - usage['el']),
-    }
-    balance['total'] = balance['cl'] + balance['sl'] + balance['el']
+    usage = {}
+    for leave in used_leaves:
+        leave_code = leave.type.lower()
+        usage[leave_code] = usage.get(leave_code, 0) + leave.days
     
-    return Response(balance)
+    # Build response with only allocated leave types (allocated_days > 0)
+    result = {}
+    total_allocated = 0
+    total_used = 0
+    
+    for balance in balances:
+        code = balance.leave_type.code.lower()
+        allocated = balance.allocated_days
+        
+        # Only include leave types with actual allocation
+        if allocated > 0:
+            used = usage.get(code, 0)
+            remaining = max(0, allocated - used)
+            
+            result[code] = remaining
+            total_allocated += allocated
+            total_used += used
+    
+    # Only add total if there are any leaves
+    if total_allocated > 0:
+        result['total'] = max(0, total_allocated - total_used)
+    
+    return Response(result)

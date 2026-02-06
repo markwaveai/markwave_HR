@@ -2,7 +2,7 @@ import requests
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regularization, Teams
+from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regularization, Teams, Holidays
 from datetime import datetime, timedelta
 from django.db.models import Q
 import pytz
@@ -104,6 +104,10 @@ def clock(request):
         defaults={'status': 'Present', 'break_minutes': 0}
     )
     
+    if created:
+        if Holidays.objects.filter(date=current_date_str).exists():
+            attendance_summary.is_holiday = True
+    
     # If the record already existed but was marked as something else, update to 'Present'
     if not created and attendance_summary.status in ['Week Off', 'Holiday', 'Absent', '-', None]:
         attendance_summary.status = 'Present'
@@ -162,12 +166,15 @@ def get_status(request, employee_id):
         current_date_str = now.strftime('%Y-%m-%d')
         
         # Check for holiday first (highest priority)
+        holiday_obj = Holidays.objects.filter(date=current_date_str).first()
+        is_holiday_db = holiday_obj is not None
+
         attendance_record = Attendance.objects.filter(
             employee=employee,
             date=current_date_str
         ).first()
         
-        is_holiday = attendance_record and attendance_record.is_holiday
+        is_holiday = is_holiday_db or (attendance_record and attendance_record.is_holiday)
         
         # Check for approved leave
         is_on_leave = Leaves.objects.filter(
@@ -397,19 +404,27 @@ def get_history(request, employee_id):
         except ValueError:
             continue
 
+    # Fetch Holidays in range
+    holidays_qs = Holidays.objects.filter(date__gte=start_date)
+    holiday_map = {h.date: h for h in holidays_qs}
+
     # 3. Build Result List (Backend usually returns 30 days based on existing logic, 
-    # but now we need to make sure we return dates that have EITHER attendance OR leave)
+    # but now we need to make sure we return dates that have EITHER attendance OR leave OR holiday)
     
     # To keep it consistent with previous "return logs" behavior which relies on existing Attendance rows:
-    # We will iterate over the UNION of keys from logs_map and leave_dates, sorted.
+    # We will iterate over the UNION of keys from logs_map, leave_dates, and holiday_map, sorted.
     
-    all_dates = set(logs_map.keys()) | set(leave_dates.keys())
+    all_dates = set(logs_map.keys()) | set(leave_dates.keys()) | set(holiday_map.keys())
     sorted_dates = sorted(list(all_dates), reverse=True)[:35] # Return ~35 days to cover the request
 
     result = []
     for d_str in sorted_dates:
         log = logs_map.get(d_str)
         leave_type = leave_dates.get(d_str)
+        holiday_info = holiday_map.get(d_str)
+        is_holiday_combined = (log and log.is_holiday) or (holiday_info is not None)
+        is_optional_holiday = holiday_info.is_optional if holiday_info else False
+        holiday_name = holiday_info.name if holiday_info else None
 
         if log:
             # Existing Attendance Record
@@ -463,7 +478,10 @@ def get_history(request, employee_id):
                 # If active, check_out must be '-' to trigger 'Active'/'Missed' status on frontend
                 'checkOut': '-' if is_active else (log.check_out or '-'),
                 'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
-                'isHoliday': log.is_holiday,
+                'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
+                'isHoliday': is_holiday_combined,
+                'isOptionalHoliday': is_optional_holiday,
+                'holidayName': holiday_name,
                 'isWeekend': log.is_weekend,
                 'logs': logs_data
             })
@@ -484,7 +502,10 @@ def get_history(request, employee_id):
                 'checkIn': '-',
                 'checkOut': '-',
                 'breakMinutes': 0,
-                'isHoliday': False, # Could check holidays table if we had access to it easily here, but safe default
+                'breakMinutes': 0,
+                'isHoliday': is_holiday_combined,
+                'isOptionalHoliday': is_optional_holiday,
+                'holidayName': holiday_name,
                 'isWeekend': is_weekend,
                 'logs': []
             })
@@ -601,3 +622,36 @@ def action_regularization(request, pk):
         att.save()
 
     return Response({'message': f'Request {action.lower()} successfully'})
+
+@api_view(['GET'])
+def get_holidays(request):
+    current_year = datetime.now().year
+    # Fetch holidays from current date onwards
+    # Fetch holidays for the entire current year (and maybe next year for buffer)
+    start_date = f"{current_year}-01-01"
+    holidays = Holidays.objects.filter(date__gte=start_date).order_by('date')
+    
+    data = []
+    for h in holidays:
+        # Pre-format date for frontend if needed, but let's send parts too
+        # Frontend expects "Wed, 14 January, 2026"
+        # Let's do formatting here to match the static data structure if possible, 
+        # or stick to raw date and update frontend.
+        # User said "display those in dashboard holidays card as a carousal like now".
+        # Current code in HolidayCard: {holidays[holidayIndex].date}
+        # It's better to format it here.
+        
+        try:
+             dt = datetime.strptime(h.date, '%Y-%m-%d')
+             formatted_date = dt.strftime('%a, %d %B, %Y')
+        except:
+             formatted_date = h.date
+
+        data.append({
+            'date': formatted_date, 
+            'raw_date': h.date,
+            'name': h.name,
+            'type': h.type,
+            'is_optional': h.is_optional
+        })
+    return Response(data)

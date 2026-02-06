@@ -251,9 +251,9 @@ const AttendanceLog = ({
 
                                                 {/* Status Badges */}
                                                 <div className="flex items-center gap-1">
-                                                    {(isHoliday || isWeekend || isAbsent) && (showAsOffDay || isAbsent) && (
+                                                    {(isHoliday || isWeekend || isAbsent) && (
                                                         <span className={`px-1.5 py-0.5 text-[7px] mm:text-[8px] rounded-full uppercase font-bold whitespace-nowrap ${isAbsent ? 'bg-[#fff1f2] text-[#f43f5e] border border-[#ffe4e6]' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
-                                                            {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : 'ABSENT'}
+                                                            {isHoliday ? (log.isOptionalHoliday ? 'OPTIONAL HOLIDAY' : 'HOLIDAY') : isWeekend ? 'W-OFF' : 'ABSENT'}
                                                         </span>
                                                     )}
                                                     {isApprovedLeave && getLeaveBadge(log.leaveType)}
@@ -287,7 +287,10 @@ const AttendanceLog = ({
                                                         return map[code?.toUpperCase()] || code?.toUpperCase() || 'Leave';
                                                     };
 
-                                                    if (isHoliday) return 'Full day Holiday';
+                                                    if (isHoliday) {
+                                                        if (log.holidayName) return log.holidayName;
+                                                        return log.isOptionalHoliday ? 'Full day Optional Holiday' : 'Full day Holiday';
+                                                    }
                                                     if (isWeekend) return 'Full day Weekly-off';
                                                     if (isApprovedLeave) return `Full Day ${getLeaveLabel(log.leaveType)}`;
                                                     return 'Absent';

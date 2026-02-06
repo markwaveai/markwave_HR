@@ -14,7 +14,9 @@ const ApplyLeaveModal = ({
     user,
     profile,
     handleLeaveSubmit,
-    isSubmitting
+    isSubmitting,
+    balances = [],
+    LEAVE_TYPES = {}
 }) => {
     const [isClosing, setIsClosing] = React.useState(false);
 
@@ -88,9 +90,14 @@ const ApplyLeaveModal = ({
                             onChange={(e) => setLeaveType(e.target.value)}
                             required
                         >
-                            <option value="cl">CASUAL LEAVE</option>
-                            <option value="sl">SICK LEAVE</option>
-                            <option value="el">EARNED LEAVE</option>
+                            {/* Show only allocated leave types */}
+                            {balances.map((balance) => (
+                                <option key={balance.code} value={balance.code}>
+                                    {balance.name} ({balance.available} Remaining)
+                                </option>
+                            ))}
+                            {/* LWP is always available */}
+                            <option value="lwp">LEAVE WITHOUT PAY</option>
                         </select>
                     </div>
 
@@ -174,19 +181,60 @@ const ApplyLeaveModal = ({
                             ))}
                         </div>
                         <div className="mt-2 flex flex-wrap gap-2">
-                            {[
-                                user?.team_lead_name || profile?.team_lead_name || "Team Lead",
-                                profile?.project_manager_name,
-                                profile?.advisor_name
-                            ].filter(name => name && !notifyTo.includes(name)).map(name => (
-                                <button
-                                    key={name}
-                                    onClick={() => setNotifyTo([...notifyTo, name])}
-                                    className="text-[10px] font-bold text-[#48327d] bg-[#48327d]/10 px-2 py-0.5 rounded-md hover:bg-[#48327d]/20 transition-colors"
-                                >
-                                    + {name}
-                                </button>
-                            ))}
+                            {(() => {
+                                // Get names from user or profile
+                                // Prefer profile as it has the latest fetched data including dynamic managers
+                                let teamLeadName = profile?.team_lead_name || user?.team_lead_name;
+
+                                // Fallback to "Team Lead" only if we really have no name from backend
+                                if (!teamLeadName) {
+                                    teamLeadName = "Team Lead";
+                                }
+
+                                const pmName = profile?.project_manager_name;
+                                const advisorName = profile?.advisor_name;
+
+                                const suggestions = [];
+
+                                // ALWAYS add the Team Lead name. 
+                                // logic: If I am a TL of Team A, but Member of Team B, this 'teamLeadName' 
+                                // will be the Manager of Team B (my boss). I should see it.
+                                // If I am a standard member, this is my boss. I should see it.
+                                // The filtering below will remove it if it happens to be ME.
+                                if (teamLeadName) {
+                                    suggestions.push(teamLeadName);
+                                }
+
+                                if (pmName) suggestions.push(pmName);
+                                if (advisorName) suggestions.push(advisorName);
+
+                                return suggestions.filter(name => {
+                                    if (!name) return false;
+                                    // Filter out already selected
+                                    if (notifyTo.includes(name)) return false;
+
+                                    // Filter out own name (Self-Notification prevention)
+                                    const normalize = (str) => (str || '').toLowerCase().trim();
+                                    const currentUserName = user ? normalize(`${user.first_name || ''} ${user.last_name || ''}`) : '';
+                                    if (normalize(name) === currentUserName) return false;
+
+                                    // Also filter out generic "Team Lead" string if the user IS a manager, 
+                                    // presumably they know who to report to (PM/Advisor) or the backend provided a real name.
+                                    // Showing "Notify: Team Lead" to a Team Lead is confusing.
+                                    const isManager = user?.is_manager || profile?.is_manager;
+                                    if (isManager && name === "Team Lead") return false;
+
+                                    return true;
+                                }).map(name => (
+                                    <button
+                                        key={name}
+                                        onClick={() => setNotifyTo([...notifyTo, name])}
+                                        className="text-[10px] font-bold text-[#48327d] bg-[#48327d]/10 px-2 py-0.5 rounded-md hover:bg-[#48327d]/20 transition-colors"
+                                    >
+                                        + {name}
+                                    </button>
+                                ));
+                            })()}
                         </div>
                     </div>
 

@@ -22,11 +22,17 @@ function Dashboard({ user }) {
     const [dashboardStats, setDashboardStats] = useState(null);
     const [showAbsentees, setShowAbsentees] = useState(false);
     const [timeOffset, setTimeOffset] = useState(0);
+    const [holidays, setHolidays] = useState([]);
+    // Derived state for upcoming holidays (from today onwards)
+    const upcomingHolidays = holidays.filter(h => {
+        if (!h.raw_date) return false;
+        const hDate = new Date(h.raw_date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return hDate >= today;
+    });
 
-    const holidays = [
-        { name: 'BHOGI', date: 'Wed, 14 January, 2026', type: 'Floater Leave' },
-        { name: 'PONGAL', date: 'Thu, 15 January, 2026', type: 'Public Holiday' }
-    ];
+
 
     // Use dynamic user ID
     const EMPLOYEE_ID = user?.id;
@@ -78,9 +84,21 @@ function Dashboard({ user }) {
         }
     };
 
+    const fetchHolidays = async () => {
+        try {
+            const data = await attendanceApi.getHolidays();
+            if (Array.isArray(data) && data.length > 0) {
+                setHolidays(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch holidays:", error);
+        }
+    };
+
     useEffect(() => {
         fetchData();
         fetchAdminStats();
+        fetchHolidays();
 
         // Standard poll for personal status info
         const statusTimer = setInterval(fetchData, 30000);
@@ -214,12 +232,14 @@ function Dashboard({ user }) {
 
                     {!isAdmin && <LeaveBalanceCard user={user} />}
 
-                    <HolidayCard
-                        holidays={holidays}
-                        holidayIndex={holidayIndex}
-                        setHolidayIndex={setHolidayIndex}
-                        setShowCalendar={setShowCalendar}
-                    />
+                    {upcomingHolidays.length > 0 && (
+                        <HolidayCard
+                            holidays={upcomingHolidays}
+                            holidayIndex={holidayIndex}
+                            setHolidayIndex={setHolidayIndex}
+                            setShowCalendar={setShowCalendar}
+                        />
+                    )}
                 </div>
 
                 {/* Right Column - Social Feed */}
@@ -228,7 +248,7 @@ function Dashboard({ user }) {
                 </div>
             </div>
 
-            {showCalendar && <HolidayModal setShowCalendar={setShowCalendar} />}
+            {showCalendar && <HolidayModal setShowCalendar={setShowCalendar} holidays={holidays} />}
             {showAbsentees && (
                 <AbsenteesModal
                     absentees={dashboardStats?.absentees}

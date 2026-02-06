@@ -12,11 +12,6 @@ function MyTeam({ user }) {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [allEmployees, setAllEmployees] = useState([]);
-    const [isAdding, setIsAdding] = useState(false);
-
-    // Deletion states
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [removeConfig, setRemoveConfig] = useState({ isOpen: false, memberId: null, memberName: '' });
 
     useEffect(() => {
         const fetchTeamData = async () => {
@@ -53,65 +48,6 @@ function MyTeam({ user }) {
         (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [selectedExistingId, setSelectedExistingId] = useState('');
-
-    // Check if user is a Team Lead (with fallback)
-    const isManager = user?.is_manager || user?.role?.toLowerCase().includes('team lead');
-
-
-    const handleAddMember = async (e) => {
-        e.preventDefault();
-        setIsAdding(true);
-        try {
-            if (!selectedExistingId) throw new Error("Please select an employee");
-            await teamApi.updateMember(selectedExistingId, {
-                team_id: user?.team_id,
-                acting_user_id: user?.id
-            });
-
-            // Refresh list
-            const updatedMembers = await teamApi.getMembers(user?.team_id);
-            setTeamMembers(updatedMembers);
-
-            setShowAddModal(false);
-            setSelectedExistingId('');
-            alert("Member added successfully!");
-        } catch (error) {
-            console.error("Failed to add member:", error);
-            alert("Failed to add member: " + (error.response?.data?.error || error.message));
-        } finally {
-            setIsAdding(false);
-        }
-    };
-
-    const handleRemoveClick = (member) => {
-        setRemoveConfig({
-            isOpen: true,
-            memberId: member.id,
-            memberName: member.name
-        });
-    };
-
-    const confirmRemoveMember = async () => {
-        setIsDeleting(true);
-        try {
-            await teamApi.updateMember(removeConfig.memberId, {
-                team_id: null,
-                acting_user_id: user?.id
-            });
-            // Refresh local state
-            const updatedMembers = await teamApi.getMembers(user?.team_id);
-            setTeamMembers(updatedMembers);
-            setRemoveConfig({ ...removeConfig, isOpen: false });
-        } catch (error) {
-            console.error("Failed to remove member:", error);
-            alert("Failed to remove member: " + (error.response?.data?.error || error.message));
-        } finally {
-            setIsDeleting(false);
-        }
-    };
-
     if (loading) {
         return <LoadingSpinner size={40} className="p-10" />;
     }
@@ -135,14 +71,6 @@ function MyTeam({ user }) {
                                 className="pl-10 pr-4 py-2 bg-white border border-[#e2e8f0] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent text-sm w-full md:w-64 shadow-sm"
                             />
                         </div>
-                        {isManager && (
-                            <button
-                                onClick={() => setShowAddModal(true)}
-                                className="bg-[#6c5ce7] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#5b4bc4] transition-colors shadow-sm whitespace-nowrap"
-                            >
-                                Add Member
-                            </button>
-                        )}
                     </div>
                 </header>
 
@@ -156,7 +84,6 @@ function MyTeam({ user }) {
                             <TeamMemberCard
                                 key={member.id}
                                 member={member}
-                                onRemove={isManager ? () => handleRemoveClick(member) : null}
                             />
                         ))
                     ) : (
@@ -165,77 +92,10 @@ function MyTeam({ user }) {
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
 
-            {/* Add Member Modal */}
-            {showAddModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                            <h3 className="text-lg font-bold text-gray-800">Add Team Member</h3>
-                            <button
-                                onClick={() => setShowAddModal(false)}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        <form onSubmit={handleAddMember} className="p-6 space-y-4">
-                            <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">Select Employee (Total Employees)</label>
-                                <select
-                                    required
-                                    className="w-full p-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] bg-white"
-                                    value={selectedExistingId}
-                                    onChange={e => setSelectedExistingId(e.target.value)}
-                                >
-                                    <option value="">Choose an employee...</option>
-                                    {allEmployees
-                                        .filter(emp => !teamMembers.some(m => m.id === emp.id)) // Filter out already in team
-                                        .map(emp => (
-                                            <option key={emp.id} value={emp.id}>
-                                                {emp.first_name} {emp.last_name} ({emp.role})
-                                            </option>
-                                        ))}
-                                </select>
-                                <p className="mt-2 text-[10px] text-gray-500 italic">
-                                    Showing employees not currently in your team.
-                                </p>
-                            </div>
 
-                            <div className="flex gap-3 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowAddModal(false)}
-                                    className="flex-1 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg text-sm hover:bg-gray-50"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    disabled={isAdding}
-                                    className="flex-1 px-4 py-2 bg-[#6c5ce7] text-white rounded-lg text-sm hover:bg-[#5b4bc4] flex justify-center items-center gap-2"
-                                >
-                                    {isAdding ? <LoadingSpinner size={16} color="border-white" /> : 'Add Member'}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
-            <ConfirmDialog
-                isOpen={removeConfig.isOpen}
-                title="Remove Member"
-                message={`Are you sure you want to remove "${removeConfig.memberName}" from your team?`}
-                confirmText="Remove Member"
-                onConfirm={confirmRemoveMember}
-                onCancel={() => setRemoveConfig({ ...removeConfig, isOpen: false })}
-                type="danger"
-                isLoading={isDeleting}
-                closeOnConfirm={false}
-            />
-        </div>
+        </div >
     );
 }
 

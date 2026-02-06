@@ -106,7 +106,12 @@ export const attendanceApi = {
         method: 'POST',
         body: JSON.stringify({ action })
     }),
-    resolveLocation: (lat, lon) => apiFetch(`/attendance/resolve-location/?lat=${lat}&lon=${lon}`)
+    actionRegularization: (requestId, action) => apiFetch(`/attendance/regularization/${requestId}/action/`, {
+        method: 'POST',
+        body: JSON.stringify({ action })
+    }),
+    resolveLocation: (lat, lon) => apiFetch(`/attendance/resolve-location/?lat=${lat}&lon=${lon}`),
+    getHolidays: () => apiFetch(`/holidays/?_t=${new Date().getTime()}`)
 };
 
 export const feedApi = {

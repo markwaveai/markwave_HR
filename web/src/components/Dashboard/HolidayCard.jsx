@@ -19,7 +19,7 @@ const HolidayCard = ({ holidays, holidayIndex, setHolidayIndex, setShowCalendar 
                     <div className="flex items-center gap-3">
                         <span className="text-sm font-medium text-[#8e78b0]/80">{holidays[holidayIndex].date}</span>
                         <span className="bg-[#48327d] text-white text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-wider">
-                            {holidays[holidayIndex].type}
+                            {holidays[holidayIndex].is_optional ? 'OPTIONAL HOLIDAY' : holidays[holidayIndex].type}
                         </span>
                     </div>
                 </div>

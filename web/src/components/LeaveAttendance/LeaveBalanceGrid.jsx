@@ -12,21 +12,29 @@ const LeaveBalanceGrid = ({ balances }) => {
                         <h3 className="text-sm font-bold text-[#2d3436]">{item.name}</h3>
                     </div>
                     <div className="flex items-end gap-2 mb-4">
-                        <span className="text-2xl font-bold text-[#48327d]">{item.available}</span>
-                        <span className="text-xs text-[#636e72] mb-1.5 font-medium">days available</span>
+                        {item.code === 'LWP' ? (
+                            <span className="text-sm font-medium text-[#636e72] italic">Insufficient balance</span>
+                        ) : (
+                            <>
+                                <span className="text-2xl font-bold text-[#48327d]">{item.available}</span>
+                                <span className="text-xs text-[#636e72] mb-1.5 font-medium">days available</span>
+                            </>
+                        )}
                     </div>
-                    <div className="space-y-2">
-                        <div className="flex justify-between text-[11px] font-medium">
-                            <span className="text-[#636e72]">Consumed: {item.consumed}</span>
-                            <span className="text-[#636e72]">Total: {item.total}</span>
+                    {item.code !== 'LWP' && (
+                        <div className="space-y-2">
+                            <div className="flex justify-between text-[11px] font-medium">
+                                <span className="text-[#636e72]">Consumed: {item.consumed}</span>
+                                <span className="text-[#636e72]">Total: {item.total}</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-[#f1f2f6] rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-[#48327d] rounded-full"
+                                    style={{ width: `${(item.consumed / item.total) * 100}%` }}
+                                ></div>
+                            </div>
                         </div>
-                        <div className="h-1.5 w-full bg-[#f1f2f6] rounded-full overflow-hidden">
-                            <div
-                                className="h-full bg-[#48327d] rounded-full"
-                                style={{ width: `${(item.consumed / item.total) * 100}%` }}
-                            ></div>
-                        </div>
-                    </div>
+                    )}
                 </div>
             ))}
         </div>

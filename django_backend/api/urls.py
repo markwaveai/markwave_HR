@@ -37,6 +37,7 @@ urlpatterns = [
     path('attendance/regularize/', attendance_views.submit_regularization, name='submit-regularization'),
     path('attendance/regularization-requests/<str:manager_id>/', attendance_views.get_regularization_requests, name='get-regularization-requests'),
     path('attendance/regularization/<int:pk>/action/', attendance_views.action_regularization, name='action-regularization'),
+    path('holidays/', attendance_views.get_holidays, name='get-holidays'),
     
     # Feed
     path('posts/', feed_views.post_list, name='post-list'),

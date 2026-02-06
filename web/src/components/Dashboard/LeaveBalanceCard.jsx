@@ -3,7 +3,10 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { leaveApi } from '../../services/api';
 
 const LeaveBalanceCard = ({ user }) => {
-    const [balance, setBalance] = useState({ cl: 0, sl: 0, el: 0, total: 0 });
+    const [balance, setBalance] = useState({
+        cl: 0, sl: 0, el: 0, scl: 0, bl: 0, pl: 0,
+        ll: 0, co: 0, lwp: 0
+    });
 
     useEffect(() => {
         if (user?.id) {
@@ -20,99 +23,58 @@ const LeaveBalanceCard = ({ user }) => {
         }
     };
 
+    // Show ALL leave types in dashboard, display zero for non-allocated
+    const allLeaveTypes = [
+        { key: 'cl', label: 'Casual', max: 12, color: '#48327d' },
+        { key: 'sl', label: 'Sick', max: 12, color: '#48327d' },
+        { key: 'el', label: 'Earned', max: 15, color: '#48327d' },
+        { key: 'scl', label: 'Special', max: 3, color: '#48327d' },
+        { key: 'bl', label: 'Bereavement', max: 5, color: '#48327d' },
+        { key: 'pl', label: 'Paternity', max: 3, color: '#48327d' },
+        { key: 'll', label: 'Long', max: 21, color: '#48327d' },
+        { key: 'co', label: 'Comp Off', max: 2, color: '#48327d' }
+    ];
+
     return (
         <div className="bg-white rounded-xl p-4 shadow-lg flex flex-col justify-between relative min-h-[140px]">
-            <div className="flex justify-between items-start">
+            <div className="flex justify-between items-start mb-3">
                 <h3 className="text-sm font-semibold text-[#2d3436]">Leave Balance</h3>
                 <CalendarIcon size={16} className="text-[#48327d]" />
             </div>
 
-            <div className="flex items-center gap-1 ms:gap-3 px-0.5 flex-grow justify-around mt-2">
-                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
-                    <div className="relative w-10 h-10 mm:w-12 mm:h-12">
-                        <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
-                            <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
-                            <circle
-                                cx="16" cy="16" r="14"
-                                fill="transparent"
-                                stroke="#48327d"
-                                strokeWidth="3"
-                                strokeDasharray={`${(balance.total / 29) * 100} 100`}
-                                pathLength="100"
-                                className="transition-all duration-500 ease-out"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[12px] font-bold text-[#2d3436]">{balance.total}</span>
+            <div className="grid grid-cols-4 gap-2 mm:gap-2.5">
+                {allLeaveTypes.map(({ key, label, max, color }) => (
+                    <div key={key} className="flex flex-col items-center gap-1">
+                        <div className="relative w-9 h-9 mm:w-10 mm:h-10">
+                            <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
+                                <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
+                                <circle
+                                    cx="16" cy="16" r="14"
+                                    fill="transparent"
+                                    stroke={color}
+                                    strokeWidth="3"
+                                    strokeDasharray={`${((balance[key] || 0) / max) * 100} 100`}
+                                    pathLength="100"
+                                    className="transition-all duration-500 ease-out"
+                                />
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-[10px] mm:text-[11px] font-bold text-[#2d3436]">
+                                    {balance[key] || 0}
+                                </span>
+                            </div>
                         </div>
+                        <span className="text-[7px] mm:text-[8px] font-extrabold text-[#2d3436] whitespace-nowrap text-center">
+                            {label}
+                        </span>
                     </div>
-                    <span className="text-[7px] mm:text-[8px] font-extrabold text-[#2d3436] whitespace-nowrap">Total</span>
-                </div>
+                ))}
+            </div>
 
-                {/* Casual Leave Chart */}
-                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
-                    <div className="relative w-10 h-10 mm:w-12 mm:h-12">
-                        <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
-                            <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
-                            <circle
-                                cx="16" cy="16" r="14"
-                                fill="transparent"
-                                stroke="#48327d"
-                                strokeWidth="3"
-                                strokeDasharray={`${(balance.cl / 6) * 100} 100`}
-                                pathLength="100"
-                                className="transition-all duration-500 ease-out"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[12px] font-bold text-[#2d3436]">{balance.cl}</span>
-                        </div>
-                    </div>
-                    <span className="text-[7px] mm:text-[8px] font-extrabold text-[#2d3436] whitespace-nowrap">Casual</span>
-                </div>
-
-                {/* Sick Leave Chart */}
-                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
-                    <div className="relative w-10 h-10 mm:w-12 mm:h-12">
-                        <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
-                            <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
-                            <circle
-                                cx="16" cy="16" r="14"
-                                fill="transparent"
-                                stroke="#48327d"
-                                strokeWidth="3"
-                                strokeDasharray={`${(balance.sl / 6) * 100} 100`}
-                                pathLength="100"
-                                className="transition-all duration-500 ease-out"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[12px] font-bold text-[#2d3436]">{balance.sl}</span>
-                        </div>
-                    </div>
-                    <span className="text-[7px] mm:text-[8px] font-extrabold text-[#2d3436] whitespace-nowrap">Sick</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-1 mm:gap-1.5">
-                    <div className="relative w-10 h-10 mm:w-12 mm:h-12">
-                        <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
-                            <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
-                            <circle
-                                cx="16" cy="16" r="14"
-                                fill="transparent"
-                                stroke="#48327d"
-                                strokeWidth="3"
-                                strokeDasharray={`${(balance.el / 17) * 100} 100`}
-                                pathLength="100"
-                                className="transition-all duration-500 ease-out"
-                            />
-                        </svg>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-[12px] font-bold text-[#2d3436]">{balance.el}</span>
-                        </div>
-                    </div>
-                    <span className="text-[7px] mm:text-[8px] font-extrabold text-[#2d3436] whitespace-nowrap">Earned</span>
-                </div>
+            <div className="mt-2 pt-2 border-t border-gray-100">
+                <p className="text-[7px] mm:text-[8px] text-gray-400 text-center italic">
+                    LWP: Available when insufficient balance
+                </p>
             </div>
         </div>
     );

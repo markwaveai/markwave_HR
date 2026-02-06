@@ -29,21 +29,6 @@ db.sqlite3
 media/
 staticfiles/
 
-<<<<<<< Updated upstream
-# Node
-node_modules/
-
-# React Native
-mobile/node_modules/
-mobile/.expo/
-mobile/.expo-shared/
-mobile/android/build/
-mobile/android/app/build/
-mobile/android/.cxx/
-mobile/ios/Pods/
-
-mobile/test_bundle.js
-=======
 # React Native / Android / iOS
 **/android/build/
 **/android/app/build/
@@ -58,7 +43,6 @@ mobile/.expo-shared/
 mobile/test_bundle.js
 *.keystore
 !debug.keystore
->>>>>>> Stashed changes
 
 # React Web
 web/dist/

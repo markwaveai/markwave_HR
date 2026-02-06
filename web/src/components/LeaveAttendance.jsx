@@ -26,11 +26,18 @@ function LeaveAttendance({ user }) {
     const [notifyTo, setNotifyTo] = useState([]);
     const [profile, setProfile] = useState(null);
     const [toast, setToast] = useState(null);
+    const [apiBalance, setApiBalance] = useState({});
     const EMPLOYEE_ID = user?.id;
     const LEAVE_TYPES = {
-        'cl': { name: 'CASUAL LEAVE', code: 'CL', total: 6, icon: <Plane size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' },
-        'sl': { name: 'SICK LEAVE', code: 'SL', total: 6, icon: <Thermometer size={20} />, color: 'text-red-600', bg: 'bg-red-50' },
-        'el': { name: 'EARNED LEAVE', code: 'EL', total: 17, icon: <TentTree size={20} />, color: 'text-green-600', bg: 'bg-green-50' }
+        'cl': { name: 'CASUAL LEAVE', code: 'CL', icon: <Plane size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' },
+        'sl': { name: 'SICK LEAVE', code: 'SL', icon: <Thermometer size={20} />, color: 'text-red-600', bg: 'bg-red-50' },
+        'el': { name: 'EARNED LEAVE', code: 'EL', icon: <TentTree size={20} />, color: 'text-green-600', bg: 'bg-green-50' },
+        'scl': { name: 'SPECIAL CASUAL LEAVE', code: 'SCL', icon: <Plane size={20} />, color: 'text-purple-600', bg: 'bg-purple-50' },
+        'pl': { name: 'PATERNITY LEAVE', code: 'PL', icon: <Plane size={20} />, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        'bl': { name: 'BEREAVEMENT LEAVE', code: 'BL', icon: <Plane size={20} />, color: 'text-gray-600', bg: 'bg-gray-50' },
+        'll': { name: 'LONG LEAVE', code: 'LL', icon: <Plane size={20} />, color: 'text-orange-600', bg: 'bg-orange-50' },
+        'co': { name: 'COMPENSATORY OFF', code: 'CO', icon: <Plane size={20} />, color: 'text-teal-600', bg: 'bg-teal-50' },
+        'lwp': { name: 'LEAVE WITHOUT PAY', code: 'LWP', icon: <Plane size={20} />, color: 'text-rose-600', bg: 'bg-rose-50' }
     };
 
     const fetchLeaves = async () => {
@@ -70,8 +77,18 @@ function LeaveAttendance({ user }) {
         }
     };
 
+    const fetchBalance = async () => {
+        try {
+            const data = await leaveApi.getBalance(EMPLOYEE_ID);
+            setApiBalance(data);
+        } catch (error) {
+            console.error("Failed to fetch balance:", error);
+        }
+    };
+
     useEffect(() => {
         fetchLeaves();
+        fetchBalance();
 
         if (EMPLOYEE_ID) {
             authApi.getProfile(EMPLOYEE_ID).then(p => {
@@ -82,27 +99,56 @@ function LeaveAttendance({ user }) {
         // Add Polling for real-time updates (every 5 seconds)
         const pollInterval = setInterval(() => {
             fetchLeaves();
+            fetchBalance();
         }, 5000);
 
         return () => clearInterval(pollInterval);
     }, [EMPLOYEE_ID]);
 
     const calculateBalances = () => {
-        return Object.keys(LEAVE_TYPES).map(code => {
+        // Show ONLY allocated leave types in Leave & Attendance page
+        const balances = [];
+
+        Object.keys(LEAVE_TYPES).forEach(code => {
+            // Skip LWP as it's unlimited and not allocated
+            if (code === 'lwp') return;
+
             const config = LEAVE_TYPES[code];
+
+            // Calculate consumed leaves from history
             const consumed = history
                 .filter(log => log.typeCode === code && (log.status === 'Approved' || log.status === 'Pending'))
                 .reduce((sum, log) => sum + log.days, 0);
 
-            return {
-                ...config,
-                consumed,
-                available: config.total - consumed
-            };
+            // Only include if API returned this leave type (meaning it's allocated)
+            if (apiBalance.hasOwnProperty(code)) {
+                // Available balance comes directly from API
+                const available = apiBalance[code] || 0;
+
+                // Total allocated = available + consumed
+                const total = available + consumed;
+
+                balances.push({
+                    ...config,
+                    code,
+                    consumed,
+                    available,
+                    total
+                });
+            }
         });
+
+        return balances;
     };
 
     const balances = calculateBalances();
+
+    // Set default leave type to first allocated leave type
+    useEffect(() => {
+        if (balances.length > 0 && !balances.find(b => b.code === leaveType)) {
+            setLeaveType(balances[0].code);
+        }
+    }, [balances.length]);
 
     const handleLeaveSubmit = async () => {
         if (!fromDate || !reason.trim()) {
@@ -122,7 +168,7 @@ function LeaveAttendance({ user }) {
         const diffTime = Math.abs(end - start);
         let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
-        if (fromDate === toDate) {
+        if (fromDate === effectiveToDate) {
             // Single day logic
             if (fromSession !== 'Full Day') {
                 diffDays = 0.5;
@@ -223,6 +269,8 @@ function LeaveAttendance({ user }) {
                         profile={profile}
                         handleLeaveSubmit={handleLeaveSubmit}
                         isSubmitting={isSubmitting}
+                        balances={balances}
+                        LEAVE_TYPES={LEAVE_TYPES}
                     />
                 )}
             </div>

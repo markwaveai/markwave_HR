@@ -4,17 +4,13 @@ import { Mail, MapPin, MoreVertical, ExternalLink, Trash2 } from 'lucide-react';
 const TeamMemberCard = ({ member, onRemove }) => {
     return (
         <div className="bg-white rounded-2xl p-4 mm:p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-[#e2e8f0] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] transition-all relative group flex flex-col h-full">
-            {onRemove ? (
+            {onRemove && (
                 <button
                     onClick={() => onRemove(member.id)}
                     className="absolute top-5 right-5 text-[#ef4444] hover:bg-red-50 p-2 rounded-xl transition-all"
                     title="Remove from team"
                 >
                     <Trash2 size={18} />
-                </button>
-            ) : (
-                <button className="absolute top-5 right-5 text-[#94a3b8] hover:text-[#475569] p-1.5 rounded-xl hover:bg-[#f8fafc] transition-all">
-                    <MoreVertical size={18} />
                 </button>
             )}
 

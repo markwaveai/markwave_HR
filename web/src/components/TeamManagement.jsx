@@ -342,7 +342,7 @@ const TeamManagement = ({ user }) => {
                                                 selectedTeamMembers.map(member => (
                                                     <tr key={member.id} className="hover:bg-gray-50">
                                                         <td className="px-4 py-3">
-                                                            <div className="font-bold">{member.first_name} {member.last_name}</div>
+                                                            <div className="font-bold">{member.name || `${member.first_name} ${member.last_name}`}</div>
                                                             <div className="text-xs text-gray-500">{member.employee_id}</div>
                                                         </td>
                                                         <td className="px-4 py-3 text-gray-600">{member.role}</td>
