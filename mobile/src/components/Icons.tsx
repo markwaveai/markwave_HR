@@ -380,3 +380,19 @@ export const BuildingIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20
         <Path d="M8 14h.01" />
     </Svg>
 );
+
+export const ChevronDownIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Polyline points="6 9 12 15 18 9" />
+    </Svg>
+);

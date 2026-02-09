@@ -5,6 +5,7 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
+    Pressable,
     Image,
     Dimensions,
     Platform,
@@ -16,11 +17,14 @@ import {
     RefreshControl,
     PermissionsAndroid
 } from 'react-native';
+import Geolocation from 'react-native-geolocation-service';
 import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import CircularProgress from '../components/CircularProgress';
 import { attendanceApi, feedApi, leaveApi, adminApi } from '../services/api';
 import EmployeeOverviewCard from '../components/EmployeeOverviewCard';
 import HolidayModal from '../components/HolidayModal';
+import RegularizeModal from '../components/RegularizeModal';
+import ClockCard from '../components/ClockCard';
 import {
     UsersIcon,
     EditIcon,
@@ -30,7 +34,8 @@ import {
     ImageIcon,
     CameraIcon,
     CloseIcon,
-    ClockIcon
+    ClockIcon,
+    ChevronDownIcon
 } from '../components/Icons';
 
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
@@ -49,6 +54,7 @@ const HomeScreen = ({ user }: { user: any }) => {
 
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isClockedIn, setIsClockedIn] = useState<boolean | null>(null);
+    const [canClock, setCanClock] = useState(true);
     const [locationState, setLocationState] = useState<string | null>(null);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [personalStats, setPersonalStats] = useState<any>(null);
@@ -69,6 +75,9 @@ const HomeScreen = ({ user }: { user: any }) => {
     const [holidayIndex, setHolidayIndex] = useState(0);
     const [holidays, setHolidays] = useState<any[]>([]);
     const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
+    const [statsDuration, setStatsDuration] = useState<'week' | 'month'>('week');
+    const [isRegularizeModalVisible, setIsRegularizeModalVisible] = useState(false);
+    const [missedCheckoutDate, setMissedCheckoutDate] = useState<string | null>(null);
 
     const isAdmin = user?.is_admin === true ||
         ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Intern'].includes(user?.role);
@@ -80,17 +89,19 @@ const HomeScreen = ({ user }: { user: any }) => {
             if (isRefresh) setRefreshing(true);
             else setIsFeedLoading(true);
 
-            const [statusData, statsData, postsData, balanceData, adminStatsData, holidayData, historyData] = await Promise.all([
+            const [statusData, statsData, postsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
                 attendanceApi.getStatus(user.id).catch(() => ({ status: 'OUT' })),
                 attendanceApi.getPersonalStats(user.id).catch(() => null),
                 feedApi.getPosts().catch(() => []),
                 leaveApi.getBalance(user.id).catch(() => null),
                 isAdmin ? adminApi.getDashboardStats().catch(() => null) : Promise.resolve(null),
                 attendanceApi.getHolidays().catch(() => []),
-                !isAdmin ? leaveApi.getLeaves(user.id).catch(() => []) : Promise.resolve([])
+                !isAdmin ? leaveApi.getLeaves(user.id).catch(() => []) : Promise.resolve([]),
+                attendanceApi.getHistory(user.id).catch(() => [])
             ]);
 
             setIsClockedIn(statusData.status === 'IN');
+            setCanClock(statusData.can_clock !== false);
             setDisabledReason(statusData.disabled_reason || null);
             setPersonalStats(statsData);
             setPosts(postsData || []);
@@ -98,6 +109,33 @@ const HomeScreen = ({ user }: { user: any }) => {
             setDashboardStats(adminStatsData);
             setHolidays(holidayData || []);
             setLeaveHistory(historyData || []);
+
+            // Check for missed checkout
+            // We look for a past date with status 'Present' (or similar) but checkOut is missing or '-'
+            // limit to last 7 days to avoid annoying old alerts
+            const history = statusData.history || []; // Wait, getStatus doesn't return history. We added it to the Promise.all
+            // The result array index 7 is history (index 6 was leaves) if I added it at end?
+            // Wait, Promise.all returns array.
+            // index 0: statusData
+            // index 1: statsData
+            // index 2: postsData
+            // index 3: balanceData
+            // index 4: adminStatsData
+            // index 5: holidayData
+            // index 6: historyData (Leaves)
+            // I need to add index 7: attendanceHistory
+
+            if (attHistoryData && Array.isArray(attHistoryData)) {
+                const today = new Date().toISOString().split('T')[0];
+                const missed = attHistoryData.find((log: any) => {
+                    if (log.date === today) return false;
+                    const hasIncomplete = log.logs?.some((session: any) => session.in && !session.out);
+                    return hasIncomplete || (log.status === 'Present' && log.checkOut === '-');
+                });
+                if (missed) setMissedCheckoutDate(missed.date);
+                else setMissedCheckoutDate(null);
+            }
+
         } catch (error) {
             console.log("Failed to fetch dashboard data:", error);
         } finally {
@@ -184,7 +222,46 @@ const HomeScreen = ({ user }: { user: any }) => {
 
     const handleClockAction = async () => {
         setIsLoadingLocation(true);
-        const finalLocation = "Cloud Server (Preview)";
+        let finalLocation = "Mobile Check-in";
+
+        try {
+            if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                    {
+                        title: "Location Permission",
+                        message: "Markwave HR needs access to your location to clock in.",
+                        buttonNeutral: "Ask Me Later",
+                        buttonNegative: "Cancel",
+                        buttonPositive: "OK"
+                    }
+                );
+
+                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+                    await new Promise<void>((resolve, reject) => {
+                        Geolocation.getCurrentPosition(
+                            (position) => {
+                                const { latitude, longitude } = position.coords;
+                                finalLocation = `Lat: ${latitude.toFixed(4)}, Long: ${longitude.toFixed(4)}`;
+                                resolve();
+                            },
+                            (error) => {
+                                console.log(error.code, error.message);
+                                finalLocation = "Location Error (GPS)";
+                                resolve(); // Proceed even if location fails, or reject if strict
+                            },
+                            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+                        );
+                    });
+                } else {
+                    finalLocation = "Location Permission Denied";
+                }
+            }
+        } catch (err: any) {
+            console.warn(err);
+            finalLocation = `Error: ${err.message || 'Unknown'}`;
+        }
+
         const nextType = isClockedIn ? 'OUT' : 'IN';
 
         try {
@@ -234,40 +311,15 @@ const HomeScreen = ({ user }: { user: any }) => {
                 </View>
 
                 {/* Clock Card */}
-                <View style={styles.clockCard}>
-                    <View style={styles.clockHeader}>
-                        <View style={styles.leaveBadge}>
-                            <Text style={styles.leaveBadgeText}>{disabledReason || 'On Time'}</Text>
-                        </View>
-                        <Text style={styles.dateText}>
-                            {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
-                        </Text>
-                    </View>
-
-                    <View style={styles.clockBody}>
-                        <View>
-                            <Text style={styles.currentTimeLabel}>CURRENT TIME</Text>
-                            <View style={styles.timeContainer}>
-                                <Text style={styles.bigTime}>
-                                    {currentTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' })}
-                                </Text>
-                                <Text style={styles.seconds}>:{currentTime.getSeconds().toString().padStart(2, '0')}</Text>
-                                <Text style={styles.ampm}>{currentTime.getHours() >= 12 ? 'PM' : 'AM'}</Text>
-                            </View>
-                        </View>
-
-                        <TouchableOpacity
-                            style={[styles.webClockBtn, (isLoadingLocation || (disabledReason && !isClockedIn)) && styles.webClockBtnDisabled]}
-                            onPress={handleClockAction}
-                            disabled={!!(isLoadingLocation || (disabledReason && !isClockedIn))}
-                        >
-                            <Text style={styles.webClockBtnText}>
-                                {isLoadingLocation ? 'WAITING...' : isClockedIn ? 'CLOCK OUT' : 'CLOCK IN'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                    {locationState && <Text style={styles.locationText}>📍 {locationState}</Text>}
-                </View>
+                <ClockCard
+                    currentTime={currentTime}
+                    isClockedIn={isClockedIn}
+                    isLoadingLocation={isLoadingLocation}
+                    locationState={locationState}
+                    handleClockAction={handleClockAction}
+                    canClock={canClock}
+                    disabledReason={disabledReason}
+                />
 
                 {/* Dashboard Stats (Admin Only) */}
                 {isAdmin && dashboardStats && (
@@ -305,33 +357,61 @@ const HomeScreen = ({ user }: { user: any }) => {
                 )}
 
                 {/* Avg Hours Card */}
-                <View style={styles.card}>
+                <View style={[styles.card, { zIndex: 5 }]}>
                     <View style={styles.cardHeader}>
-                        <Text style={styles.cardTitle}>Avg. Working Hours</Text>
-                        <ClockIcon color="#64748b" size={20} strokeWidth={2} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <ClockIcon color="#64748b" size={20} strokeWidth={2} />
+                            <Text style={styles.cardTitle}>Avg. Working Hours</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
+                            onPress={() => setStatsDuration(prev => prev === 'week' ? 'month' : 'week')}
+                        >
+                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b' }}>
+                                {statsDuration === 'week' ? 'This Week' : 'This Month'}
+                            </Text>
+                            <ChevronDownIcon color="#64748b" size={14} />
+                        </TouchableOpacity>
                     </View>
                     <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
                         <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#48327d', marginBottom: 4 }}>
-                            {personalStats?.avg_working_hours || '0h 00m'}
+                            {statsDuration === 'week'
+                                ? (personalStats?.week?.me?.avg || '0h 00m')
+                                : (personalStats?.month?.me?.avg || '0h 00m')
+                            }
                         </Text>
-                        <Text style={{ fontSize: 14, color: personalStats?.diff_status === 'up' ? '#10b981' : '#ef4444' }}>
-                            {personalStats?.diff_label || '+0h 00m vs last week'}
-                        </Text>
+                        {statsDuration === 'week' && (
+                            <Text style={{ fontSize: 14, color: personalStats?.diff_status === 'up' ? '#10b981' : '#ef4444' }}>
+                                {personalStats?.diff_label || '+0h 00m vs last week'}
+                            </Text>
+                        )}
+                        {statsDuration === 'month' && (
+                            <Text style={{ fontSize: 14, color: '#94a3b8' }}>
+                                Current Month Average
+                            </Text>
+                        )}
                     </View>
                 </View>
 
                 {/* Holidays Card */}
                 {upcomingHolidays.length > 0 && (
                     <View style={[styles.card, styles.holidayCard]}>
-                        <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Holidays</Text>
-                            <TouchableOpacity onPress={() => {
-                                console.log('View All clicked, opening holiday modal');
+                        <View style={styles.holidayDecoration} pointerEvents="none" />
+
+                        {/* Make entire header clickable */}
+                        <Pressable
+                            onPress={() => {
+                                console.log('Holiday header pressed!');
                                 setShowHolidayCalendar(true);
-                            }}>
-                                <Text style={styles.viewAllLink}>View All</Text>
-                            </TouchableOpacity>
-                        </View>
+                            }}
+                            style={({ pressed }) => [
+                                styles.cardHeader,
+                                pressed && { opacity: 0.7 }
+                            ]}
+                        >
+                            <Text style={styles.cardTitle}>Holidays</Text>
+                            <Text style={{ color: '#48327d', fontSize: 12, fontWeight: 'bold' }}>View All →</Text>
+                        </Pressable>
 
                         <View style={styles.holidayContent}>
                             <View style={{ flex: 1 }}>
@@ -365,7 +445,6 @@ const HomeScreen = ({ user }: { user: any }) => {
                                 </TouchableOpacity>
                             </View>
                         </View>
-                        <View style={styles.holidayDecoration} />
                     </View>
                 )}
 
@@ -570,6 +649,14 @@ const HomeScreen = ({ user }: { user: any }) => {
                 holidays={holidays}
             />
 
+            <RegularizeModal
+                visible={isRegularizeModalVisible}
+                onClose={() => setIsRegularizeModalVisible(false)}
+                date={missedCheckoutDate || ''}
+                employeeId={user.id}
+                onSuccess={() => fetchData(true)}
+            />
+
             {/* Absentees Modal */}
             <Modal animationType="slide" transparent={true} visible={isAbsenteesModalVisible} onRequestClose={() => setIsAbsenteesModalVisible(false)}>
                 <View style={styles.absenteesModalOverlay}>
@@ -603,25 +690,10 @@ const styles = StyleSheet.create({
     welcomeSection: { marginBottom: 20, marginTop: 20 },
     greetingTitle: { fontSize: 22, fontWeight: 'bold', color: '#2d3436' },
     greetingSubtitle: { fontSize: 13, color: '#636e72', marginTop: 4 },
-    clockCard: { backgroundColor: '#8e78b0', borderRadius: 12, padding: 20, marginBottom: 20, elevation: 5 },
-    clockHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-    leaveBadge: { backgroundColor: 'white', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
-    leaveBadgeText: { color: '#8e78b0', fontSize: 10, fontWeight: 'bold' },
-    dateText: { color: 'white', fontSize: 14, fontWeight: '500' },
-    clockBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' },
-    currentTimeLabel: { color: 'white', fontSize: 10, fontWeight: 'bold', letterSpacing: 1, marginBottom: 4 },
-    timeContainer: { flexDirection: 'row', alignItems: 'baseline' },
-    bigTime: { color: 'white', fontSize: 32, fontWeight: '300' },
-    seconds: { color: 'white', fontSize: 14, marginHorizontal: 2, opacity: 0.8 },
-    ampm: { color: 'white', fontSize: 18, fontWeight: '400' },
-    webClockBtn: { backgroundColor: 'white', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 6 },
-    webClockBtnDisabled: { opacity: 0.5 },
-    webClockBtnText: { color: '#8e78b0', fontWeight: 'bold', fontSize: 13 },
-    locationText: { color: 'white', fontSize: 10, marginTop: 10, opacity: 0.8 },
     card: { backgroundColor: 'white', borderRadius: 12, padding: 20, marginBottom: 20, elevation: 2, borderColor: '#e2e8f0', borderWidth: 1 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center' },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center', zIndex: 20 },
     cardTitle: { fontSize: 14, fontWeight: 'bold', color: '#2d3436' },
-    holidayCard: { position: 'relative', overflow: 'hidden', borderColor: '#f1f5f9' },
+    holidayCard: { position: 'relative', borderColor: '#f1f5f9' },
     viewAllLink: { fontSize: 14, fontWeight: '500', color: '#48327d', textDecorationLine: 'underline' },
     holidayContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
     holidayName: { fontSize: 28, fontWeight: 'bold', color: '#48327d', marginBottom: 8 },

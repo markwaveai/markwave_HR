@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { leaveApi, authApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
@@ -179,11 +179,18 @@ const LeaveScreen = ({ user }: { user: any }) => {
                     <Text style={styles.headerTitle}>Leave & Attendance</Text>
                     <Text style={styles.headerSubtitle}>{!user?.is_admin ? 'View your leave balance' : 'Manage your time off'}</Text>
                 </View>
-                {!user?.is_admin && (
-                    <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
-                        <Text style={styles.addButtonText}>+ Request Leave</Text>
-                    </TouchableOpacity>
-                )}
+                <Pressable
+                    onPress={() => {
+                        console.log('Request Leave button pressed!');
+                        setIsModalVisible(true);
+                    }}
+                    style={({ pressed }) => [
+                        styles.addButton,
+                        pressed && { opacity: 0.7 }
+                    ]}
+                >
+                    <Text style={styles.addButtonText}>+ Request Leave</Text>
+                </Pressable>
             </View>
 
             <ScrollView
@@ -421,7 +428,7 @@ const styles = StyleSheet.create({
     header: { padding: 20, paddingTop: 40, backgroundColor: 'white', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
     headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#2d3436' },
     headerSubtitle: { fontSize: 12, color: '#636e72', marginTop: 2 },
-    addButton: { backgroundColor: '#48327d', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, shadowColor: '#48327d', shadowOpacity: 0.2, shadowOffset: { height: 2, width: 0 } },
+    addButton: { backgroundColor: '#48327d', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, shadowColor: '#48327d', shadowOpacity: 0.2, shadowOffset: { height: 2, width: 0 }, elevation: 5, zIndex: 999 },
     addButtonText: { color: 'white', fontWeight: 'bold', fontSize: 12 },
 
     scrollContainer: { padding: 20 },

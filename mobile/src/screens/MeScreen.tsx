@@ -35,6 +35,8 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() - 1);
     const [activeBreakLog, setActiveBreakLog] = useState<any>(null);
     const [clockLoading, setClockLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'Log' | 'Requests'>('Log');
+    const [requests, setRequests] = useState<any[]>([]);
 
     const DAYS_ABBR = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -70,10 +72,11 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const [history, status, stats] = await Promise.all([
+            const [history, status, stats, requestsData] = await Promise.all([
                 attendanceApi.getHistory(user.id),
                 attendanceApi.getStatus(user.id),
-                teamApi.getStats(user.team_id)
+                teamApi.getStats(user.team_id),
+                attendanceApi.getRequests(user.employee_id || user.id).catch(() => [])
             ]);
             setLogs(history);
             setClockStatus(status.status);
@@ -81,6 +84,7 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
             setDisabledReason(status.disabled_reason);
             setDebugInfo(status.debug);
             setTeamStats(stats);
+            setRequests(requestsData || []);
 
             // Set today as selected day in timing card
             const todayStr = toLocalDateString(new Date());
@@ -602,12 +606,23 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         {(() => {
                             const dayOfWeek = new Date(activeDayLog.date).getDay();
                             const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                            const isApprovedLeave = !!activeDayLog.leaveType;
+                            const isHoliday = activeDayLog.isHoliday;
 
-                            if (isWeekend) {
+                            // Show leave/holiday/weekend message if applicable
+                            if (isWeekend || isApprovedLeave || isHoliday) {
                                 return (
                                     <View style={styles.progressSection}>
                                         <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center', paddingVertical: 20 }}>
-                                            No attendance required
+                                            {isHoliday ? (
+                                                `Holiday${activeDayLog.holidayName ? `: ${activeDayLog.holidayName}` : ''}`
+                                            ) : isWeekend ? (
+                                                'Weekend - No attendance required'
+                                            ) : isApprovedLeave ? (
+                                                `${getLeaveLabel(activeDayLog.leaveType)} - No attendance required`
+                                            ) : (
+                                                'No attendance required'
+                                            )}
                                         </Text>
                                     </View>
                                 );
@@ -696,124 +711,208 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                     </View>
                 </View>
 
+                {/* Main Tabs */}
+                <View style={{ flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 8, padding: 4, marginHorizontal: 20, marginBottom: 16 }}>
+                    <TouchableOpacity
+                        style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, backgroundColor: activeTab === 'Log' ? 'white' : 'transparent', shadowColor: activeTab === 'Log' ? '#000' : 'transparent', shadowOpacity: 0.1, shadowRadius: 2, elevation: activeTab === 'Log' ? 1 : 0 }}
+                        onPress={() => setActiveTab('Log')}
+                    >
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'Log' ? '#48327d' : '#94a3b8' }}>ATTENDANCE LOG</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={{ flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6, backgroundColor: activeTab === 'Requests' ? 'white' : 'transparent', shadowColor: activeTab === 'Requests' ? '#000' : 'transparent', shadowOpacity: 0.1, shadowRadius: 2, elevation: activeTab === 'Requests' ? 1 : 0 }}
+                        onPress={() => setActiveTab('Requests')}
+                    >
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: activeTab === 'Requests' ? '#48327d' : '#94a3b8' }}>REQUESTS</Text>
+                    </TouchableOpacity>
+                </View>
 
-                {filterType === 'Month' && (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroller}>
-                        {MONTHS.map((m, idx) => {
-                            const currentMonth = new Date().getMonth();
-                            // Only show months before the current month
-                            if (idx >= currentMonth) return null;
+                {activeTab === 'Log' ? (
+                    <>
+                        {filterType === 'Month' && (
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroller}>
+                                {MONTHS.map((m, idx) => {
+                                    const currentMonth = new Date().getMonth();
+                                    // Only show months before the current month
+                                    if (idx >= currentMonth) return null;
 
-                            return (
-                                <TouchableOpacity key={m} style={[styles.monthItem, selectedMonth === idx && styles.monthItemActive]} onPress={() => setSelectedMonth(idx)}>
-                                    <Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>{m}</Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
-                )}
+                                    return (
+                                        <TouchableOpacity key={m} style={[styles.monthItem, selectedMonth === idx && styles.monthItemActive]} onPress={() => setSelectedMonth(idx)}>
+                                            <Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>{m}</Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                        )}
 
-                <View style={styles.tableCard}>
-                    <ScrollView horizontal persistentScrollbar={true}>
-                        <View>
-                            <View style={styles.tableHead}>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.date }]}>DATE</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.visual }]}>ATTENDANCE VISUAL</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.inOut }]}>CHECK-IN</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.breaks }]}>BREAKS</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.inOut }]}>CHECK-OUT</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.hrs }]}>GROSS HRS</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.hrs, color: '#48327d' }]}>EFFECTIVE HRS</Text>
-                                <Text style={[styles.headCell, { width: COL_WIDTHS.status }]}>ARRIVAL STATUS</Text>
-                            </View>
+                        <View style={styles.tableCard}>
+                            <ScrollView horizontal persistentScrollbar={true}>
+                                <View>
+                                    <View style={styles.tableHead}>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.date }]}>DATE</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.visual }]}>ATTENDANCE VISUAL</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.inOut }]}>CHECK-IN</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.breaks }]}>BREAKS</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.inOut }]}>CHECK-OUT</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.hrs }]}>GROSS HRS</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.hrs, color: '#48327d' }]}>EFFECTIVE HRS</Text>
+                                        <Text style={[styles.headCell, { width: COL_WIDTHS.status }]}>ARRIVAL STATUS</Text>
+                                    </View>
 
-                            {displayedLogs.map((log, index) => {
-                                const s = calculateStats(log);
-                                const [y, m, d] = log.date.split('-').map(Number);
-                                const logDate = new Date(y, m - 1, d);
-                                const isWeekend = logDate.getDay() === 0 || logDate.getDay() === 6;
-                                const isHoliday = log.isHoliday;
-                                const isToday = log.date === toLocalDateString(new Date());
-                                const hasActualActivity = (log.checkIn && log.checkIn !== '-') || (log.logs && log.logs.length > 0);
-                                const isApprovedLeave = !!log.leaveType;
-                                const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActualActivity && !isApprovedLeave;
-                                const isOffRow = isWeekend || isHoliday || isAbsent || isApprovedLeave;
-                                const showAsOffDay = isOffRow && !hasActualActivity;
+                                    {displayedLogs.map((log, index) => {
+                                        const s = calculateStats(log);
+                                        const [y, m, d] = log.date.split('-').map(Number);
+                                        const logDate = new Date(y, m - 1, d);
+                                        const isWeekend = logDate.getDay() === 0 || logDate.getDay() === 6;
+                                        const isHoliday = log.isHoliday;
+                                        const isToday = log.date === toLocalDateString(new Date());
+                                        const hasActualActivity = (log.checkIn && log.checkIn !== '-') || (log.logs && log.logs.length > 0);
+                                        const isApprovedLeave = !!log.leaveType;
+                                        const isAbsent = !isWeekend && !isHoliday && !isToday && !hasActualActivity && !isApprovedLeave;
+                                        const isOffRow = isWeekend || isHoliday || isAbsent || isApprovedLeave;
+                                        const showAsOffDay = isOffRow && !hasActualActivity;
 
-                                return (
-                                    <View key={index} style={[styles.tableRow, showAsOffDay && styles.rowOff]}>
-                                        <View style={[styles.cell, { width: COL_WIDTHS.date }]}>
-                                            <Text style={styles.dateText}>
-                                                {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
-                                            </Text>
-                                            {showAsOffDay && (
-                                                <Text style={[styles.offBadge, isAbsent && { backgroundColor: '#fef2f2', color: '#ef4444' }]}>
-                                                    {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (getLeaveCode(log.leaveType) || 'LEAVE') : 'ABSENT'}
-                                                </Text>
-                                            )}
-                                        </View>
-
-                                        {showAsOffDay ? (
-                                            <>
-                                                <View style={{ width: COL_WIDTHS.visual }} />
-                                                <View style={{ width: COL_WIDTHS.inOut }} />
-                                                <View style={{ width: COL_WIDTHS.breaks }} />
-                                                <View style={{ width: COL_WIDTHS.inOut }} />
-                                                <View style={[styles.cell, { flex: 1, paddingLeft: 12 }]}>
-                                                    <Text style={[styles.offFullText, { textAlign: 'left' }]}>
-                                                        {isHoliday ? 'Full day Holiday' : isWeekend ? 'Full day Weekly-off' : isApprovedLeave ? `Full Day ${getLeaveLabel(log.leaveType)}` : 'Absent'}
+                                        return (
+                                            <View key={index} style={[styles.tableRow, showAsOffDay && styles.rowOff]}>
+                                                <View style={[styles.cell, { width: COL_WIDTHS.date }]}>
+                                                    <Text style={styles.dateText}>
+                                                        {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
                                                     </Text>
+                                                    {showAsOffDay && (
+                                                        <Text style={[styles.offBadge, isAbsent && { backgroundColor: '#fef2f2', color: '#ef4444' }]}>
+                                                            {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (getLeaveCode(log.leaveType) || 'LEAVE') : 'ABSENT'}
+                                                        </Text>
+                                                    )}
                                                 </View>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <View style={[styles.cell, { width: COL_WIDTHS.visual }]}>
-                                                    <View style={styles.visualBarTable}>
-                                                        {getVisualSegments(log).map((seg, i) => (
-                                                            <View key={i} style={[styles.visualSeg, { width: `${seg.width}%`, backgroundColor: seg.type === 'work' ? '#48327d' : 'transparent' }]} />
-                                                        ))}
-                                                    </View>
-                                                </View>
-                                                <Text style={[styles.cell, styles.timeText, { width: COL_WIDTHS.inOut }]}>{log.checkIn || '-'}</Text>
-                                                <TouchableOpacity
-                                                    style={[styles.cell, { width: COL_WIDTHS.breaks, alignItems: 'center' }]}
-                                                    disabled={s.totalBreakMins === 0}
-                                                    onPress={() => setActiveBreakLog(log)}
-                                                >
-                                                    {s.totalBreakMins > 0 ? (
-                                                        <View style={styles.breakItemContainer}>
-                                                            <View style={styles.infoSquare}>
-                                                                <Text style={styles.infoIconText}>i</Text>
-                                                            </View>
-                                                            <Text style={styles.breakDurationText}>{s.totalBreakMins}m</Text>
+
+                                                {showAsOffDay ? (
+                                                    <>
+                                                        <View style={{ width: COL_WIDTHS.visual }} />
+                                                        <View style={{ width: COL_WIDTHS.inOut }} />
+                                                        <View style={{ width: COL_WIDTHS.breaks }} />
+                                                        <View style={{ width: COL_WIDTHS.inOut }} />
+                                                        <View style={[styles.cell, { flex: 1, paddingLeft: 12 }]}>
+                                                            <Text style={[styles.offFullText, { textAlign: 'left' }]}>
+                                                                {isHoliday ? 'Full day Holiday' : isWeekend ? 'Full day Weekly-off' : isApprovedLeave ? `Full Day ${getLeaveLabel(log.leaveType)}` : 'Absent'}
+                                                            </Text>
                                                         </View>
-                                                    ) : (
-                                                        <Text style={styles.dashText}>-</Text>
-                                                    )}
-                                                </TouchableOpacity>
-                                                <View style={[styles.cell, { width: COL_WIDTHS.inOut }]}>
-                                                    {log.checkOut === '-' && log.checkIn !== '-' && log.date !== toLocalDateString(new Date()) ? (
-                                                        <Text style={styles.missingCheckOutText}>Missed Check-Out</Text>
-                                                    ) : (
-                                                        <Text style={styles.timeText}>{log.checkOut || '-'}</Text>
-                                                    )}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <View style={[styles.cell, { width: COL_WIDTHS.visual }]}>
+                                                            <View style={styles.visualBarTable}>
+                                                                {getVisualSegments(log).map((seg, i) => (
+                                                                    <View key={i} style={[styles.visualSeg, { width: `${seg.width}%`, backgroundColor: seg.type === 'work' ? '#48327d' : 'transparent' }]} />
+                                                                ))}
+                                                            </View>
+                                                        </View>
+                                                        <Text style={[styles.cell, styles.timeText, { width: COL_WIDTHS.inOut }]}>{log.checkIn || '-'}</Text>
+                                                        <TouchableOpacity
+                                                            style={[styles.cell, { width: COL_WIDTHS.breaks, alignItems: 'center' }]}
+                                                            disabled={s.totalBreakMins === 0}
+                                                            onPress={() => setActiveBreakLog(log)}
+                                                        >
+                                                            {s.totalBreakMins > 0 ? (
+                                                                <View style={styles.breakItemContainer}>
+                                                                    <View style={styles.infoSquare}>
+                                                                        <Text style={styles.infoIconText}>i</Text>
+                                                                    </View>
+                                                                    <Text style={styles.breakDurationText}>{s.totalBreakMins}m</Text>
+                                                                </View>
+                                                            ) : (
+                                                                <Text style={styles.dashText}>-</Text>
+                                                            )}
+                                                        </TouchableOpacity>
+                                                        <View style={[styles.cell, { width: COL_WIDTHS.inOut }]}>
+                                                            {log.checkOut === '-' && log.checkIn !== '-' && log.date !== toLocalDateString(new Date()) ? (
+                                                                <Text style={styles.missingCheckOutText}>Missed Check-Out</Text>
+                                                            ) : (
+                                                                <Text style={styles.timeText}>{log.checkOut || '-'}</Text>
+                                                            )}
+                                                        </View>
+                                                        <Text style={[styles.cell, styles.durationText, { width: COL_WIDTHS.hrs }]}>{s.gross}</Text>
+                                                        <Text style={[styles.cell, styles.effText, { width: COL_WIDTHS.hrs }]}>{s.effective}</Text>
+                                                        <View style={[styles.cell, { width: COL_WIDTHS.status }]}>
+                                                            {s.arrivalStatus !== '-' ? (
+                                                                <Text style={[styles.statusTabText, { color: s.arrivalColor }]}>{s.arrivalStatus}</Text>
+                                                            ) : <Text style={styles.dashText}>-</Text>}
+                                                        </View>
+                                                    </>
+                                                )}
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            </ScrollView>
+                        </View >
+                    </>
+                ) : (
+                    <View style={{ paddingHorizontal: 20 }}>
+                        {requests.length === 0 ? (
+                            <View style={{ padding: 40, alignItems: 'center' }}>
+                                <Text style={{ color: '#94a3b8', fontSize: 14 }}>No requests found.</Text>
+                            </View>
+                        ) : (
+                            requests.map((req, idx) => (
+                                <View key={idx} style={{ backgroundColor: 'white', padding: 16, borderRadius: 12, marginBottom: 12, borderColor: '#e2e8f0', borderWidth: 1 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                        <View>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1e293b' }}>{req.employee_name}</Text>
+                                                <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                                                    <Text style={{ fontSize: 10, color: '#64748b' }}>{req.employee_id}</Text>
                                                 </View>
-                                                <Text style={[styles.cell, styles.durationText, { width: COL_WIDTHS.hrs }]}>{s.gross}</Text>
-                                                <Text style={[styles.cell, styles.effText, { width: COL_WIDTHS.hrs }]}>{s.effective}</Text>
-                                                <View style={[styles.cell, { width: COL_WIDTHS.status }]}>
-                                                    {s.arrivalStatus !== '-' ? (
-                                                        <Text style={[styles.statusTabText, { color: s.arrivalColor }]}>{s.arrivalStatus}</Text>
-                                                    ) : <Text style={styles.dashText}>-</Text>}
-                                                </View>
-                                            </>
+                                            </View>
+                                        </View>
+                                        <View style={{
+                                            backgroundColor: req.status === 'Approved' ? '#dcfce7' : req.status === 'Rejected' ? '#fee2e2' : '#fff7ed',
+                                            paddingHorizontal: 8,
+                                            paddingVertical: 4,
+                                            borderRadius: 6
+                                        }}>
+                                            <Text style={{
+                                                fontSize: 10,
+                                                fontWeight: 'bold',
+                                                color: req.status === 'Approved' ? '#166534' : req.status === 'Rejected' ? '#b91c1c' : '#c2410c',
+                                                textTransform: 'uppercase'
+                                            }}>
+                                                {req.status}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                            <Text style={{ fontSize: 14 }}>📅</Text>
+                                            <Text style={{ fontSize: 14, fontWeight: '600', color: '#475569' }}>{req.attendance?.date || req.date}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f8fafc', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
+                                            <Text style={{ fontSize: 12, color: '#64748b' }}>In: <Text style={{ fontWeight: 'bold', color: '#334155' }}>{req.attendance?.check_in || '-'}</Text></Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={{ backgroundColor: '#eff6ff', padding: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 12 }}>
+                                        <Text style={{ fontSize: 13, color: '#1e40af', fontWeight: '500' }}>
+                                            🕒 Requested Out: <Text style={{ fontWeight: 'bold' }}>{req.requested_checkout}</Text>
+                                        </Text>
+                                        {req.attendance?.check_out && req.attendance.check_out !== '-' && (
+                                            <Text style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                                                Current Out: <Text style={{ fontWeight: 'bold' }}>{req.attendance.check_out}</Text>
+                                            </Text>
                                         )}
                                     </View>
-                                );
-                            })}
-                        </View>
-                    </ScrollView>
-                </View >
-            </ScrollView >
+
+                                    {req.reason && (
+                                        <Text style={{ fontSize: 13, color: '#64748b', fontStyle: 'italic' }}>
+                                            "{req.reason}"
+                                        </Text>
+                                    )}
+                                </View>
+                            ))
+                        )}
+                    </View>
+                )}
+            </ScrollView>
         </SafeAreaView >
     );
 };

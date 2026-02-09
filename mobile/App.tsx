@@ -136,7 +136,12 @@ function App() {
     }
   };
 
-  const isAdmin = (user?.first_name === 'Rajesh' || user?.first_name === 'Satyanarayana');
+  // Check is_admin flag primarily, with role fallbacks for robustness
+  const isAdmin = user?.is_admin === true ||
+    user?.role === 'Admin' ||
+    user?.role === 'Administrator' ||
+    user?.role === 'Project Manager' ||
+    user?.role === 'Advisor-Technology & Operations';
 
   const getInitials = () => {
     if (!user) return 'HM';

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -8,17 +8,16 @@ import {
     ActivityIndicator,
     KeyboardAvoidingView,
     Platform,
-    Dimensions,
     StatusBar,
-    Image
+    Image,
+    Animated,
+    Pressable
 } from 'react-native';
 import { authApi } from '../services/api';
 
 interface LoginScreenProps {
     onLogin: (user: any) => void;
 }
-
-const { width } = Dimensions.get('window');
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const [phone, setPhone] = useState('');
@@ -28,6 +27,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+
+    // Animations
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+
+    useEffect(() => {
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 600,
+            useNativeDriver: true,
+        }).start();
+    }, []);
 
     const handleSendOTP = async () => {
         if (loginMethod === 'phone' && !phone) {
@@ -50,7 +60,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             }
             setStep('otp');
         } catch (err) {
-            console.log("OTP Send Error:", err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage || 'Failed to send OTP');
         } finally {
@@ -79,7 +88,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 setError(data.error || 'Invalid OTP');
             }
         } catch (err) {
-            console.log("OTP Verify Error:", err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage || 'Verification failed');
         } finally {
@@ -94,104 +102,102 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
         >
             <StatusBar barStyle="dark-content" backgroundColor="#f5f7fa" />
 
-            {/* Background decoration circles */}
-            <View style={[styles.circle, styles.circleTop]} />
-            <View style={[styles.circle, styles.circleBottom]} />
+            <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
+                <View style={styles.logoContainer}>
+                    <Image
+                        source={require('../assets/images/logo.png')}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.title}>
+                        {step === 'phone' ? 'Welcome to Markwave HR' : 'Verify Identity'}
+                    </Text>
+                    <Text style={styles.subtitle}>
+                        {step === 'phone'
+                            ? `Please enter your ${loginMethod === 'phone' ? 'mobile number' : 'email'} to receive an OTP`
+                            : `Enter the 6-digit code sent to ${loginMethod === 'phone' ? phone : email}`
+                        }
+                    </Text>
+                </View>
 
-            <View style={styles.contentContainer}>
-                <View style={styles.card}>
-                    <View style={styles.headerContainer}>
-                        <View style={styles.iconContainer}>
-                            <Image
-                                source={require('../assets/images/logo.png')}
-                                style={styles.logoImage}
-                                resizeMode="contain"
+                {step === 'phone' && (
+                    <View style={styles.toggleContainer}>
+                        <Pressable
+                            onPress={() => { setLoginMethod('phone'); setError(''); }}
+                            style={[styles.toggleBtn, loginMethod === 'phone' && styles.toggleBtnActive]}
+                        >
+                            <Text style={[styles.toggleText, loginMethod === 'phone' && styles.toggleTextActive]}>Phone</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => { setLoginMethod('email'); setError(''); }}
+                            style={[styles.toggleBtn, loginMethod === 'email' && styles.toggleBtnActive]}
+                        >
+                            <Text style={[styles.toggleText, loginMethod === 'email' && styles.toggleTextActive]}>Email</Text>
+                        </Pressable>
+                    </View>
+                )}
+
+                <View style={styles.formContainer}>
+                    {step === 'phone' ? (
+                        <View>
+                            <Text style={styles.inputLabel}>
+                                {loginMethod === 'phone' ? 'MOBILE NUMBER' : 'EMAIL ADDRESS'}
+                            </Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder={loginMethod === 'phone' ? "e.g. 9876543210" : "name@company.com"}
+                                placeholderTextColor="#b2bec3"
+                                value={loginMethod === 'phone' ? phone : email}
+                                onChangeText={loginMethod === 'phone' ? setPhone : setEmail}
+                                keyboardType={loginMethod === 'phone' ? "number-pad" : "email-address"}
+                                autoCapitalize="none"
                             />
                         </View>
-                        <Text style={styles.title}>{step === 'phone' ? 'Welcome to Markwave HR' : 'Verify Identity'}</Text>
-                        <Text style={styles.subtitle}>
-                            {step === 'phone'
-                                ? `Sign in with your ${loginMethod === 'phone' ? 'mobile number' : 'email'}`
-                                : `Enter code sent to ${loginMethod === 'phone' ? phone : email}`}
-                        </Text>
-                    </View>
-
-                    {step === 'phone' && (
-                        <View style={styles.tabContainer}>
-                            <TouchableOpacity
-                                style={[styles.tab, loginMethod === 'phone' && styles.activeTab]}
-                                onPress={() => { setLoginMethod('phone'); setError(''); }}
-                            >
-                                <Text style={[styles.tabText, loginMethod === 'phone' && styles.activeTabText]}>Phone</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.tab, loginMethod === 'email' && styles.activeTab]}
-                                onPress={() => { setLoginMethod('email'); setError(''); }}
-                            >
-                                <Text style={[styles.tabText, loginMethod === 'email' && styles.activeTabText]}>Email</Text>
+                    ) : (
+                        <View>
+                            <Text style={styles.inputLabel}>ENTER 6-DIGIT OTP</Text>
+                            <TextInput
+                                style={[styles.input, styles.otpInput]}
+                                placeholder="••••••"
+                                placeholderTextColor="#b2bec3"
+                                value={otp}
+                                onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
+                                keyboardType="number-pad"
+                                maxLength={6}
+                            />
+                            <TouchableOpacity onPress={() => setStep('phone')} style={styles.changeLink}>
+                                <Text style={styles.changeLinkText}>
+                                    Change {loginMethod === 'phone' ? 'mobile number' : 'email'}?
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     )}
 
-                    <View style={styles.formContainer}>
-                        {step === 'phone' ? (
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>{loginMethod === 'phone' ? 'MOBILE NUMBER' : 'EMAIL ADDRESS'}</Text>
-                                <TextInput
-                                    style={styles.input}
-                                    placeholder={loginMethod === 'phone' ? "Enter your mobile number" : "Enter your email address"}
-                                    placeholderTextColor="#b2bec3"
-                                    value={loginMethod === 'phone' ? phone : email}
-                                    onChangeText={loginMethod === 'phone' ? setPhone : setEmail}
-                                    keyboardType={loginMethod === 'phone' ? "phone-pad" : "email-address"}
-                                    autoCapitalize="none"
-                                />
-                            </View>
+                    {error ? (
+                        <View style={styles.errorContainer}>
+                            <Text style={styles.errorText}>{error}</Text>
+                        </View>
+                    ) : null}
+
+                    <TouchableOpacity
+                        style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
+                        onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
+                        disabled={isLoading}
+                    >
+                        {isLoading ? (
+                            <ActivityIndicator color="#fff" />
                         ) : (
-                            <View style={styles.inputGroup}>
-                                <Text style={styles.label}>ONE-TIME PASSWORD</Text>
-                                <TextInput
-                                    style={[styles.input, styles.otpInput]}
-                                    placeholder="000000"
-                                    placeholderTextColor="#b2bec3"
-                                    value={otp}
-                                    onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
-                                    keyboardType="number-pad"
-                                    maxLength={6}
-                                />
-                                <TouchableOpacity onPress={() => setStep('phone')}>
-                                    <Text style={styles.changeNumberText}>Change number?</Text>
-                                </TouchableOpacity>
-                            </View>
+                            <Text style={styles.primaryBtnText}>
+                                {step === 'phone' ? 'Get OTP' : 'Verify & Sign In'}
+                            </Text>
                         )}
-
-                        {error ? (
-                            <View style={styles.errorContainer}>
-                                <Text style={styles.errorText}>⚠️ {error}</Text>
-                            </View>
-                        ) : null}
-
-                        <TouchableOpacity
-                            style={[styles.button, isLoading && styles.buttonDisabled]}
-                            onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <ActivityIndicator color="white" />
-                            ) : (
-                                <Text style={styles.buttonText}>
-                                    {step === 'phone' ? 'Get OTP →' : 'Verify & Sign In →'}
-                                </Text>
-                            )}
-                        </TouchableOpacity>
-                    </View>
+                    </TouchableOpacity>
                 </View>
+            </Animated.View>
 
-                <View style={styles.footer}>
-                    <Text style={styles.footerText}>
-                        Don't have an account? <Text style={styles.linkText}>Contact Admin</Text>
-                    </Text>
-                </View>
+            <View style={styles.footer}>
+                <Text style={styles.footerText}>Internal HR Access Only</Text>
+                <Text style={styles.copyrightText}>© 2026 Markwave AI. All rights reserved.</Text>
             </View>
         </KeyboardAvoidingView>
     );
@@ -201,78 +207,86 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#f5f7fa',
-    },
-    circle: {
-        position: 'absolute',
-        width: width * 0.8,
-        height: width * 0.8,
-        borderRadius: (width * 0.8) / 2,
-        backgroundColor: 'rgba(72, 50, 125, 0.05)',
-    },
-    circleTop: {
-        top: -width * 0.2,
-        left: -width * 0.2,
-    },
-    circleBottom: {
-        bottom: -width * 0.2,
-        right: -width * 0.2,
-    },
-    contentContainer: {
-        flex: 1,
         justifyContent: 'center',
         padding: 20,
-        zIndex: 1,
     },
     card: {
         backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 30,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        borderRadius: 16,
+        padding: 24,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
         shadowOpacity: 0.1,
-        shadowRadius: 10,
+        shadowRadius: 12,
         elevation: 5,
         borderWidth: 1,
         borderColor: '#dfe6e9',
+        width: '100%',
+        maxWidth: 400,
+        alignSelf: 'center',
     },
-    headerContainer: {
+    logoContainer: {
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: 24,
     },
-    iconContainer: {
-        width: 120,
-        height: 120,
-        justifyContent: 'center',
-        alignItems: 'center',
+    logo: {
+        width: 180,
+        height: 60,
         marginBottom: 16,
     },
-    logoImage: {
-        width: '100%',
-        height: '100%',
-    },
-    lockIcon: {
-        fontSize: 28,
-    },
     title: {
-        fontSize: 24,
+        fontSize: 22,
         fontWeight: 'bold',
         color: '#2d3436',
+        textAlign: 'center',
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 14,
         color: '#636e72',
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    toggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#f1f5f9',
+        borderRadius: 12,
+        padding: 4,
+        marginBottom: 24,
+    },
+    toggleBtn: {
+        flex: 1,
+        paddingVertical: 10,
+        alignItems: 'center',
+        borderRadius: 8,
+    },
+    toggleBtnActive: {
+        backgroundColor: 'white',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    toggleText: {
+        color: '#64748b',
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    toggleTextActive: {
+        color: '#48327d',
     },
     formContainer: {
         gap: 20,
     },
-    inputGroup: {
-        gap: 8,
-    },
-    label: {
-        fontSize: 12,
-        fontWeight: 'bold',
+    inputLabel: {
+        fontSize: 11,
+        fontWeight: '700',
         color: '#636e72',
+        marginBottom: 8,
         letterSpacing: 0.5,
     },
     input: {
@@ -281,95 +295,73 @@ const styles = StyleSheet.create({
         borderColor: '#dfe6e9',
         borderRadius: 12,
         padding: 14,
-        fontSize: 14,
+        fontSize: 16,
         color: '#2d3436',
     },
     otpInput: {
-        letterSpacing: 10,
         textAlign: 'center',
+        letterSpacing: 8,
         fontSize: 24,
         fontWeight: 'bold',
-        fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     },
-    changeNumberText: {
+    changeLink: {
+        marginTop: 12,
+        alignSelf: 'flex-end',
+    },
+    changeLinkText: {
         color: '#48327d',
-        fontSize: 12,
         fontWeight: '600',
-        marginTop: 8,
-        textAlign: 'right',
+        fontSize: 12,
     },
     errorContainer: {
         backgroundColor: '#fff0f0',
         padding: 12,
         borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ffcdd2',
     },
     errorText: {
-        color: '#d63031',
-        fontSize: 12,
+        color: '#e05260',
+        fontSize: 13,
+        textAlign: 'center',
         fontWeight: '500',
     },
-    button: {
+    primaryBtn: {
         backgroundColor: '#48327d',
-        padding: 16,
+        paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',
-        marginTop: 10,
         shadowColor: '#48327d',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
-        elevation: 3,
+        elevation: 4,
+        marginTop: 8,
     },
-    buttonDisabled: {
-        opacity: 0.7,
+    primaryBtnDisabled: {
+        backgroundColor: '#a6a0b5',
+        shadowOpacity: 0,
+        elevation: 0,
     },
-    buttonText: {
+    primaryBtnText: {
         color: 'white',
         fontSize: 16,
         fontWeight: 'bold',
     },
     footer: {
-        marginTop: 20,
         alignItems: 'center',
+        marginTop: 40,
     },
     footerText: {
+        color: '#636e72',
         fontSize: 12,
-        color: '#636e72',
-    },
-    linkText: {
-        color: '#48327d',
-        fontWeight: 'bold',
-    },
-    tabContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#f5f7fa',
-        borderRadius: 12,
-        padding: 4,
-        marginBottom: 20,
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 10,
-        alignItems: 'center',
-        borderRadius: 8,
-    },
-    activeTab: {
-        backgroundColor: 'white',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    tabText: {
-        fontSize: 14,
         fontWeight: '600',
-        color: '#636e72',
     },
-    activeTabText: {
-        color: '#48327d',
-        fontWeight: 'bold',
-    },
+    copyrightText: {
+        color: '#b2bec3',
+        fontSize: 11,
+        marginTop: 4,
+    }
 });
 
 export default LoginScreen;

@@ -290,13 +290,41 @@ def get_personal_stats(request, employee_id):
         
         for s in summaries:
             mins = 0
-            if s.worked_hours and 'h' in s.worked_hours:
-                try:
-                    parts = s.worked_hours.replace('m', '').split('h ')
-                    h = int(parts[0])
-                    m = int(parts[1]) if len(parts) > 1 else 0
-                    mins = h * 60 + m
-                except: pass
+            is_today = (s.date == now.strftime('%Y-%m-%d'))
+            
+            if is_today:
+                # Calculate from logs for accuracy (Live status)
+                logs = AttendanceLogs.objects.filter(employee=s.employee, date=s.date).order_by('timestamp')
+                calculated_mins = 0
+                last_in = None
+                
+                for log in logs:
+                    if log.type == 'IN':
+                        last_in = log.timestamp
+                    elif log.type == 'OUT' and last_in:
+                        duration = (log.timestamp - last_in).total_seconds() / 60
+                        calculated_mins += duration
+                        last_in = None
+                
+                # Add live duration if currently IN
+                if last_in:
+                    duration = (now - last_in).total_seconds() / 60
+                    calculated_mins += duration
+                    
+                # Subtract breaks if tracked in summary (optional, but logs calculation implicitly handles breaks between logs)
+                # If we just sum durations between IN and OUT, we handle breaks correctly (unlogged time is break).
+                # But we should respect 'break_minutes' if they are manually added? 
+                # Usually logs are the source of truth.
+                mins = int(calculated_mins)
+            else:
+                # Past days: Use stored worked_hours
+                if s.worked_hours and 'h' in s.worked_hours:
+                    try:
+                        parts = s.worked_hours.replace('m', '').split('h ')
+                        h = int(parts[0])
+                        m = int(parts[1]) if len(parts) > 1 else 0
+                        mins = h * 60 + m
+                    except: pass
             
             if mins > 0 or (s.check_in and s.check_in != '-'):
                 total_mins += mins
@@ -623,7 +651,12 @@ def get_regularization_requests(request, manager_id):
             'requested_checkout': r.requested_checkout,
             'reason': r.reason,
             'status': r.status,
-            'created_at': r.created_at.isoformat()
+            'created_at': r.created_at.isoformat(),
+            'attendance': {
+                'date': r.attendance.date,
+                'check_in': r.attendance.check_in,
+                'check_out': r.attendance.check_out
+            }
         })
     
     return Response(data)

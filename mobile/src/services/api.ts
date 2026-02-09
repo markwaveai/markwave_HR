@@ -96,7 +96,12 @@ export const attendanceApi = {
         body: JSON.stringify(data)
     }),
     getPersonalStats: (employeeId: string) => apiFetch(`/attendance/stats/${employeeId}/?_t=${new Date().getTime()}`),
-    getHolidays: () => apiFetch('/holidays/')
+    getHolidays: () => apiFetch('/holidays/'),
+    submitRegularization: (data: any) => apiFetch('/attendance/regularize/', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    getRequests: (employeeId: string) => apiFetch(`/attendance/regularization-requests/${employeeId}/?role=employee&_t=${new Date().getTime()}`)
 };
 
 export const feedApi = {

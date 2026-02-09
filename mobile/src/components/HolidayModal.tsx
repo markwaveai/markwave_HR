@@ -18,8 +18,7 @@ interface HolidayModalProps {
 const HolidayModal: React.FC<HolidayModalProps> = ({ visible, onClose, holidays = [] }) => {
     const [viewDate, setViewDate] = useState(new Date());
 
-    // Debug logging
-    console.log('HolidayModal render:', { visible, holidaysCount: holidays.length });
+
 
     const getDaysInMonth = (date: Date) => {
         return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
