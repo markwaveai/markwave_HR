@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MapPin, Search } from 'lucide-react';
+import { X, Search } from 'lucide-react';
 
 const AbsenteesModal = ({ absentees, onClose }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -65,24 +65,19 @@ const AbsenteesModal = ({ absentees, onClose }) => {
                     {filteredAbsentees.length > 0 ? (
                         filteredAbsentees.map((emp) => (
                             <div key={emp.id} className="flex items-center gap-4 p-3.5 hover:bg-[#f8fafc] rounded-2xl transition-all border border-transparent hover:border-[#e2e8f0] group">
-                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#48327d] to-[#6c5ce7] flex items-center justify-center text-white font-black text-sm shadow-lg ring-4 ring-[#48327d]/5 group-hover:scale-105 transition-transform">
-                                    {(emp.name || 'E').split(' ').map(n => n[0]).join('')}
-                                </div>
+
                                 <div className="flex-1 min-w-0">
                                     <h4 className="font-black text-[#1e293b] truncate text-sm">{emp.name}</h4>
-                                    <div className="flex items-center gap-2 mt-0.5">
-                                        <p className="text-[10px] font-bold text-[#64748b]">{emp.role}</p>
-                                        {emp.location && (
-                                            <span className="flex items-center gap-0.5 text-[10px] text-[#94a3b8] font-medium truncate">
-                                                <MapPin size={10} />
-                                                {emp.location}
-                                            </span>
-                                        )}
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] font-bold text-[#64748b] bg-[#f1f5f9] px-2 py-0.5 rounded-md">
+                                            {emp.employee_id}
+                                        </span>
+                                        <p className="text-[10px] font-bold text-[#94a3b8]">{emp.role}</p>
                                     </div>
                                 </div>
-                                <div className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border ${emp.status === 'On Leave'
-                                    ? 'bg-amber-50 text-amber-600 border-amber-200'
-                                    : 'bg-[#fff1f2] text-[#f43f5e] border-[#ffe4e6]'
+                                <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold shadow-sm ${emp.status === 'On Leave'
+                                    ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-rose-100 text-rose-700'
                                     }`}>
                                     {emp.status}
                                 </div>
