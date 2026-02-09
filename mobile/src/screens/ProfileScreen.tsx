@@ -1,10 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { MailIcon, PhoneIcon, MapPinIcon, IdCardIcon } from '../components/Icons';
 
-const ProfileScreen = ({ user }) => {
+const ProfileScreen = ({ user, onBack }: { user: any, onBack?: () => void }) => {
     if (!user) return null;
 
-    const getFormattedID = (id) => {
+    const getFormattedID = (id: any) => {
         if (!id) return '----';
         const numId = parseInt(id);
         if (numId < 1000) {
@@ -17,10 +18,10 @@ const ProfileScreen = ({ user }) => {
         return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
     };
 
-    const InfoRow = ({ icon, label, value }) => (
+    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
         <View style={styles.infoRow}>
             <View style={styles.iconContainer}>
-                <Text style={styles.icon}>{icon}</Text>
+                {icon}
             </View>
             <View style={styles.infoContent}>
                 <Text style={styles.label}>{label}</Text>
@@ -32,31 +33,32 @@ const ProfileScreen = ({ user }) => {
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
+                {onBack && (
+                    <TouchableOpacity style={styles.backButton} onPress={onBack}>
+                        <Text style={styles.backButtonText}>✕</Text>
+                    </TouchableOpacity>
+                )}
                 <View style={styles.avatarLarge}>
                     <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
                 </View>
                 <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
                 <Text style={styles.role}>{user.role}</Text>
                 <View style={styles.idTag}>
-                    <Text style={styles.idText}>{getFormattedID(user.id)}</Text>
+                    <Text style={styles.idText}>{user.employee_id || getFormattedID(user.id)}</Text>
                 </View>
             </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Contact Information</Text>
                 <View style={styles.card}>
-                    <InfoRow icon="📧" label="Email" value={user.email} />
-                    <View style={styles.divider} />
-                    <InfoRow icon="📱" label="Mobile" value={user.contact} />
-                    <View style={styles.divider} />
-                    <InfoRow icon="📍" label="Location" value={user.location} />
+                    <InfoRow icon={<MailIcon color="#48327d" size={20} />} label="Email" value={user.email} />
                 </View>
             </View>
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Personal Details</Text>
                 <View style={styles.card}>
-                    <InfoRow icon="🆔" label="Aadhar Number" value={user.aadhar ? user.aadhar.toString().replace(/(\d{4})(?=\d)/g, "$1 ") : '-'} />
+                    <InfoRow icon={<IdCardIcon color="#48327d" size={20} />} label="Aadhar Number" value={user.aadhar ? user.aadhar.toString().replace(/(\d{4})(?=\d)/g, "$1 ") : '-'} />
                 </View>
             </View>
         </ScrollView>
@@ -174,6 +176,23 @@ const styles = StyleSheet.create({
         backgroundColor: '#f1f2f6',
         marginVertical: 16,
         marginLeft: 56, // Align with text
+    },
+    backButton: {
+        position: 'absolute',
+        top: 20,
+        right: 20,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#f1f2f6',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
+    },
+    backButtonText: {
+        fontSize: 20,
+        color: '#636e72',
+        fontWeight: 'bold',
     },
 });
 

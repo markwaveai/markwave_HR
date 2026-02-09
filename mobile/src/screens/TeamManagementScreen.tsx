@@ -11,7 +11,16 @@ import {
     Platform,
     ScrollView
 } from 'react-native';
+import AsyncStorageLib from '@react-native-async-storage/async-storage';
 import { teamApi } from '../services/api';
+import {
+    EditIcon,
+    TrashIcon,
+    UsersIcon,
+    BriefcaseIcon,
+    PlusIcon,
+    CloseIcon
+} from '../components/Icons';
 
 const TeamManagementScreen = () => {
     const [teams, setTeams] = useState<any[]>([]);
@@ -28,11 +37,20 @@ const TeamManagementScreen = () => {
     const [selectedEmployeeToAdd, setSelectedEmployeeToAdd] = useState('');
     const [pickerModalOpen, setPickerModalOpen] = useState(false);
     const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
+    const [managerPickerOpen, setManagerPickerOpen] = useState(false);
+    const [managerSearchQuery, setManagerSearchQuery] = useState('');
+
+
+    // Helper function to format employee ID
+    const getFormattedID = (id: number) => {
+        return `MW${String(id).padStart(4, '0')}`;
+    };
 
     useEffect(() => {
         fetchTeams();
         fetchManagers();
     }, []);
+
 
     const fetchTeams = async () => {
         try {
@@ -177,46 +195,48 @@ const TeamManagementScreen = () => {
 
     const renderItem = ({ item }: { item: any }) => (
         <View style={styles.card}>
-            <View style={styles.header}>
-                <View style={styles.iconBox}>
-                    <Text style={styles.iconText}>T</Text>
-                </View>
+            <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
                     <Text style={styles.cardTitle}>{item.name}</Text>
-                    <TouchableOpacity onPress={() => handleManageMembers(item)}>
-                        <Text style={[styles.cardSubtitle, { color: '#48327d', fontWeight: 'bold' }]}>
-                            {item.member_count} Members
-                        </Text>
-                    </TouchableOpacity>
+                    <Text style={styles.memberCountText}>{item.member_count} Members</Text>
                 </View>
-                <View style={styles.actions}>
-                    <TouchableOpacity onPress={() => handleManageMembers(item)} style={styles.actionBtn}>
-                        <Text style={styles.manageIcon}>👥</Text>
+                <View style={styles.actionButtons}>
+                    <TouchableOpacity onPress={() => openModal(item)} style={styles.iconBtn}>
+                        <EditIcon color="#3b82f6" size={18} strokeWidth={2.5} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => openModal(item)} style={styles.actionBtn}>
-                        <Text style={styles.editIcon}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
-                        <Text style={styles.deleteIcon}>🗑️</Text>
+                    <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.iconBtn}>
+                        <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
                     </TouchableOpacity>
                 </View>
             </View>
-            <View style={styles.infoRow}>
-                <Text style={styles.label}>TEAM LEAD</Text>
-                <Text style={styles.value}>{item.manager_name}</Text>
+
+            <Text style={styles.descriptionText}>
+                {item.description || `Team led by ${item.manager_name || 'No Manager'}`}
+            </Text>
+
+            <View style={styles.cardFooter}>
+                <View style={styles.footerInfo}>
+                    <BriefcaseIcon color="#64748b" size={16} />
+                    <Text style={styles.managerName} numberOfLines={1}>{item.manager_name || 'No Manager'}</Text>
+                </View>
+                <TouchableOpacity style={styles.manageBtn} onPress={() => handleManageMembers(item)}>
+                    <UsersIcon color="#48327d" size={16} />
+                    <Text style={styles.manageBtnText}>Manage Members</Text>
+                </TouchableOpacity>
             </View>
-            {item.description ? (
-                <Text style={styles.description}>{item.description}</Text>
-            ) : null}
         </View>
     );
 
     return (
         <View style={styles.container}>
             <View style={styles.topBar}>
-                <Text style={styles.pageTitle}>Teams</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.pageTitle}>Team Management</Text>
+                    <Text style={styles.pageSubtitle}>Manage organizational teams and members</Text>
+                </View>
                 <TouchableOpacity onPress={() => openModal()} style={styles.addBtn}>
-                    <Text style={styles.addBtnText}>+ Add Team</Text>
+                    <PlusIcon color="white" size={16} strokeWidth={3} />
+                    <Text style={styles.addBtnText}>Create Team</Text>
                 </TouchableOpacity>
             </View>
 
@@ -242,20 +262,87 @@ const TeamManagementScreen = () => {
 
                         <Text style={styles.inputLabel}>Description</Text>
                         <TextInput
-                            style={styles.input}
+                            style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
                             value={formData.description}
                             onChangeText={t => setFormData({ ...formData, description: t })}
                             placeholder="Team description"
+                            multiline
+                            numberOfLines={3}
                         />
 
-                        {/* Very simple Manager ID input for now - Dropdown is complex in RN without libs */}
-                        <Text style={styles.inputLabel}>Team Lead ID (Optional)</Text>
-                        <TextInput
+                        <Text style={styles.inputLabel}>Team Manager</Text>
+                        <TouchableOpacity
                             style={styles.input}
-                            value={String(formData.manager_id || '')}
-                            onChangeText={t => setFormData({ ...formData, manager_id: t })}
-                            placeholder="Employee ID"
-                        />
+                            onPress={() => setManagerPickerOpen(true)}
+                        >
+                            <Text style={{ fontSize: 14, color: formData.manager_id ? '#2d3436' : '#a0aec0' }}>
+                                {formData.manager_id
+                                    ? (() => {
+                                        const mgr = managers.find(m => String(m.id) === String(formData.manager_id));
+                                        return mgr ? `${mgr.first_name} ${mgr.last_name} (${mgr.employee_id})` : 'Select Manager';
+                                    })()
+                                    : 'Select Manager'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        {/* Manager Picker Modal */}
+                        <Modal visible={managerPickerOpen} transparent={true} animationType="slide">
+                            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                                <View style={{ backgroundColor: 'white', maxHeight: '60%', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
+                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2d3436' }}>Select Manager</Text>
+                                        <TouchableOpacity onPress={() => setManagerPickerOpen(false)}>
+                                            <CloseIcon color="#636e72" size={20} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
+                                        <TextInput
+                                            style={{
+                                                backgroundColor: '#f8f9fa',
+                                                padding: 10,
+                                                borderRadius: 8,
+                                                fontSize: 14,
+                                                color: '#2d3436'
+                                            }}
+                                            placeholder="Search managers..."
+                                            value={managerSearchQuery}
+                                            onChangeText={setManagerSearchQuery}
+                                        />
+                                    </View>
+                                    <ScrollView style={{ height: 300 }}>
+                                        {managers
+                                            .filter(mgr => {
+                                                if (!mgr) return false;
+                                                const q = (managerSearchQuery || '').toLowerCase();
+                                                const firstName = (mgr.first_name || '').toLowerCase();
+                                                const lastName = (mgr.last_name || '').toLowerCase();
+                                                const employeeId = (mgr.employee_id || '').toLowerCase();
+                                                return firstName.includes(q) || lastName.includes(q) || employeeId.includes(q);
+                                            })
+                                            .map(mgr => (
+                                                <TouchableOpacity
+                                                    key={mgr.id}
+                                                    style={{
+                                                        padding: 16,
+                                                        borderBottomWidth: 1,
+                                                        borderBottomColor: '#f1f2f6',
+                                                        backgroundColor: String(formData.manager_id) === String(mgr.id) ? '#f3e5f5' : 'white',
+                                                    }}
+                                                    onPress={() => {
+                                                        setFormData({ ...formData, manager_id: String(mgr.id) });
+                                                        setManagerPickerOpen(false);
+                                                        setManagerSearchQuery('');
+                                                    }}
+                                                >
+                                                    <Text style={{ color: '#2d3436', fontWeight: '500', fontSize: 14 }}>
+                                                        {mgr.first_name} {mgr.last_name} ({mgr.employee_id})
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        </Modal>
 
                         <View style={styles.modalButtons}>
                             <TouchableOpacity onPress={() => setModalVisible(false)} style={[styles.modalBtn, styles.cancelBtn]}>
@@ -266,7 +353,7 @@ const TeamManagementScreen = () => {
                                 style={[styles.modalBtn, styles.saveBtn, !formData.name.trim() && { opacity: 0.5 }]}
                                 disabled={!formData.name.trim()}
                             >
-                                <Text style={styles.saveText}>Save</Text>
+                                <Text style={styles.saveText}>{editingTeam ? 'Update Team' : 'Create Team'}</Text>
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -283,7 +370,7 @@ const TeamManagementScreen = () => {
                                 <Text style={{ color: '#636e72', fontSize: 14, marginTop: -15, marginBottom: 10 }}>{editingTeam?.name}</Text>
                             </View>
                             <TouchableOpacity onPress={() => setMemberModalOpen(false)} style={{ padding: 5, marginTop: -20 }}>
-                                <Text style={{ fontSize: 20, color: '#636e72' }}>✕</Text>
+                                <CloseIcon color="#636e72" size={20} />
                             </TouchableOpacity>
                         </View>
 
@@ -452,177 +539,114 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
+        paddingHorizontal: 20,
+        paddingTop: Platform.OS === 'ios' ? 60 : 40,
+        paddingBottom: 20,
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#f1f2f6'
     },
     pageTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#2d3436'
+        fontSize: 22,
+        fontWeight: '900',
+        color: '#1e293b'
+    },
+    pageSubtitle: {
+        fontSize: 14,
+        color: '#64748b',
+        marginTop: 4,
     },
     addBtn: {
         backgroundColor: '#48327d',
         paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 8
+        paddingVertical: 10,
+        borderRadius: 12,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        shadowColor: '#48327d',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 4,
     },
     addBtnText: {
         color: 'white',
-        fontWeight: 'bold'
+        fontWeight: 'bold',
+        fontSize: 14,
     },
     card: {
         backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 16,
+        borderRadius: 16,
+        padding: 20,
         marginBottom: 16,
-        elevation: 2,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
         shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        shadowOffset: { width: 0, height: 2 }
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 10,
+        elevation: 1,
     },
-    header: {
+    cardHeader: {
         flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12
-    },
-    iconBox: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#f3e5f5',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 12
-    },
-    iconText: {
-        color: '#48327d',
-        fontWeight: 'bold',
-        fontSize: 18
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 8,
     },
     cardTitle: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: '#2d3436'
+        fontSize: 18,
+        fontWeight: '800',
+        color: '#1e293b',
+        marginBottom: 2,
     },
-    cardSubtitle: {
-        fontSize: 12,
-        color: '#636e72'
-    },
-    actions: {
-        flexDirection: 'row',
-        gap: 10
-    },
-    actionBtn: {
-        padding: 5
-    },
-    manageIcon: { fontSize: 16 },
-    editIcon: { fontSize: 16 },
-    deleteIcon: { fontSize: 16 },
-    addMemberSection: {
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0'
-    },
-    addMemberBtn: {
-        backgroundColor: '#48327d',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 8,
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    addMemberBtnText: {
-        color: 'white',
-        fontWeight: 'bold',
-        fontSize: 14
-    },
-    emptyMemberList: {
-        padding: 40,
-        backgroundColor: 'white',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderStyle: 'dashed'
-    },
-    memberItem: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: 16,
-        backgroundColor: 'white',
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        marginBottom: 8,
-        // Shadow for "Card" look
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 2
-    },
-    memberAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#f3e5f5',
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    memberAvatarText: {
-        color: '#48327d',
-        fontWeight: 'bold',
-        fontSize: 16
-    },
-    memberName: {
+    memberCountText: {
         fontSize: 14,
-        fontWeight: 'bold',
-        color: '#2d3436'
+        color: '#64748b',
+        fontWeight: '500',
     },
-    memberRole: {
-        fontSize: 12,
-        color: '#636e72'
+    actionButtons: {
+        flexDirection: 'row',
+        gap: 12,
     },
-    removeMemberBtn: {
-        backgroundColor: 'transparent',
-        paddingHorizontal: 0,
-        paddingVertical: 6,
+    iconBtn: {
+        padding: 4,
     },
-    removeMemberText: {
-        color: '#ff6b6b',
-        fontWeight: '600',
-        fontSize: 12
+    descriptionText: {
+        fontSize: 14,
+        color: '#475569',
+        lineHeight: 20,
+        marginBottom: 20,
     },
-    infoRow: {
+    cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 8,
-        paddingTop: 8,
+        paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: '#f1f2f6'
+        borderTopColor: '#f1f5f9',
     },
-    label: {
-        fontSize: 10,
-        fontWeight: 'bold',
-        color: '#b2bec3',
-        letterSpacing: 1
+    footerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        flex: 1,
+        marginRight: 10,
     },
-    value: {
-        fontSize: 14,
+    managerName: {
+        fontSize: 13,
+        color: '#64748b',
         fontWeight: '600',
-        color: '#2d3436'
     },
-    description: {
-        marginTop: 8,
-        color: '#636e72',
-        fontSize: 12,
-        fontStyle: 'italic'
+    manageBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+    },
+    manageBtnText: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#48327d',
     },
     modalOverlay: {
         flex: 1,
@@ -684,7 +708,81 @@ const styles = StyleSheet.create({
     saveText: {
         color: 'white',
         fontWeight: 'bold'
-    }
+    },
+    addMemberSection: {
+        backgroundColor: '#f8f9fa',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0'
+    },
+    addMemberBtn: {
+        backgroundColor: '#48327d',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    addMemberBtnText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14
+    },
+    memberItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginBottom: 8,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 2
+    },
+    memberAvatar: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f3e5f5',
+        justifyContent: 'center',
+        alignItems: 'center'
+    },
+    memberAvatarText: {
+        color: '#48327d',
+        fontWeight: 'bold',
+        fontSize: 16
+    },
+    memberName: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#2d3436'
+    },
+    memberRole: {
+        fontSize: 12,
+        color: '#636e72'
+    },
+    removeMemberBtn: {
+        backgroundColor: 'transparent',
+    },
+    removeMemberText: {
+        color: '#ff6b6b',
+        fontWeight: '600',
+        fontSize: 12
+    },
+    emptyMemberList: {
+        padding: 40,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderStyle: 'dashed'
+    },
 });
 
 export default TeamManagementScreen;

@@ -15,6 +15,7 @@ import { teamApi } from '../services/api';
 
 interface Employee {
     id: number;
+    employee_id: string;
     first_name: string;
     last_name: string;
     role: string;
@@ -30,12 +31,14 @@ const EmployeeListScreen = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Dropdown State
     const [isRolePickerVisible, setIsRolePickerVisible] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
+        employeeId: '',
         firstName: '',
         lastName: '',
         email: '',
@@ -55,13 +58,26 @@ const EmployeeListScreen = () => {
         loc: 140
     };
 
-    const [designations, setDesignations] = useState<string[]>([
-        'Software Engineer', 'Senior Software Engineer', 'Product Manager', 'UI/UX Designer', 'HR Manager', 'Sales Executive'
-    ]);
+    const [designations, setDesignations] = useState<string[]>([]);
+    const [newDesignation, setNewDesignation] = useState('');
+    const [isAddingDesignation, setIsAddingDesignation] = useState(false);
 
     useEffect(() => {
         fetchEmployees();
+        fetchDesignations();
     }, []);
+
+    const fetchDesignations = async () => {
+        try {
+            const data = await teamApi.getDesignations();
+            const designationNames = data.map((d: any) => d.name);
+            setDesignations(designationNames);
+        } catch (error) {
+            console.log('Error fetching designations:', error);
+            // Fallback to default designations
+            setDesignations(['Software Engineer', 'Senior Software Engineer', 'Product Manager', 'UI/UX Designer', 'HR Manager', 'Sales Executive']);
+        }
+    };
 
 
 
@@ -85,6 +101,7 @@ const EmployeeListScreen = () => {
         setIsSubmitting(true);
         try {
             const payload = {
+                employee_id: formData.employeeId,
                 first_name: formData.firstName,
                 last_name: formData.lastName,
                 email: formData.email,
@@ -97,7 +114,7 @@ const EmployeeListScreen = () => {
             await teamApi.addEmployee(payload);
             Alert.alert('Success', 'Employee added successfully!');
             setIsModalVisible(false);
-            setFormData({ firstName: '', lastName: '', email: '', role: '', contact: '', aadhar: '', location: '' });
+            setFormData({ employeeId: '', firstName: '', lastName: '', email: '', role: '', contact: '', aadhar: '', location: '' });
             fetchEmployees();
         } catch (error) {
             console.log('Add employee error:', error);
@@ -123,7 +140,7 @@ const EmployeeListScreen = () => {
     const renderRow = (item: Employee, index: number) => (
         <View style={[styles.tableRow, index % 2 === 1 && styles.tableRowAlt]} key={item.id.toString()}>
             <Text style={[styles.cell, { width: COL_WIDTHS.id, color: '#48327d', fontWeight: 'bold' }]}>
-                #{item.id || '----'}
+                {item.employee_id || '----'}
             </Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.name, fontWeight: 'bold' }]}>{item.first_name || '-'}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.name, fontWeight: 'bold' }]}>{item.last_name || '-'}</Text>
@@ -135,16 +152,47 @@ const EmployeeListScreen = () => {
         </View>
     );
 
+    // Filter employees based on search query
+    const filteredEmployees = employees.filter(emp => {
+        if (!searchQuery) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            (emp.employee_id || '').toLowerCase().includes(query) ||
+            (emp.first_name || '').toLowerCase().includes(query) ||
+            (emp.last_name || '').toLowerCase().includes(query) ||
+            (emp.email || '').toLowerCase().includes(query) ||
+            (emp.role || '').toLowerCase().includes(query)
+        );
+    });
+
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Employees</Text>
+                <View style={{ flex: 1 }}>
+                    <Text style={styles.headerTitle}>Employee Management</Text>
+                    <Text style={styles.headerSubtitle}>Personnel registry and employee records</Text>
+                </View>
+            </View>
+
+            {/* Search Bar and Register Button Row */}
+            <View style={styles.searchRow}>
+                <View style={styles.searchContainer}>
+                    <Text style={styles.searchIcon}>🔍</Text>
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search employees..."
+                        placeholderTextColor="#94a3b8"
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                    />
+                </View>
                 <TouchableOpacity
-                    style={styles.addButton}
+                    style={styles.registerButton}
                     onPress={() => setIsModalVisible(true)}
                 >
-                    <Text style={styles.addButtonText}>+ Add</Text>
+                    <Text style={styles.registerButtonIcon}>👤+</Text>
+                    <Text style={styles.registerButtonText}>Register Employee</Text>
                 </TouchableOpacity>
             </View>
 
@@ -165,10 +213,10 @@ const EmployeeListScreen = () => {
                         >
                             <View>
                                 {renderHeader()}
-                                {employees.length === 0 ? (
+                                {filteredEmployees.length === 0 ? (
                                     <Text style={styles.emptyText}>No records found.</Text>
                                 ) : (
-                                    employees.map((item, index) => renderRow(item, index))
+                                    filteredEmployees.map((item, index) => renderRow(item, index))
                                 )}
                             </View>
                         </ScrollView>
@@ -186,19 +234,34 @@ const EmployeeListScreen = () => {
                 <View style={styles.registerModalOverlay}>
                     <View style={styles.registerModalContent}>
                         <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>New Employee</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <Text style={{ fontSize: 20 }}>👤+</Text>
+                                <Text style={styles.modalTitle}>Register New Employee</Text>
+                            </View>
                             <TouchableOpacity onPress={() => setIsModalVisible(false)}>
                                 <Text style={styles.closeText}>✕</Text>
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView contentContainerStyle={styles.formContainer}>
+                            {/* Employee ID */}
+                            <Text style={styles.inputLabel}>EMPLOYEE ID <Text style={{ color: '#ef4444' }}>*</Text></Text>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Eg: MW0000"
+                                placeholderTextColor="#94a3b8"
+                                value={formData.employeeId}
+                                onChangeText={(t) => setFormData({ ...formData, employeeId: t })}
+                            />
+
+                            {/* First Name and Last Name Row */}
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.inputLabel}>FIRST NAME *</Text>
+                                    <Text style={styles.inputLabel}>FIRST NAME <Text style={{ color: '#ef4444' }}>*</Text></Text>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Enter Name"
+                                        placeholder="Enter First Name"
+                                        placeholderTextColor="#94a3b8"
                                         value={formData.firstName}
                                         onChangeText={(t) => setFormData({ ...formData, firstName: t })}
                                     />
@@ -207,22 +270,24 @@ const EmployeeListScreen = () => {
                                     <Text style={styles.inputLabel}>LAST NAME</Text>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Enter Name"
+                                        placeholder="Enter Last Name"
+                                        placeholderTextColor="#94a3b8"
                                         value={formData.lastName}
                                         onChangeText={(t) => setFormData({ ...formData, lastName: t })}
                                     />
                                 </View>
                             </View>
 
+                            {/* Designation and Contact Row */}
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={{ flex: 1, zIndex: 1000 }}>
-                                    <Text style={styles.inputLabel}>DESIGNATION *</Text>
+                                    <Text style={styles.inputLabel}>DESIGNATION</Text>
                                     <TouchableOpacity
                                         style={styles.dropdownButton}
                                         onPress={() => setIsRolePickerVisible(!isRolePickerVisible)}
                                     >
-                                        <Text style={[styles.dropdownText, !formData.role && { color: '#b2bec3' }]}>
-                                            {formData.role || "Select Role"}
+                                        <Text style={[styles.dropdownText, !formData.role && { color: '#94a3b8' }]}>
+                                            {formData.role || "Select Designation"}
                                         </Text>
                                         <Text style={{ color: '#636e72', fontSize: 12 }}>▼</Text>
                                     </TouchableOpacity>
@@ -280,47 +345,136 @@ const EmployeeListScreen = () => {
                                                         </Text>
                                                     </TouchableOpacity>
                                                 ))}
+
+                                                {/* Add New Designation Option */}
+                                                {isAddingDesignation ? (
+                                                    <View style={{
+                                                        padding: 12,
+                                                        borderTopWidth: 2,
+                                                        borderTopColor: '#48327d',
+                                                        backgroundColor: '#f8fafc'
+                                                    }}>
+                                                        <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontWeight: 'bold' }}>ADD NEW DESIGNATION</Text>
+                                                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                            <TextInput
+                                                                style={{
+                                                                    flex: 1,
+                                                                    borderWidth: 1,
+                                                                    borderColor: '#e2e8f0',
+                                                                    borderRadius: 6,
+                                                                    paddingHorizontal: 10,
+                                                                    paddingVertical: 8,
+                                                                    fontSize: 13,
+                                                                    backgroundColor: 'white'
+                                                                }}
+                                                                placeholder="Enter designation..."
+                                                                placeholderTextColor="#94a3b8"
+                                                                value={newDesignation}
+                                                                onChangeText={setNewDesignation}
+                                                                autoFocus
+                                                            />
+                                                            <TouchableOpacity
+                                                                style={{
+                                                                    backgroundColor: '#48327d',
+                                                                    paddingHorizontal: 12,
+                                                                    paddingVertical: 8,
+                                                                    borderRadius: 6,
+                                                                    justifyContent: 'center'
+                                                                }}
+                                                                onPress={() => {
+                                                                    if (newDesignation.trim()) {
+                                                                        setDesignations([...designations, newDesignation.trim()]);
+                                                                        setFormData({ ...formData, role: newDesignation.trim() });
+                                                                        setNewDesignation('');
+                                                                        setIsAddingDesignation(false);
+                                                                        setIsRolePickerVisible(false);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Add</Text>
+                                                            </TouchableOpacity>
+                                                            <TouchableOpacity
+                                                                style={{
+                                                                    backgroundColor: '#e2e8f0',
+                                                                    paddingHorizontal: 12,
+                                                                    paddingVertical: 8,
+                                                                    borderRadius: 6,
+                                                                    justifyContent: 'center'
+                                                                }}
+                                                                onPress={() => {
+                                                                    setNewDesignation('');
+                                                                    setIsAddingDesignation(false);
+                                                                }}
+                                                            >
+                                                                <Text style={{ color: '#64748b', fontWeight: 'bold', fontSize: 12 }}>✕</Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                    </View>
+                                                ) : (
+                                                    <TouchableOpacity
+                                                        style={{
+                                                            padding: 12,
+                                                            borderTopWidth: 2,
+                                                            borderTopColor: '#48327d',
+                                                            backgroundColor: '#f8fafc',
+                                                            flexDirection: 'row',
+                                                            alignItems: 'center',
+                                                            gap: 6
+                                                        }}
+                                                        onPress={() => setIsAddingDesignation(true)}
+                                                    >
+                                                        <Text style={{ color: '#48327d', fontSize: 16, fontWeight: 'bold' }}>+</Text>
+                                                        <Text style={{ color: '#48327d', fontSize: 13, fontWeight: 'bold' }}>Add New Designation</Text>
+                                                    </TouchableOpacity>
+                                                )}
                                             </ScrollView>
                                         </View>
                                     )}
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.inputLabel}>CONTACT</Text>
+                                    <Text style={styles.inputLabel}>CONTACT <Text style={{ color: '#ef4444' }}>*</Text></Text>
                                     <TextInput
                                         style={styles.input}
                                         keyboardType="phone-pad"
-                                        placeholder="Phone number"
+                                        placeholder="10-digit phone"
+                                        placeholderTextColor="#94a3b8"
                                         value={formData.contact}
                                         onChangeText={(t) => setFormData({ ...formData, contact: t })}
                                     />
                                 </View>
                             </View>
 
-                            <Text style={styles.inputLabel}>EMAIL *</Text>
+                            {/* Email */}
+                            <Text style={styles.inputLabel}>EMAIL <Text style={{ color: '#ef4444' }}>*</Text></Text>
                             <TextInput
                                 style={styles.input}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 placeholder="email@example.com"
+                                placeholderTextColor="#94a3b8"
                                 value={formData.email}
                                 onChangeText={(t) => setFormData({ ...formData, email: t })}
                             />
 
+                            {/* Aadhar and Location Row */}
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.inputLabel}>AADHAR NUMBER</Text>
+                                    <Text style={styles.inputLabel}>AADHAR NUMBER <Text style={{ color: '#ef4444' }}>*</Text></Text>
                                     <TextInput
                                         style={styles.input}
-                                        placeholder="Enter Aadhar"
+                                        placeholder="12-digit Aadhar"
+                                        placeholderTextColor="#94a3b8"
+                                        keyboardType="number-pad"
                                         value={formData.aadhar}
                                         onChangeText={(t) => setFormData({ ...formData, aadhar: t })}
                                     />
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.inputLabel}>ADDRESS / LOCATION</Text>
+                                    <Text style={styles.inputLabel}>ADDRESS / LOCATION <Text style={{ color: '#ef4444' }}>*</Text></Text>
                                     <TextInput
                                         style={styles.input}
                                         placeholder="City / Address"
+                                        placeholderTextColor="#94a3b8"
                                         value={formData.location}
                                         onChangeText={(t) => setFormData({ ...formData, location: t })}
                                     />
@@ -330,10 +484,10 @@ const EmployeeListScreen = () => {
                             <TouchableOpacity
                                 style={[
                                     styles.submitButton,
-                                    (!(formData.firstName && formData.email && formData.role) || isSubmitting) && styles.submitButtonDisabled
+                                    (!(formData.employeeId && formData.firstName && formData.email && formData.contact && formData.aadhar && formData.location) || isSubmitting) && styles.submitButtonDisabled
                                 ]}
                                 onPress={handleRegister}
-                                disabled={!(formData.firstName && formData.email && formData.role) || isSubmitting}
+                                disabled={!(formData.employeeId && formData.firstName && formData.email && formData.contact && formData.aadhar && formData.location) || isSubmitting}
                             >
                                 <Text style={styles.submitButtonText}>
                                     {isSubmitting ? 'Saving...' : 'Register Employee'}
@@ -407,6 +561,60 @@ const styles = StyleSheet.create({
         fontSize: 24,
         fontWeight: 'bold',
         color: '#2d3436',
+    },
+    headerSubtitle: {
+        fontSize: 14,
+        color: '#64748b',
+        marginTop: 4,
+    },
+    searchRow: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        backgroundColor: 'white',
+        gap: 12,
+        alignItems: 'center',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e2e8f0',
+    },
+    searchContainer: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#f8fafc',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        paddingHorizontal: 12,
+        height: 44,
+    },
+    searchIcon: {
+        fontSize: 16,
+        marginRight: 8,
+    },
+    searchInput: {
+        flex: 1,
+        fontSize: 14,
+        color: '#2d3436',
+        padding: 0,
+    },
+    registerButton: {
+        backgroundColor: '#48327d',
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 8,
+        gap: 6,
+    },
+    registerButtonIcon: {
+        fontSize: 16,
+        color: 'white',
+    },
+    registerButtonText: {
+        color: 'white',
+        fontWeight: 'bold',
+        fontSize: 14,
     },
     addButton: {
         backgroundColor: '#48327d',

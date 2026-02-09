@@ -18,11 +18,7 @@ const FeedSection = ({ user }) => {
     const [isDeleting, setIsDeleting] = useState(false);
     const fileInputRef = useRef(null);
 
-    const isAdmin = user?.is_admin === true ||
-        user?.role === 'Admin' ||
-        user?.role === 'Administrator' ||
-        user?.role === 'Project Manager' ||
-        user?.role === 'Advisor-Technology & Operations';
+    const isAdmin = (user?.first_name === 'Rajesh' || user?.first_name === 'Satyanarayana');
 
     const fetchPosts = async () => {
         try {
@@ -67,6 +63,7 @@ const FeedSection = ({ user }) => {
 
     const handleCreatePost = async (e) => {
         e.preventDefault();
+        if (!isAdmin) return;
         if (!newPostContent.trim() && imagePreviews.length === 0) return;
 
         setIsPosting(true);
@@ -159,7 +156,7 @@ const FeedSection = ({ user }) => {
                 Community Wall
             </h2>
 
-            {isAdmin && (
+            {user && isAdmin && (
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e2e8f0]">
                     {/* ... textarea section ... */}
                     <div className="flex gap-3 mb-3">

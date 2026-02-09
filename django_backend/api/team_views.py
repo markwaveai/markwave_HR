@@ -304,6 +304,18 @@ def member_detail(request, pk):
 def team_stats(request):
     try:
         team_id = request.query_params.get('team_id')
+        
+        # If no team_id is provided, return null stats (user doesn't belong to a team)
+        if not team_id:
+            return Response({
+                'total': 0,
+                'active': 0,
+                'onLeave': 0,
+                'remote': 0,
+                'avg_working_hours': None,
+                'on_time_arrival': None
+            })
+        
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
         if team_id:
             query = query.filter(teams__id=team_id)

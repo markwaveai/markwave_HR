@@ -55,7 +55,7 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
             </View>
             <View style={StyleSheet.absoluteFillObject}>
                 <View style={styles.labelContainer}>
-                    <Text style={styles.valueText}>{value}</Text>
+                    <Text style={[styles.valueText, { fontSize: size * 0.28 }]}>{value}</Text>
                 </View>
             </View>
         </View>

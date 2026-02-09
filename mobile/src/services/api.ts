@@ -84,7 +84,8 @@ export const teamApi = {
     updateMember: (id: string, data: any) => apiFetch(`/team/members/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data)
-    })
+    }),
+    getDesignations: () => apiFetch('/team/designations/')
 };
 
 export const attendanceApi = {
@@ -94,7 +95,8 @@ export const attendanceApi = {
         method: 'POST',
         body: JSON.stringify(data)
     }),
-    getPersonalStats: (employeeId: string) => apiFetch(`/attendance/stats/${employeeId}/?_t=${new Date().getTime()}`)
+    getPersonalStats: (employeeId: string) => apiFetch(`/attendance/stats/${employeeId}/?_t=${new Date().getTime()}`),
+    getHolidays: () => apiFetch('/holidays/')
 };
 
 export const feedApi = {

@@ -15,6 +15,7 @@ import {
     ScrollView
 } from 'react-native';
 import { teamApi } from '../services/api';
+import { EditIcon, TrashIcon, SearchIcon } from '../components/Icons';
 
 interface MyTeamScreenProps {
     user: any;
@@ -28,20 +29,39 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const [allEmployees, setAllEmployees] = useState<any[]>([]);
     const [isAddModalVisible, setIsAddModalVisible] = useState(false);
     const [selectedExistingId, setSelectedExistingId] = useState<string>('');
+    const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [teams, setTeams] = useState<any[]>([]);
+    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+    const [editingMember, setEditingMember] = useState<any>(null);
 
     const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
 
     useEffect(() => {
-        fetchTeamData();
+        if (user?.teams && user.teams.length > 0) {
+            setTeams(user.teams);
+            // Default to the first team they manage if available, else first team they belong to
+            const leadTeam = user.teams.find((t: any) => t.manager_name?.includes(user.first_name));
+            setSelectedTeamId(leadTeam ? leadTeam.id : user.teams[0].id);
+        } else if (user?.team_id) {
+            setSelectedTeamId(user.team_id);
+        }
     }, [user]);
 
+    useEffect(() => {
+        if (selectedTeamId !== null) {
+            fetchTeamData();
+        }
+    }, [selectedTeamId]);
+
     const fetchTeamData = async () => {
+        if (selectedTeamId === null) return;
+
+        setLoading(true);
         try {
-            const teamId = user?.team_id;
             const [membersData, statsData, allEmpsData] = await Promise.all([
-                teamApi.getMembers(teamId),
-                teamApi.getStats(teamId),
+                teamApi.getMembers(selectedTeamId),
+                teamApi.getStats(selectedTeamId),
                 teamApi.getAttendanceRegistry()
             ]);
 
@@ -57,7 +77,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     };
 
     const handleAddMember = async () => {
-        if (!selectedExistingId) {
+        if (!selectedExistingId || selectedTeamId === null) {
             Alert.alert("Required", "Please select an employee.");
             return;
         }
@@ -65,7 +85,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
         setIsSubmitting(true);
         try {
             await teamApi.updateMember(selectedExistingId, {
-                team_id: user?.team_id,
+                team_id: selectedTeamId,
                 acting_user_id: user?.id
             });
 
@@ -81,64 +101,140 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
         }
     };
 
+    const handleDeleteMember = (member: any) => {
+        Alert.alert(
+            "Remove Member",
+            `Are you sure you want to remove ${member.name} from the team?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Remove",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await teamApi.updateMember(member.id, {
+                                remove_team_id: selectedTeamId,
+                                acting_user_id: user?.id
+                            });
+                            Alert.alert("Success", "Member removed from team.");
+                            fetchTeamData();
+                        } catch (error: any) {
+                            Alert.alert("Error", error.message || "Failed to remove member");
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleUpdateMember = async (updatedData: any) => {
+        if (!editingMember) return;
+        setIsSubmitting(true);
+        try {
+            await teamApi.updateMember(editingMember.id, {
+                ...updatedData,
+                acting_user_id: user?.id
+            });
+            Alert.alert("Success", "Employee updated successfully!");
+            setIsEditModalVisible(false);
+            setEditingMember(null);
+            fetchTeamData();
+        } catch (error: any) {
+            Alert.alert("Error", error.message || "Failed to update employee");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleEditMemberClick = (member: any) => {
+        setEditingMember(member);
+        setIsEditModalVisible(true);
+    };
+
     const filteredMembers = teamMembers.filter(member =>
         (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
         (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
     );
 
-    const renderHeader = () => (
-        <View style={styles.headerContainer}>
-            <View style={styles.titleRow}>
-                <View style={styles.titleContent}>
-                    <Text style={styles.pageTitle}>My Team</Text>
-                    <Text style={styles.pageSubtitle}>Manage and view your team members</Text>
+    const renderHeader = () => {
+        const currentTeam = teams.find(t => t.id === selectedTeamId);
+
+        return (
+            <View style={styles.headerContainer}>
+                <View style={styles.titleRow}>
+                    <View style={styles.titleContent}>
+                        <Text style={styles.pageTitle}>My Team</Text>
+                        <Text style={styles.teamLeadSubtitle}>
+                            {currentTeam?.manager_name ? `Team ${currentTeam.manager_name}` : (currentTeam ? `Team ${currentTeam.name}` : (user?.team_lead_name ? `Team ${user.team_lead_name}` : 'My Team Members'))}
+                        </Text>
+                    </View>
+                    {isManager && (
+                        <TouchableOpacity
+                            style={styles.addButton}
+                            onPress={() => setIsAddModalVisible(true)}
+                        >
+                            <Text style={styles.addButtonText}>Add Member</Text>
+                        </TouchableOpacity>
+                    )}
                 </View>
-                {isManager && (
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => setIsAddModalVisible(true)}
-                    >
-                        <Text style={styles.addButtonText}>Add Member</Text>
-                    </TouchableOpacity>
+
+                {/* Team Selector if multiple teams */}
+                {teams.length > 1 && (
+                    <View style={styles.selectorContainer}>
+                        <Text style={styles.selectorLabel}>Select Team:</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.teamsScroll}>
+                            {teams.map(t => (
+                                <TouchableOpacity
+                                    key={t.id}
+                                    onPress={() => setSelectedTeamId(t.id)}
+                                    style={[styles.teamTab, selectedTeamId === t.id && styles.activeTeamTab]}
+                                >
+                                    <Text style={[styles.teamTabText, selectedTeamId === t.id && styles.activeTeamTabText]}>
+                                        {t.name}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
                 )}
-            </View>
 
-            {/* Search Bar */}
-            <View style={styles.searchContainer}>
-                <Text style={styles.searchIcon}>🔍</Text>
-                <TextInput
-                    style={styles.searchInput}
-                    placeholder="Search members..."
-                    value={searchTerm}
-                    onChangeText={setSearchTerm}
-                    placeholderTextColor="#94a3b8"
-                />
-            </View>
-
-            {/* Stats Grid */}
-            <View style={styles.statsGrid}>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Total Members</Text>
-                    <Text style={[styles.statValue, { color: '#1e293b' }]}>{stats?.total || 0}</Text>
+                {/* Search Bar */}
+                <View style={styles.searchContainer}>
+                    <SearchIcon color="#94a3b8" size={16} style={styles.searchIcon} />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Search members..."
+                        value={searchTerm}
+                        onChangeText={setSearchTerm}
+                        placeholderTextColor="#94a3b8"
+                    />
                 </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Active Now</Text>
-                    <View style={styles.activeRow}>
-                        <Text style={[styles.statValue, { color: '#10b981' }]}>{stats?.active || 0}</Text>
-                        <Text style={styles.onlineBadge}>Online</Text>
+
+                {/* Stats Grid */}
+                <View style={styles.statsGrid}>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>Total Members</Text>
+                        <Text style={[styles.statValue, { color: '#1e293b' }]}>{stats?.total || 0}</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>Active Now</Text>
+                        <View style={styles.activeRow}>
+                            <Text style={[styles.statValue, { color: '#10b981' }]}>{stats?.active || 0}</Text>
+                            <Text style={styles.onlineBadge}>Online</Text>
+                        </View>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>On Leave</Text>
+                        <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats?.onLeave || 0}</Text>
+                    </View>
+                    <View style={styles.statCard}>
+                        <Text style={styles.statLabel}>Remote</Text>
+                        <Text style={[styles.statValue, { color: '#3b82f6' }]}>{stats?.remote || 0}</Text>
                     </View>
                 </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>On Leave</Text>
-                    <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats?.onLeave || 0}</Text>
-                </View>
-                <View style={styles.statCard}>
-                    <Text style={styles.statLabel}>Remote</Text>
-                    <Text style={[styles.statValue, { color: '#3b82f6' }]}>{stats?.remote || 0}</Text>
-                </View>
             </View>
-        </View>
-    );
+        );
+    };
 
     const renderMemberCard = ({ item }: { item: any }) => (
         <View style={styles.card}>
@@ -151,9 +247,22 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                         {item.role}
                     </Text>
                 </View>
-                <TouchableOpacity style={styles.moreButton}>
-                    <Text style={styles.moreButtonText}>⋮</Text>
-                </TouchableOpacity>
+                {isManager && (
+                    <View style={styles.actionButtonsContainer}>
+                        <TouchableOpacity
+                            style={styles.actionIconBtn}
+                            onPress={() => handleEditMemberClick(item)}
+                        >
+                            <EditIcon color="#3b82f6" size={18} strokeWidth={2.5} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.actionIconBtn}
+                            onPress={() => handleDeleteMember(item)}
+                        >
+                            <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
+                        </TouchableOpacity>
+                    </View>
+                )}
             </View>
 
             <View style={styles.divider} />
@@ -185,7 +294,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                     <Text style={styles.viewProfileText}>View Profile</Text>
                 </TouchableOpacity>
             </View>
-        </View>
+        </View >
     );
 
     if (loading) {
@@ -226,7 +335,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
 
                         <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
                             <View>
-                                <Text style={styles.inputLabel}>SELECT EMPLOYEE (TOTAL EMPLOYEES)</Text>
+                                <Text style={styles.inputLabel}>SELECT EMPLOYEE</Text>
                                 <View style={styles.pickerContainer}>
                                     {allEmployees
                                         .filter(emp => !teamMembers.some(m => m.id === emp.id))
@@ -261,6 +370,65 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                             >
                                 <Text style={styles.submitButtonText}>
                                     {isSubmitting ? "Adding..." : "Add Member"}
+                                </Text>
+                            </TouchableOpacity>
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* Edit Member Modal */}
+            <Modal
+                visible={isEditModalVisible}
+                animationType="slide"
+                transparent={true}
+                onRequestClose={() => setIsEditModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>Edit Member Details</Text>
+                            <TouchableOpacity onPress={() => setIsEditModalVisible(false)} style={styles.closeButton}>
+                                <Text style={styles.closeButtonText}>✕</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
+                            <View>
+                                <Text style={styles.inputLabel}>FULL NAME</Text>
+                                <TextInput
+                                    style={styles.modalInput}
+                                    value={editingMember?.name}
+                                    editable={false} // Name usually managed via profile/HR
+                                />
+
+                                <Text style={styles.inputLabel}>DESIGNATION / ROLE</Text>
+                                <TextInput
+                                    style={styles.modalInput}
+                                    value={editingMember?.role}
+                                    onChangeText={(text) => setEditingMember({ ...editingMember, role: text })}
+                                    placeholder="e.g. Senior Developer"
+                                />
+
+                                <Text style={styles.inputLabel}>OFFICE LOCATION</Text>
+                                <TextInput
+                                    style={styles.modalInput}
+                                    value={editingMember?.location}
+                                    onChangeText={(text) => setEditingMember({ ...editingMember, location: text })}
+                                    placeholder="e.g. Hyderabad"
+                                />
+                            </View>
+
+                            <TouchableOpacity
+                                style={[styles.submitButton, isSubmitting && { opacity: 0.5 }]}
+                                onPress={() => handleUpdateMember({
+                                    role: editingMember.role,
+                                    location: editingMember.location
+                                })}
+                                disabled={isSubmitting}
+                            >
+                                <Text style={styles.submitButtonText}>
+                                    {isSubmitting ? "Updating..." : "Update Details"}
                                 </Text>
                             </TouchableOpacity>
                         </ScrollView>
@@ -305,10 +473,50 @@ const styles = StyleSheet.create({
         color: '#1e293b',
         letterSpacing: -0.5,
     },
+    teamLeadSubtitle: {
+        fontSize: 14,
+        color: '#6c757d',
+        fontStyle: 'italic',
+        marginTop: 2,
+    },
     pageSubtitle: {
         fontSize: 13,
         color: '#64748b',
         marginTop: 2,
+    },
+    selectorContainer: {
+        marginBottom: 20,
+    },
+    selectorLabel: {
+        fontSize: 10,
+        fontWeight: '800',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        marginBottom: 8,
+    },
+    teamsScroll: {
+        flexDirection: 'row',
+    },
+    teamTab: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#f1f5f9',
+        marginRight: 10,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    activeTeamTab: {
+        backgroundColor: '#6366f1',
+        borderColor: '#6366f1',
+    },
+    teamTabText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#64748b',
+    },
+    activeTeamTabText: {
+        color: 'white',
     },
     addButton: {
         backgroundColor: '#6366f1',
@@ -338,8 +546,7 @@ const styles = StyleSheet.create({
         height: 44,
     },
     searchIcon: {
-        marginRight: 8,
-        fontSize: 14,
+        marginRight: 10,
     },
     searchInput: {
         flex: 1,
@@ -540,13 +747,6 @@ const styles = StyleSheet.create({
     formContainer: {
         padding: 24,
     },
-    formRow: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    formField: {
-        flex: 1,
-    },
     inputLabel: {
         fontSize: 10,
         fontWeight: '900',
@@ -554,16 +754,6 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
         marginBottom: 8,
         marginTop: 16,
-    },
-    input: {
-        backgroundColor: '#f8fafc',
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 14,
-        color: '#1e293b',
-        fontWeight: '500',
     },
     submitButton: {
         backgroundColor: '#6366f1',
@@ -624,6 +814,27 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontStyle: 'italic',
         marginTop: 20,
+    },
+    modalInput: {
+        backgroundColor: '#f8fafc',
+        borderRadius: 12,
+        padding: 14,
+        fontSize: 14,
+        color: '#1e293b',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginBottom: 16,
+        fontWeight: '500',
+    },
+    actionButtonsContainer: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    actionIconBtn: {
+        padding: 4,
+    },
+    actionIconText: {
+        fontSize: 18,
     }
 });
 

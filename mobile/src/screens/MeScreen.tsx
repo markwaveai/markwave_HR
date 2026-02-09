@@ -31,8 +31,8 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
     const [disabledReason, setDisabledReason] = useState<string | null>(null);
     const [debugInfo, setDebugInfo] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [filterType, setFilterType] = useState('30Days');
-    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+    const [filterType, setFilterType] = useState('Month');
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() - 1);
     const [activeBreakLog, setActiveBreakLog] = useState<any>(null);
     const [clockLoading, setClockLoading] = useState(false);
 
@@ -524,28 +524,30 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                         </View>
                     </View>
 
-                    {/* My Team Stats Row */}
-                    <View style={[styles.statsRow, { marginTop: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }]}>
-                        <View style={styles.statsRowIdentity}>
-                            <View style={[styles.statsIconCircle, { backgroundColor: '#fcfaff' }]}>
-                                <Text style={{ fontSize: 14, color: '#48327d' }}>👥</Text>
+                    {/* My Team Stats Row - Only show if user has team */}
+                    {teamStats && (teamStats.avg_working_hours || teamStats.on_time_arrival) && (
+                        <View style={[styles.statsRow, { marginTop: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }]}>
+                            <View style={styles.statsRowIdentity}>
+                                <View style={[styles.statsIconCircle, { backgroundColor: '#fcfaff' }]}>
+                                    <Text style={{ fontSize: 14, color: '#48327d' }}>👥</Text>
+                                </View>
+                                <Text style={styles.statsRowLabel}>My Team</Text>
                             </View>
-                            <Text style={styles.statsRowLabel}>My Team</Text>
-                        </View>
-                        <View style={styles.statsRowMetric}>
-                            <Text style={styles.smallMetricLabel}>AVG HRS /{"\n"}DAY</Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-                                <Text style={styles.statsRowValue}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[0]}</Text>
-                                <Text style={[styles.statsRowValue, { fontSize: 13, marginLeft: 2, opacity: 0.7 }]}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[1] || '00m'}</Text>
+                            <View style={styles.statsRowMetric}>
+                                <Text style={styles.smallMetricLabel}>AVG HRS /{"\n"}DAY</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                                    <Text style={styles.statsRowValue}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[0]}</Text>
+                                    <Text style={[styles.statsRowValue, { fontSize: 13, marginLeft: 2, opacity: 0.7 }]}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[1] || '00m'}</Text>
+                                </View>
+                            </View>
+                            <View style={styles.statsRowMetric}>
+                                <Text style={styles.smallMetricLabel}>ON TIME{"\n"}ARRIVAL</Text>
+                                <View style={{ flex: 1, justifyContent: 'center' }}>
+                                    <Text style={[styles.statsRowValue, { fontSize: 24, marginTop: 4 }]}>{teamStats?.on_time_arrival || '0%'}</Text>
+                                </View>
                             </View>
                         </View>
-                        <View style={styles.statsRowMetric}>
-                            <Text style={styles.smallMetricLabel}>ON TIME{"\n"}ARRIVAL</Text>
-                            <View style={{ flex: 1, justifyContent: 'center' }}>
-                                <Text style={[styles.statsRowValue, { fontSize: 24, marginTop: 4 }]}>{teamStats?.on_time_arrival || '0%'}</Text>
-                            </View>
-                        </View>
-                    </View>
+                    )}
                 </View>
 
                 {/* Timings Card */}
@@ -578,33 +580,65 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                             <Text style={styles.timingDayFull}>
                                 {new Date(activeDayLog.date).toLocaleDateString('en-US', { weekday: 'long' })}, {new Date(activeDayLog.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                             </Text>
-                            <View style={styles.shiftBadge}>
-                                <Text style={styles.shiftBadgeText}>09:30 AM - 06:30 PM</Text>
-                            </View>
+                            {(() => {
+                                const dayOfWeek = new Date(activeDayLog.date).getDay();
+                                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                                if (isWeekend) {
+                                    return (
+                                        <View style={[styles.shiftBadge, { backgroundColor: '#f1f5f9' }]}>
+                                            <Text style={[styles.shiftBadgeText, { color: '#64748b' }]}>Week Off</Text>
+                                        </View>
+                                    );
+                                }
+
+                                return (
+                                    <View style={styles.shiftBadge}>
+                                        <Text style={styles.shiftBadgeText}>09:30 AM - 06:30 PM</Text>
+                                    </View>
+                                );
+                            })()}
                         </View>
-                        <View style={styles.progressSection}>
-                            <View style={styles.visualBar}>
-                                {getVisualSegments(activeDayLog).map((seg, i) => (
-                                    <View
-                                        key={i}
-                                        style={[
-                                            styles.visualSeg,
-                                            {
-                                                width: `${seg.width}%`,
-                                                backgroundColor: seg.type === 'work' ? '#48327d' : 'transparent'
-                                            }
-                                        ]}
-                                    />
-                                ))}
-                            </View>
-                            <View style={styles.timingFooterRow}>
-                                <Text style={styles.timingFooterText}>Duration: {activeTiming.effective === '-' ? '9h 00m' : activeTiming.effective}</Text>
-                                <View style={styles.timingFooterBreak}>
-                                    <Text style={{ fontSize: 13, marginRight: 4 }}>☕</Text>
-                                    <Text style={styles.timingFooterText}>{activeTiming.totalBreakMins || 60} min</Text>
+                        {(() => {
+                            const dayOfWeek = new Date(activeDayLog.date).getDay();
+                            const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+                            if (isWeekend) {
+                                return (
+                                    <View style={styles.progressSection}>
+                                        <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center', paddingVertical: 20 }}>
+                                            No attendance required
+                                        </Text>
+                                    </View>
+                                );
+                            }
+
+                            return (
+                                <View style={styles.progressSection}>
+                                    <View style={styles.visualBar}>
+                                        {getVisualSegments(activeDayLog).map((seg, i) => (
+                                            <View
+                                                key={i}
+                                                style={[
+                                                    styles.visualSeg,
+                                                    {
+                                                        width: `${seg.width}%`,
+                                                        backgroundColor: seg.type === 'work' ? '#48327d' : 'transparent'
+                                                    }
+                                                ]}
+                                            />
+                                        ))}
+                                    </View>
+                                    <View style={styles.timingFooterRow}>
+                                        <Text style={styles.timingFooterText}>Duration: {activeTiming.effective === '-' ? '9h 00m' : activeTiming.effective}</Text>
+                                        <View style={styles.timingFooterBreak}>
+                                            <Text style={{ fontSize: 13, marginRight: 4 }}>☕</Text>
+                                            <Text style={styles.timingFooterText}>{activeTiming.totalBreakMins || 60} min</Text>
+                                        </View>
+                                    </View>
                                 </View>
-                            </View>
-                        </View>
+                            );
+                        })()}
                     </View>
                 </View>
 
@@ -662,13 +696,20 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
                     </View>
                 </View>
 
+
                 {filterType === 'Month' && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroller}>
-                        {MONTHS.map((m, idx) => (
-                            <TouchableOpacity key={m} style={[styles.monthItem, selectedMonth === idx && styles.monthItemActive]} onPress={() => setSelectedMonth(idx)}>
-                                <Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>{m}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {MONTHS.map((m, idx) => {
+                            const currentMonth = new Date().getMonth();
+                            // Only show months before the current month
+                            if (idx >= currentMonth) return null;
+
+                            return (
+                                <TouchableOpacity key={m} style={[styles.monthItem, selectedMonth === idx && styles.monthItemActive]} onPress={() => setSelectedMonth(idx)}>
+                                    <Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>{m}</Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </ScrollView>
                 )}
 

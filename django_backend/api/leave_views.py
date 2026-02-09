@@ -54,7 +54,12 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
             leave_display_names = {
                 'cl': 'Casual Leave',
                 'sl': 'Sick Leave',
-                'el': 'Earned Leave'
+                'el': 'Earned Leave',
+                'scl': 'Special Casual Leave',
+                'bl': 'Bereavement Leave',
+                'pl': 'Paternity Leave',
+                'll': 'Long Leave',
+                'co': 'Comp Off'
             }
             leave_name = leave_display_names.get(leave_type, leave_type.upper())
             

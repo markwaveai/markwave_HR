@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { leaveApi, authApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
+import LeaveBalanceCard from '../components/LeaveBalanceCard';
 
 const LeaveScreen = ({ user }: { user: any }) => {
     const [history, setHistory] = useState<any[]>([]);
-    const [balances, setBalances] = useState<any[]>([]);
+    // balances state removed
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -28,47 +29,20 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const [toSession, setToSession] = useState('Full Day');
     const [notifyTo, setNotifyTo] = useState<string[]>([]);
     const [profile, setProfile] = useState<any>(null);
+    const [apiBalance, setApiBalance] = useState<any>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const EMPLOYEE_ID = user?.id; // Dynamic ID from prop
 
-    const LEAVE_CONFIG = {
-        'cl': { name: 'Casual Leave', code: 'cl', total: 6, color: '#3498db', bg: '#e0f2fe' },
-        'sl': { name: 'Sick Leave', code: 'sl', total: 6, color: '#e74c3c', bg: '#fee2e2' },
-        'el': { name: 'Earned Leave', code: 'el', total: 17, color: '#2ecc71', bg: '#dcfce7' },
-    };
-
-    const LEAVE_TYPES_LIST = [
-        { label: 'Casual Leave', value: 'cl' },
-        { label: 'Sick Leave', value: 'sl' },
-        { label: 'Earned Leave', value: 'el' },
-    ];
-
-    useEffect(() => {
-        fetchLeaves();
-        if (EMPLOYEE_ID) {
-            authApi.getProfile(EMPLOYEE_ID).then(p => setProfile(p)).catch(console.log);
-        }
-    }, [EMPLOYEE_ID]);
-
-    useEffect(() => {
-        calculateBalances();
-    }, [history]);
-
-    const calculateBalances = () => {
-        const newBalances = Object.keys(LEAVE_CONFIG).map(typeCode => {
-            const config = LEAVE_CONFIG[typeCode as keyof typeof LEAVE_CONFIG];
-            const consumed = history
-                .filter(log => log.type === typeCode && (log.status === 'Approved' || log.status === 'Pending'))
-                .reduce((sum, log) => sum + (log.days || 0), 0);
-
-            return {
-                ...config,
-                consumed,
-                available: config.total - consumed
-            };
-        });
-        setBalances(newBalances);
+    const LEAVE_CONFIG: any = {
+        'cl': { name: 'Casual Leave', code: 'cl', icon: '✈️', color: '#3498db', bg: '#e0f2fe' },
+        'sl': { name: 'Sick Leave', code: 'sl', icon: '🌡️', color: '#e74c3c', bg: '#fee2e2' },
+        'el': { name: 'Earned Leave', code: 'el', icon: '🌴', color: '#2ecc71', bg: '#dcfce7' },
+        'scl': { name: 'Special Casual Leave', code: 'scl', icon: '🌟', color: '#9b59b6', bg: '#f3e5f5' },
+        'bl': { name: 'Bereavement Leave', code: 'bl', icon: '🕯️', color: '#e67e22', bg: '#fff3e0' },
+        'pl': { name: 'Paternity Leave', code: 'pl', icon: '👶', color: '#1abc9c', bg: '#e0f2f1' },
+        'll': { name: 'Long Leave', code: 'll', icon: '🏠', color: '#34495e', bg: '#eceff1' },
+        'co': { name: 'Comp Off', code: 'co', icon: '⏳', color: '#f1c40f', bg: '#fffde7' }
     };
 
     const fetchLeaves = async () => {
@@ -81,6 +55,25 @@ const LeaveScreen = ({ user }: { user: any }) => {
             setLoading(false);
         }
     };
+
+    const fetchBalance = async () => {
+        try {
+            const data = await leaveApi.getBalance(EMPLOYEE_ID);
+            setApiBalance(data);
+        } catch (error) {
+            console.log("Failed to fetch balance:", error);
+        }
+    };
+
+    useEffect(() => {
+        fetchLeaves();
+        fetchBalance();
+        if (EMPLOYEE_ID) {
+            authApi.getProfile(EMPLOYEE_ID).then(p => setProfile(p)).catch(console.log);
+        }
+    }, [EMPLOYEE_ID]);
+
+    // calculateBalances removed as it is handled in LeaveBalanceCard
 
     const handleApply = async () => {
         if (!fromDate || !reason || notifyTo.length === 0) {
@@ -155,8 +148,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
     };
 
     const getLeaveLabel = (code: string) => {
-        const item = LEAVE_TYPES_LIST.find(t => t.value === code);
-        return item ? item.label : code.toUpperCase();
+        return LEAVE_CONFIG[code]?.name || code.toUpperCase();
     };
 
     const formatDateWithDay = (dateStr: string) => {
@@ -178,9 +170,6 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const handleDateSelect = (date: string) => {
         if (activeDateInput === 'from') setFromDate(date);
         if (activeDateInput === 'to') setToDate(date);
-        // Don't close immediately here, logic inside picker handles selection passing, but we need to close modal
-        // Actually, the CustomDatePicker calls onClose. But we need to update state.
-        // wait, I passed onSelect which updates state. 
     };
 
     return (
@@ -188,11 +177,13 @@ const LeaveScreen = ({ user }: { user: any }) => {
             <View style={styles.header}>
                 <View>
                     <Text style={styles.headerTitle}>Leave & Attendance</Text>
-                    <Text style={styles.headerSubtitle}>Manage your time off</Text>
+                    <Text style={styles.headerSubtitle}>{!user?.is_admin ? 'View your leave balance' : 'Manage your time off'}</Text>
                 </View>
-                <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
-                    <Text style={styles.addButtonText}>+ Request Leave</Text>
-                </TouchableOpacity>
+                {!user?.is_admin && (
+                    <TouchableOpacity style={styles.addButton} onPress={() => setIsModalVisible(true)}>
+                        <Text style={styles.addButtonText}>+ Request Leave</Text>
+                    </TouchableOpacity>
+                )}
             </View>
 
             <ScrollView
@@ -202,34 +193,9 @@ const LeaveScreen = ({ user }: { user: any }) => {
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />
                 }
             >
-                {/* ... Keep Balance Grid and History List same as before ... */}
-                <View style={styles.balanceGrid}>
-                    {balances.map((item, index) => (
-                        <View key={index} style={styles.balanceCard}>
-                            <View style={styles.balanceHeader}>
-                                <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
-                                    <Text style={{ fontSize: 16 }}>{item.code === 'cl' ? '✈️' : item.code === 'sl' ? '🌡️' : '🌴'}</Text>
-                                </View>
-                                <Text style={styles.balanceTitle}>{item.name}</Text>
-                            </View>
-
-                            <View style={styles.balanceRow}>
-                                <Text style={styles.bigNumber}>{item.available}</Text>
-                                <Text style={styles.daysLabel}>days available</Text>
-                            </View>
-
-                            <View style={styles.progressSection}>
-                                <View style={styles.progressRow}>
-                                    <Text style={styles.progressText}>Consumed: {item.consumed}</Text>
-                                    <Text style={styles.progressText}>Total: {item.total}</Text>
-                                </View>
-                                <View style={styles.track}>
-                                    <View style={[styles.fill, { width: `${(item.consumed / item.total) * 100}%`, backgroundColor: '#48327d' }]} />
-                                </View>
-                            </View>
-                        </View>
-                    ))}
-                </View>
+                {!user?.is_admin && (
+                    <LeaveBalanceCard apiBalance={apiBalance} history={history} />
+                )}
 
                 <View style={styles.sectionHeader}>
                     <Text style={styles.sectionTitle}>Leave History</Text>
@@ -422,18 +388,20 @@ const LeaveScreen = ({ user }: { user: any }) => {
                     onPress={() => setIsTypePickerVisible(false)}
                 >
                     <View style={styles.pickerContent}>
-                        {LEAVE_TYPES_LIST.map((item) => (
-                            <TouchableOpacity
-                                key={item.value}
-                                style={styles.pickerItem}
-                                onPress={() => {
-                                    setLeaveType(item.value);
-                                    setIsTypePickerVisible(false);
-                                }}
-                            >
-                                <Text style={styles.pickerItemText}>{item.label}</Text>
-                            </TouchableOpacity>
-                        ))}
+                        {Object.values(LEAVE_CONFIG)
+                            .filter((item: any) => apiBalance?.hasOwnProperty(item.code) || ['cl', 'sl'].includes(item.code))
+                            .map((item: any) => (
+                                <TouchableOpacity
+                                    key={item.code}
+                                    style={styles.pickerItem}
+                                    onPress={() => {
+                                        setLeaveType(item.code);
+                                        setIsTypePickerVisible(false);
+                                    }}
+                                >
+                                    <Text style={styles.pickerItemText}>{item.name}</Text>
+                                </TouchableOpacity>
+                            ))}
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -459,11 +427,29 @@ const styles = StyleSheet.create({
     scrollContainer: { padding: 20 },
 
     // Balance Grid
-    balanceGrid: { gap: 15, marginBottom: 25 },
-    balanceCard: { backgroundColor: 'white', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e2e8f0' },
-    balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 15 },
-    iconBox: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    balanceTitle: { fontSize: 14, fontWeight: 'bold', color: '#2d3436' },
+    balanceGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 25,
+        justifyContent: 'space-between'
+    },
+    balanceCard: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        width: '48%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+    },
+    balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+    iconBox: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+    balanceTitle: { fontSize: 11, fontWeight: '800', color: '#2d3436', textTransform: 'uppercase', flex: 1 },
     balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 15 },
     bigNumber: { fontSize: 24, fontWeight: 'bold', color: '#48327d' },
     daysLabel: { fontSize: 12, color: '#636e72', paddingBottom: 4, fontWeight: '500' },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   ScrollView,
@@ -10,8 +10,37 @@ import {
   PermissionsAndroid,
   Alert,
   Modal,
-  LogBox
+  LogBox,
+  ActivityIndicator
 } from 'react-native';
+// Safety check for AsyncStorage native module
+const storage = {
+  getItem: async (key: string) => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      return await AsyncStorage.getItem(key);
+    } catch (e) {
+      console.warn('AsyncStorage native module not found, using memory fallback');
+      return (globalThis as any)[`fallback_${key}`] || null;
+    }
+  },
+  setItem: async (key: string, value: string) => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.setItem(key, value);
+    } catch (e) {
+      (globalThis as any)[`fallback_${key}`] = value;
+    }
+  },
+  removeItem: async (key: string) => {
+    try {
+      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+      await AsyncStorage.removeItem(key);
+    } catch (e) {
+      delete (globalThis as any)[`fallback_${key}`];
+    }
+  }
+};
 
 LogBox.ignoreAllLogs(); // Hide all warnings from the UI
 import EmployeeListScreen from './src/screens/EmployeeListScreen';
@@ -19,8 +48,9 @@ import MyTeamScreen from './src/screens/MyTeamScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import MeScreen from './src/screens/MeScreen';
-
 import LeaveScreen from './src/screens/LeaveScreen';
+import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon } from './src/components/Icons';
+
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import TeamManagementScreen from './src/screens/TeamManagementScreen';
@@ -34,7 +64,7 @@ interface TabButtonProps {
   title: string;
   isActive: boolean;
   onPress: () => void;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, icon }) => (
@@ -42,70 +72,112 @@ const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, icon })
     style={[styles.tabButton, isActive && styles.tabButtonActive]}
     onPress={onPress}
   >
-    <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{icon}</Text>
+    <View style={[styles.tabIconContainer]}>
+      {icon}
+    </View>
     <Text style={[styles.tabLabel, isActive && styles.tabTextActive]}>{title}</Text>
   </TouchableOpacity>
 );
+/* ... existing interfaces ... */
+
+
 
 function App() {
-  /* ... existing state ... */
   const [activeTab, setActiveTab] = useState('Home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [isAppLoading, setIsAppLoading] = useState(true);
 
-  /* ... logout logic ... */
+  // Load user session on mount
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const savedUser = await storage.getItem('user_session');
+        if (savedUser) {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+          setIsLoggedIn(true);
+        }
+      } catch (e) {
+        console.error('Failed to load session:', e);
+      } finally {
+        setIsAppLoading(false);
+      }
+    };
+    loadSession();
+  }, []);
+
+  const handleLogin = async (userData: any) => {
+    try {
+      await storage.setItem('user_session', JSON.stringify(userData));
+      setUser(userData);
+      setIsLoggedIn(true);
+    } catch (e) {
+      console.error('Failed to save session:', e);
+      Alert.alert('Error', 'Failed to save login session');
+    }
+  };
+
   const handleLogoutPress = () => {
     setModalVisible(true);
   };
 
-  const confirmLogout = () => {
-    setIsLoggedIn(false);
-    setUser(null);
-    setActiveTab('Home');
-    setModalVisible(false);
+  const confirmLogout = async () => {
+    try {
+      await storage.removeItem('user_session');
+      setIsLoggedIn(false);
+      setUser(null);
+      setActiveTab('Home');
+      setModalVisible(false);
+    } catch (e) {
+      console.error('Failed to remove session:', e);
+      Alert.alert('Error', 'Failed to clear login session');
+    }
   };
 
-
-  const isAdmin = user?.is_admin === true ||
-    user?.role === 'Admin' ||
-    user?.role === 'Administrator' ||
-    user?.role === 'Project Manager' ||
-    user?.role === 'Advisor-Technology & Operations';
+  const isAdmin = (user?.first_name === 'Rajesh' || user?.first_name === 'Satyanarayana');
 
   const getInitials = () => {
     if (!user) return 'HM';
     return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
   };
 
-  /* ... return block ... */
+  const appUser = user ? { ...user, is_admin: isAdmin } : null;
+
+  if (isAppLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7FA' }}>
+        <ActivityIndicator size="large" color="#48327d" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaProvider style={{ flex: 1 }}>
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
       {!isLoggedIn ? (
-        <LoginScreen onLogin={(userData) => { setIsLoggedIn(true); setUser(userData); }} />
+        <LoginScreen onLogin={handleLogin} />
       ) : (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-          {/* Header ... */}
           <View style={styles.header}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{getInitials()}</Text>
-            </View>
+            <TouchableOpacity onPress={() => setActiveTab('Profile')}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{getInitials()}</Text>
+              </View>
+            </TouchableOpacity>
             <TouchableOpacity onPress={handleLogoutPress} style={styles.logoutBtn}>
               <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Modal ... */}
           <Modal
             animationType="fade"
             transparent={true}
             visible={modalVisible}
             onRequestClose={() => setModalVisible(false)}
           >
-            {/* ... modal content ... */}
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <View style={styles.modalIcon}>
@@ -133,29 +205,28 @@ function App() {
             </View>
           </Modal>
 
-          {/* Content */}
           <View style={{ flex: 1 }}>
-            {activeTab === 'Home' && <HomeScreen user={user} />}
-            {activeTab === 'Team' && <MyTeamScreen user={user} />}
-            {activeTab === 'Me' && <MeScreen user={user} />}
-            {activeTab === 'Menu' && <LeaveScreen user={user} />}
+            {activeTab === 'Home' && <HomeScreen user={appUser} />}
+            {activeTab === 'Team' && <MyTeamScreen user={appUser} />}
+            {activeTab === 'Me' && <MeScreen user={appUser} />}
+            {activeTab === 'Menu' && <LeaveScreen user={appUser} />}
             {activeTab === 'Employees' && <EmployeeListScreen />}
             {activeTab === 'AdminLeave' && <AdminLeaveScreen />}
             {activeTab === 'Teams' && <TeamManagementScreen />}
+            {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
           </View>
 
-          {/* Bottom Tab Bar */}
           <View style={styles.tabBar}>
             <TabButton
               title="Home"
-              icon="🏠"
+              icon={<HomeIcon color={activeTab === 'Home' ? '#48327d' : '#94a3b8'} size={22} />}
               isActive={activeTab === 'Home'}
               onPress={() => setActiveTab('Home')}
             />
 
             <TabButton
               title="Me"
-              icon="👤"
+              icon={<UserIcon color={activeTab === 'Me' ? '#48327d' : '#94a3b8'} size={22} />}
               isActive={activeTab === 'Me'}
               onPress={() => setActiveTab('Me')}
             />
@@ -163,7 +234,7 @@ function App() {
             {!isAdmin && (
               <TabButton
                 title="My Team"
-                icon="👥"
+                icon={<UsersIcon color={activeTab === 'Team' ? '#48327d' : '#94a3b8'} size={22} />}
                 isActive={activeTab === 'Team'}
                 onPress={() => setActiveTab('Team')}
               />
@@ -172,7 +243,7 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Employees"
-                icon="👥"
+                icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#94a3b8'} size={22} />}
                 isActive={activeTab === 'Employees'}
                 onPress={() => setActiveTab('Employees')}
               />
@@ -181,15 +252,15 @@ function App() {
             {!isAdmin && (
               <TabButton
                 title="Leave"
-                icon="📅"
+                icon={<CalendarIcon color={activeTab === 'Menu' ? '#48327d' : '#94a3b8'} size={22} />}
                 isActive={activeTab === 'Menu'}
                 onPress={() => setActiveTab('Menu')}
               />
             )}
             {isAdmin && (
               <TabButton
-                title="Requests"
-                icon="✓"
+                title="Leaves"
+                icon={<CheckCircleIcon color={activeTab === 'AdminLeave' ? '#48327d' : '#94a3b8'} size={22} />}
                 isActive={activeTab === 'AdminLeave'}
                 onPress={() => setActiveTab('AdminLeave')}
               />
@@ -197,17 +268,19 @@ function App() {
             {isAdmin && (
               <TabButton
                 title="Teams"
-                icon="🏢"
+                icon={<BuildingIcon color={activeTab === 'Teams' ? '#48327d' : '#94a3b8'} size={22} />}
                 isActive={activeTab === 'Teams'}
                 onPress={() => setActiveTab('Teams')}
               />
             )}
           </View>
+
         </SafeAreaView>
       )}
     </SafeAreaProvider>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
@@ -450,6 +523,9 @@ const styles = StyleSheet.create({
   },
   tabButtonActive: {
     // Could add active background
+  },
+  tabIconContainer: {
+    marginBottom: 4,
   },
   tabText: {
     fontSize: 20,

@@ -29,12 +29,8 @@ def post_list(request):
             if not author:
                 return Response({'error': f'Author with ID {author_id} not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Define admin-equivalent roles that are allowed to post
-            admin_roles = ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations']
-            is_admin = author.role in admin_roles or getattr(author, 'is_admin', False)
-
-            if not is_admin:
-                return Response({'error': 'Unauthorized. Only admins can post.'}, status=status.HTTP_403_FORBIDDEN)
+            # Allow any valid employee to post
+            pass
 
             if not content and not images_data:
                 return Response({'error': 'Content or at least one image is required'}, status=status.HTTP_400_BAD_REQUEST)
