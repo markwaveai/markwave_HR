@@ -92,12 +92,29 @@ def team_detail(request, pk):
 def member_list(request):
     if request.method == 'GET':
         team_id = request.query_params.get('team_id')
+        search = request.query_params.get('search')
+        
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
+        
         if team_id:
-            query = query.filter(teams__id=team_id)
+            from django.db.models import Q
+            # Filter members of the team OR the manager of the team
+            query = query.filter(
+                Q(teams__id=team_id) | 
+                Q(managed_teams__id=team_id)
+            ).distinct()
+            
+        if search:
+            from django.db.models import Q
+            query = query.filter(
+                Q(first_name__icontains=search) | 
+                Q(last_name__icontains=search) | 
+                Q(employee_id__icontains=search)
+            )
         
         members = list(query)
-        if not team_id and len(members) > 6:
+        # Only limit random sample if not searching and not specific team
+        if not team_id and not search and len(members) > 6:
             members = random.sample(members, 6)
             
         india_time = datetime.utcnow() + timedelta(hours=5, minutes=30)
@@ -112,6 +129,15 @@ def member_list(request):
             to_date__gte=current_date_str
         ).values_list('employee_id', flat=True))
             
+        # Get team manager ID if team_id is provided
+        team_manager_id = None
+        if team_id:
+            try:
+                team_obj = Teams.objects.get(id=team_id)
+                team_manager_id = team_obj.manager.employee_id if team_obj.manager else None
+            except Teams.DoesNotExist:
+                pass
+
         return Response([{
             'id': m.id,
             'employee_id': m.employee_id,
@@ -119,7 +145,8 @@ def member_list(request):
             'role': m.role,
             'status': 'On Leave' if m.employee_id in on_leave_ids else (m.status or 'Active'),
             'location': m.location,
-            'email': m.email
+            'email': m.email,
+            'is_manager': m.employee_id == team_manager_id
         } for m in members])
 
     elif request.method == 'POST':

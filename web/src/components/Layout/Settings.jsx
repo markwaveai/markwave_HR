@@ -30,122 +30,120 @@ function Settings({ user }) {
     ];
 
     return (
-        <main className="flex-1 p-4 md:p-6 overflow-y-auto bg-[#F4F7F9]">
-            <div className="max-w-6xl mx-auto space-y-6">
-                {/* Professional Compact Header */}
-                <div className="relative overflow-hidden bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-200/60">
-                    <div className="absolute top-0 right-0 w-48 h-48 bg-purple-50 rounded-full -mr-24 -mt-24 blur-3xl opacity-40"></div>
-                    <div className="relative flex flex-col md:flex-row items-center gap-5">
-                        <div className="shrink-0 relative">
-                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-gradient-to-br from-[#48327d] to-[#6a4fb3] flex items-center justify-center text-white text-2xl md:text-3xl font-bold shadow-lg shadow-purple-500/10">
+        <main className="flex-1 p-4 mm:p-6 ml:p-8 xl:p-10 overflow-y-auto bg-[#f8fafc]">
+            <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+                {/* Refined Modern Header */}
+                <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-200/60 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-[#48327d]/5 rounded-full -mr-32 -mt-32 blur-3xl"></div>
+
+                    <div className="relative flex flex-col md:flex-row items-center gap-6">
+                        <div className="shrink-0">
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-[#48327d] flex items-center justify-center text-white text-3xl font-bold shadow-lg shadow-[#48327d]/10">
                                 {user.first_name?.[0]}{user.last_name?.[0]}
                             </div>
-                            <div className="absolute -bottom-1 -right-1 bg-green-500 w-5 h-5 rounded-lg border-2 border-white"></div>
                         </div>
+
                         <div className="text-center md:text-left flex-1 min-w-0">
-                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-1">
-                                <h1 className="text-xl md:text-2xl font-bold text-slate-900 truncate">
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-2">
+                                <h1 className="text-2xl md:text-3xl font-bold text-slate-900 truncate">
                                     {user.first_name} {user.last_name}
                                 </h1>
                                 {user.is_admin && (
-                                    <span className="px-2 py-0.5 bg-purple-600 text-white text-[9px] font-bold rounded-md uppercase tracking-wider">
-                                        Admin
+                                    <span className="px-2 py-1 bg-slate-100 text-[#48327d] text-[10px] font-bold rounded-lg uppercase tracking-wider border border-slate-200">
+                                        Executive Portal
                                     </span>
                                 )}
                             </div>
-                            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
-                                <p className="text-slate-500 font-medium text-sm flex items-center justify-center md:justify-start gap-1.5">
-                                    <Briefcase size={14} className="text-slate-400" />
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-slate-500">
+                                <div className="flex items-center gap-2 text-sm font-medium">
+                                    <Briefcase size={16} className="text-slate-400" />
                                     {user.role}
-                                </p>
+                                </div>
                                 <div className="hidden md:block w-1 h-1 rounded-full bg-slate-300"></div>
-                                <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest">
+                                <div className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest">
                                     {user.employee_id}
-                                </p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Main Info Section */}
-                    <div className="lg:col-span-8 space-y-6">
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center text-[#48327d]">
-                                    <User size={20} />
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                    {/* Primary Content Area */}
+                    <div className="lg:col-span-8 space-y-8">
+                        {/* Profile Details */}
+                        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
+                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
+                                    <User size={18} />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-800">Personal Profile</h2>
+                                <h2 className="text-base font-bold text-slate-800">Profile Information</h2>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+
+                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                                 {personalInfo.map((item, idx) => {
                                     const ItemIcon = item.icon;
                                     return (
-                                        <div key={idx} className="flex flex-col gap-1.5 border-b border-slate-50 pb-3 last:border-0 sm:even:border-l sm:even:pl-6 sm:even:pb-3 sm:border-slate-100">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                        <div key={idx} className="flex flex-col gap-1.5 transition-all hover:translate-x-1 duration-200">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                                 {item.label}
-                                            </label>
-                                            <div className="flex items-center gap-2.5">
-                                                <ItemIcon size={14} className="text-slate-300 shrink-0" />
-                                                <span className="text-sm font-semibold text-slate-700 break-all">{item.value || "—"}</span>
+                                            </span>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                                                    <ItemIcon size={14} />
+                                                </div>
+                                                <span className="text-sm font-semibold text-slate-700 truncate">{item.value || "—"}</span>
                                             </div>
                                         </div>
                                     );
                                 })}
                             </div>
-                        </div>
+                        </section>
                     </div>
 
-                    {/* Sidebar Info Section */}
-                    <div className="lg:col-span-4 space-y-6">
-                        {/* Employment Status */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
-                            <div className="flex items-center gap-3 mb-5">
-                                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                                    <Briefcase size={20} />
+                    {/* Secondary Context Area */}
+                    <div className="lg:col-span-4 space-y-8">
+                        {/* Organizational Identity */}
+                        <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
+                                <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm">
+                                    <Building2 size={18} />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-800">Work</h2>
+                                <h2 className="text-base font-bold text-slate-800">Organization</h2>
                             </div>
-                            <div className="space-y-4">
+
+                            <div className="p-6 space-y-6">
                                 {workDetails.map((item, idx) => (
-                                    <div key={idx} className="flex justify-between items-center py-2 border-b border-slate-50 last:border-0">
-                                        <span className="text-xs font-medium text-slate-400">{item.label}</span>
-                                        <span className="text-xs font-bold text-slate-700">{item.value}</span>
+                                    <div key={idx} className="flex flex-col gap-1">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{item.label}</span>
+                                        <span className="text-sm font-semibold text-slate-700">{item.value}</span>
                                     </div>
                                 ))}
-                            </div>
-                        </div>
 
-                        {/* Teams - Compressed */}
-                        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/60">
-                            <div className="flex items-center gap-3 mb-5">
-                                <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600">
-                                    <Building2 size={20} />
-                                </div>
-                                <h2 className="text-lg font-bold text-slate-800">Teams</h2>
-                            </div>
-                            <div className="space-y-3">
-                                {user.teams && user.teams.length > 0 ? (
-                                    user.teams.map((team, idx) => (
-                                        <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100 hover:border-orange-100 transition-colors">
-                                            <div className="flex items-center justify-between mb-1">
-                                                <span className="text-xs font-bold text-slate-800">{team.name}</span>
-                                                <div className="w-1.5 h-1.5 rounded-full bg-orange-400"></div>
-                                            </div>
-                                            {team.manager_name && (
-                                                <p className="text-[9px] font-medium text-slate-500 flex items-center gap-1">
-                                                    <UserCircle2 size={10} /> Lead: {team.manager_name}
-                                                </p>
-                                            )}
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="py-4 text-center">
-                                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No Teams</p>
+                                <div className="pt-4 border-t border-slate-100">
+                                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Assigned Units</label>
+                                    <div className="space-y-3">
+                                        {user.teams && user.teams.length > 0 ? (
+                                            user.teams.map((team, idx) => (
+                                                <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200/50 hover:bg-white hover:border-[#48327d]/30 transition-all group">
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <span className="text-xs font-bold text-slate-800 group-hover:text-[#48327d]">{team.name}</span>
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                    </div>
+                                                    {team.manager_name && (
+                                                        <p className="text-[10px] font-medium text-slate-500">
+                                                            Lead: {team.manager_name}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))
+                                        ) : (
+                                            <p className="text-xs font-medium text-slate-400 italic">No assigned units</p>
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
                 </div>
             </div>

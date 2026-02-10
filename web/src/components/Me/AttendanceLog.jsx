@@ -426,7 +426,7 @@ const AttendanceLog = ({
                     if (onRefresh) onRefresh();
                 }}
             />
-        </div>
+        </div >
     );
 };
 

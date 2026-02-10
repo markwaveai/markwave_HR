@@ -58,15 +58,17 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
     return (
         <>
             <aside className={`fixed lg:relative top-0 left-0 bottom-0 w-[240px] bg-[#48327d] flex flex-col h-full shrink-0 z-40 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                <div className="h-[44px] flex items-center px-4 border-b border-white/10 shrink-0 gap-3">
+                <div className="h-[48px] flex items-center justify-center px-4 border-b border-white/10 shrink-0 relative">
                     <button
                         onClick={onClose}
-                        className="lg:hidden text-white/90 hover:bg-white/10 p-1.5 rounded-lg transition-colors -ml-1"
+                        className="lg:hidden text-white/90 hover:bg-white/10 p-1.5 rounded-lg transition-colors absolute left-3 top-1/2 -translate-y-1/2"
                     >
-                        <Menu size={20} />
+                        <Menu size={18} />
                     </button>
 
-                    <span className="font-bold text-lg text-white">Markwave HR</span>
+                    <div className="flex items-center">
+                        <img src="/images/logo.png" alt="Markwave" className="h-6 w-auto object-contain" />
+                    </div>
                 </div>
 
                 <nav className="p-4 flex-1">

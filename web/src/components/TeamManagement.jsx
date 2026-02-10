@@ -205,13 +205,15 @@ const TeamManagement = ({ user }) => {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredTeams.map(team => (
-                        <div key={team.id} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                            <div className="flex justify-between items-start mb-4">
+                        <div key={team.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all group flex flex-col h-full">
+                            <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-800">{team.name}</h3>
-                                    <p className="text-sm text-gray-500">{team.member_count} Members</p>
+                                    <h3 className="text-lg font-bold text-gray-800 leading-tight mb-1">{team.name}</h3>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700">
+                                        {team.member_count} Members
+                                    </span>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                                     <button
                                         onClick={() => {
                                             setEditingTeam(team);
@@ -222,31 +224,39 @@ const TeamManagement = ({ user }) => {
                                             });
                                             setIsModalOpen(true);
                                         }}
-                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                        className="p-1.5 text-slate-900 hover:bg-slate-50 hover:text-blue-600 rounded-lg transition-colors"
+                                        title="Edit Team"
                                     >
                                         <Edit2 size={16} />
                                     </button>
                                     <button
                                         onClick={() => setDeleteConfig({ isOpen: true, teamId: team.id, teamName: team.name })}
-                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                        className="p-1.5 text-slate-900 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                                        title="Delete Team"
                                     >
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
                             </div>
-                            <p className="text-sm text-gray-600 mb-6 line-clamp-2 min-h-[40px]">
+
+                            <p className="text-sm text-gray-500 mb-6 line-clamp-2 min-h-[40px] leading-relaxed">
                                 {team.description || "No description provided."}
                             </p>
-                            <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                    <Briefcase size={14} />
-                                    <span>{team.manager_name || "No Manager"}</span>
+
+                            <div className="mt-auto pt-4 border-t border-gray-50 flex items-center justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Team Lead</p>
+                                    <div className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 truncate" title={team.manager_name}>
+                                        <Briefcase size={14} className="text-gray-400 shrink-0" />
+                                        <span className="truncate">{team.manager_name || "Unassigned"}</span>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => openMemberModal(team)}
-                                    className="text-sm text-[#48327d] font-semibold hover:underline flex items-center gap-1"
+                                    className="shrink-0 px-3 py-2 bg-[#f8fafc] hover:bg-[#f1f5f9] text-gray-600 hover:text-[#48327d] text-xs font-bold rounded-lg transition-colors flex items-center gap-2 border border-gray-100"
                                 >
-                                    <Users size={14} /> Manage Members
+                                    <Users size={14} />
+                                    <span>Manage</span>
                                 </button>
                             </div>
                         </div>

@@ -71,6 +71,7 @@ export const teamApi = {
         method: 'DELETE'
     }),
     getMembers: (teamId) => apiFetch(`/team/members/${teamId ? `?team_id=${teamId}` : ''}`),
+    searchMembers: (query) => apiFetch(`/team/members/?search=${encodeURIComponent(query)}`),
     addEmployee: (data) => apiFetch('/team/members/', {
         method: 'POST',
         body: JSON.stringify(data)

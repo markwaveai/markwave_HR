@@ -60,10 +60,33 @@ function MyTeam({ user }) {
         fetchTeamData();
     }, [selectedTeamId]);
 
-    const filteredMembers = teamMembers.filter(member =>
-        (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
+
+    const filteredMembers = teamMembers
+        .filter(member =>
+            (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+            // Priority 1: The actual Team Manager (is_manager flag from backend)
+            if (a.is_manager && !b.is_manager) return -1;
+            if (!a.is_manager && b.is_manager) return 1;
+
+            // Priority 2: Leadership Roles
+            const roleA = a.role?.toLowerCase() || '';
+            const roleB = b.role?.toLowerCase() || '';
+            const priorityRoles = ['advisor-technology & operations', 'project manager', 'admin', 'administrator', 'manager'];
+
+            const getPriorityIndex = (role) => priorityRoles.findIndex(p => role.includes(p));
+
+            const priorityA = getPriorityIndex(roleA);
+            const priorityB = getPriorityIndex(roleB);
+
+            if (priorityA !== -1 && priorityB !== -1) return priorityA - priorityB;
+            if (priorityA !== -1) return -1;
+            if (priorityB !== -1) return 1;
+
+            return 0;
+        });
 
     if (loading && !stats) { // Only show full loader on initial load, not when switching teams if we want smoother transition, or just show it simply
         return <LoadingSpinner size={40} className="p-10" />;
@@ -116,7 +139,12 @@ function MyTeam({ user }) {
                 </header>
 
                 <div className="mb-6 mm:mb-10">
-                    <TeamStats stats={stats} />
+                    <TeamStats stats={{
+                        total: teamMembers.length,
+                        active: teamMembers.filter(m => m.status === 'Active').length,
+                        onLeave: teamMembers.filter(m => m.status === 'On Leave').length,
+                        remote: teamMembers.filter(m => m.status === 'Remote' || m.location?.includes('Remote')).length
+                    }} />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4 mm:gap-6">

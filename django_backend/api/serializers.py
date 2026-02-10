@@ -10,7 +10,11 @@ class TeamsSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'description', 'manager', 'manager_name', 'member_count']
 
     def get_member_count(self, obj):
-        return Employees.objects.filter(teams=obj, status__in=['Active', 'Remote']).count()
+        from django.db.models import Q
+        return Employees.objects.filter(
+            Q(teams=obj) | Q(managed_teams=obj),
+            status__in=['Active', 'Remote']
+        ).distinct().count()
 
     def get_manager_name(self, obj):
         if obj.manager:

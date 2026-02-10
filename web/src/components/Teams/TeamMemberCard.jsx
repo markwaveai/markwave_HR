@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mail, MapPin, MoreVertical, ExternalLink, Trash2 } from 'lucide-react';
+import { Mail, MapPin, Trash2 } from 'lucide-react';
 
 const TeamMemberCard = ({ member, onRemove }) => {
     return (
@@ -60,12 +60,7 @@ const TeamMemberCard = ({ member, onRemove }) => {
                 </div>
             </div>
 
-            <div className="mt-4 mm:mt-6 flex items-center justify-end">
-                <button className="text-[#6366f1] flex items-center gap-1.5 text-[10px] mm:text-xs font-black px-3 py-1.5 mm:px-4 mm:py-2 rounded-xl border border-[#6366f1]/20 hover:bg-[#6366f1] hover:text-white transition-all">
-                    <span>View Profile</span>
-                    <ExternalLink size={14} />
-                </button>
-            </div>
+
         </div>
     );
 };
