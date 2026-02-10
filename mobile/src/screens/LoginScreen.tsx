@@ -112,7 +112,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         resizeMode="contain"
                     />
                     <Text style={styles.title}>
-                        {step === 'phone' ? 'Welcome to Markwave HR' : 'Verify Identity'}
+                        {step === 'phone' ? 'Welcome to Markwave HR v1.1 (Debug)' : 'Verify Identity'}
                     </Text>
                     <Text style={styles.subtitle}>
                         {step === 'phone'

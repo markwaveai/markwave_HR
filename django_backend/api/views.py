@@ -33,6 +33,11 @@ def login(request):
 @api_view(['POST'])
 def send_otp(request):
     try:
+        print("====== OTP DEBUG START ======")
+        print(f"Content-Type: {request.content_type}")
+        print(f"Body: {request.body.decode('utf-8')}")
+        print(f"Data: {request.data}")
+        
         phone = request.data.get('phone')
         print(f"[OTP DEBUG] Received OTP request for phone: {phone}")
         
