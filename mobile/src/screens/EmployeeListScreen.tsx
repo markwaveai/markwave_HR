@@ -289,7 +289,6 @@ const EmployeeListScreen = () => {
                                         <Text style={[styles.dropdownText, !formData.role && { color: '#94a3b8' }]}>
                                             {formData.role || "Select Designation"}
                                         </Text>
-                                        <Text style={{ color: '#636e72', fontSize: 12 }}>▼</Text>
                                     </TouchableOpacity>
 
                                     {/* Inline Dropdown */}
@@ -495,11 +494,11 @@ const EmployeeListScreen = () => {
                             </TouchableOpacity>
                         </ScrollView>
                     </View>
-                </View>
-            </Modal>
+                </View >
+            </Modal >
 
             {/* Role Picker Modal */}
-            <Modal
+            < Modal
                 visible={isRolePickerVisible}
                 transparent={true}
                 animationType="slide"
@@ -536,8 +535,8 @@ const EmployeeListScreen = () => {
                         </ScrollView>
                     </View>
                 </TouchableOpacity>
-            </Modal>
-        </View>
+            </Modal >
+        </View >
     );
 };
 

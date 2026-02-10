@@ -145,6 +145,10 @@ def verify_otp(request):
                 if emp.status == 'Inactive':
                     return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
 
+                # Fetch dynamic managers
+                pm = Employees.objects.filter(role='Project Manager').first()
+                advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
+
                 return Response({
                     'success': True,
                     'user': {
@@ -160,10 +164,14 @@ def verify_otp(request):
                         'joining_date': emp.joining_date,
                         'role': emp.role,
                         'team_id': emp.teams.first().id if emp.teams.exists() else None,
-                        'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-                        'team_lead_name': f"{emp.teams.first().manager.first_name} {emp.teams.first().manager.last_name}" if emp.teams.exists() and emp.teams.first().manager else "Team Lead",
+                        'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
+                        'team_name': ", ".join([t.name for t in emp.teams.all()]) or "No Team",
+                        'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
+                        'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager]) or "Team Lead",
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
-                        'is_admin': getattr(emp, 'is_admin', False)
+                        'is_admin': getattr(emp, 'is_admin', False),
+                        'project_manager_name': f"{pm.first_name} {pm.last_name or ''}".strip() if pm else None,
+                        'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
                     }
                 })
         return Response({'error': 'User not found'}, status=404)
@@ -208,13 +216,15 @@ def get_profile(request, employee_id):
             'qualification': emp.qualification,
             'joining_date': emp.joining_date,
             'team_id': emp.teams.first().id if emp.teams.exists() else None,
-            'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-            'team_leads': [f"{t.manager.first_name} {t.manager.last_name}" for t in emp.teams.all() if t.manager],
-            'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name}" for t in emp.teams.all() if t.manager]) or "Team Lead",
+            'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
+            'team_name': ", ".join([t.name for t in emp.teams.all()]) or "No Team",
+            'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
+            'team_leads': [f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager],
+            'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager]) or "Team Lead",
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': getattr(emp, 'is_admin', False),
-            'project_manager_name': f"{pm.first_name} {pm.last_name}" if pm else None,
-            'advisor_name': f"{advisor.first_name} {advisor.last_name}" if advisor else None
+            'project_manager_name': f"{pm.first_name} {pm.last_name or ''}".strip() if pm else None,
+            'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
         })
     except Exception as e:
         return Response({'error': str(e)}, status=500)
@@ -306,6 +316,10 @@ def verify_email_otp(request):
         if employee.status == 'Inactive':
             return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
 
+        # Fetch dynamic managers
+        pm = Employees.objects.filter(role='Project Manager').first()
+        advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
+
         return Response({
             'success': True,
             'user': {
@@ -321,10 +335,14 @@ def verify_email_otp(request):
                 'joining_date': employee.joining_date,
                 'role': employee.role,
                 'team_id': employee.teams.first().id if employee.teams.exists() else None,
-                'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name}" if t.manager else None} for t in (list(employee.teams.all()) + list(Teams.objects.filter(manager=employee)))],
-                'team_lead_name': f"{employee.teams.first().manager.first_name} {employee.teams.first().manager.last_name}" if employee.teams.exists() and employee.teams.first().manager else "Team Lead",
+                'team_ids': ",".join([str(t.id) for t in employee.teams.all()]),
+                'team_name': ", ".join([t.name for t in employee.teams.all()]) or "No Team",
+                'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(employee.teams.all()) + list(Teams.objects.filter(manager=employee)))],
+                'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager]) or "Team Lead",
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
-                'is_admin': getattr(employee, 'is_admin', False)
+                'is_admin': getattr(employee, 'is_admin', False),
+                'project_manager_name': f"{pm.first_name} {pm.last_name or ''}".strip() if pm else None,
+                'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
             }
         })
     except Exception as e:

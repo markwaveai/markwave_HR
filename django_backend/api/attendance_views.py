@@ -247,11 +247,19 @@ def get_personal_stats(request, employee_id):
 
     now = datetime.utcnow() + timedelta(hours=5, minutes=30)
     
-    # Get team-specific timings
-    # Get team-specific timings (use first team as primary for now)
-    primary_team = employee.teams.first()
-    team_shift_start = primary_team.shift_start if primary_team else '09:30 AM'
-    team_shift_end = primary_team.shift_end if primary_team else '06:30 PM'
+    # Get team-specific timings (aggregate from all teams)
+    teams = employee.teams.all()
+    if teams.exists():
+        # For shift timings, we'll use the first team as the primary reference
+        primary_team = teams.first()
+        team_shift_start = primary_team.shift_start or '09:30 AM'
+        team_shift_end = primary_team.shift_end or '06:30 PM'
+        # Collect all unique members from all teams the employee is in
+        team_members = Employees.objects.filter(teams__in=teams).distinct()
+    else:
+        team_shift_start = '09:30 AM'
+        team_shift_end = '06:30 PM'
+        team_members = Employees.objects.none()
 
     def get_start_dates(d):
         # Week starts Monday
@@ -357,16 +365,13 @@ def get_personal_stats(request, employee_id):
     last_week_diff = f"{prefix}{diff_h}h {str(diff_m).zfill(2)}m"
 
     # "Team" Stats
-    team_week = {"avg": "0h 00m", "onTime": "0%"}
-    team_month = {"avg": "0h 00m", "onTime": "0%"}
-    
-    if employee.teams.exists():
-
-        primary_team = employee.teams.first()
-        team_members = Employees.objects.filter(teams=primary_team)
+    if teams.exists():
         # For team stats, use the team's own shift_start
         team_week = calc_stats_for_range(team_members, this_week_start, cutoff_str=team_shift_start)
         team_month = calc_stats_for_range(team_members, this_month_start, cutoff_str=team_shift_start)
+    else:
+        team_week = {"avg": "0h 00m", "onTime": "0%"}
+        team_month = {"avg": "0h 00m", "onTime": "0%"}
 
     return Response({
         'avg_working_hours': me_week["avg"], # Legacy support

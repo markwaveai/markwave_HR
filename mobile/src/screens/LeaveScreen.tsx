@@ -257,7 +257,6 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                 <Text style={styles.dropdownText}>
                                     {getLeaveLabel(leaveType)}
                                 </Text>
-                                <Text style={{ fontSize: 12, color: '#636e72' }}>▼</Text>
                             </TouchableOpacity>
 
                             {/* Dates */}
@@ -355,19 +354,33 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                 ))}
                             </View>
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                                {[
-                                    user?.team_lead_name || profile?.team_lead_name || 'Team Lead',
-                                    profile?.project_manager_name,
-                                    profile?.advisor_name
-                                ].filter(name => name && !notifyTo.includes(name)).map(name => (
-                                    <TouchableOpacity
-                                        key={name}
-                                        onPress={() => setNotifyTo([...notifyTo, name])}
-                                        style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
-                                    >
-                                        <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
-                                    </TouchableOpacity>
-                                ))}
+                                {(() => {
+                                    // Reverse priority: profile is fresh from getProfile, user might be stale from session
+                                    const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
+                                    const leads = leadStr.split(',').map(s => s.trim()).filter(name => name && name !== 'Team Lead');
+
+                                    const allSuggestions = [
+                                        ...leads,
+                                        profile?.project_manager_name,
+                                        profile?.advisor_name
+                                    ];
+
+                                    // Deduplicate and filter out "Team Lead" specifically
+                                    const uniqueSuggestions = Array.from(new Set(allSuggestions))
+                                        .filter(name => name && name !== 'Team Lead');
+
+                                    return uniqueSuggestions
+                                        .filter(name => !notifyTo.includes(name))
+                                        .map(name => (
+                                            <TouchableOpacity
+                                                key={name}
+                                                onPress={() => setNotifyTo([...notifyTo, name])}
+                                                style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
+                                            >
+                                                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
+                                            </TouchableOpacity>
+                                        ));
+                                })()}
                             </View>
 
                             <TouchableOpacity

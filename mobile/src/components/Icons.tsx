@@ -381,21 +381,6 @@ export const BuildingIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20
     </Svg>
 );
 
-export const ChevronDownIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 2, style }) => (
-    <Svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={style}
-    >
-        <Polyline points="6 9 12 15 18 9" />
-    </Svg>
-);
 
 export const SettingsIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 2, style }) => (
     <Svg
@@ -420,12 +405,14 @@ export const MenuIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, st
         height={size}
         viewBox="0 0 24 24"
         fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeLinejoin="round"
         style={style}
     >
-        <Path d="M4 6h16M4 12h16M4 18h16" />
+        <Path
+            d="M4 6h16M4 12h16M4 18h16"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
     </Svg>
 );

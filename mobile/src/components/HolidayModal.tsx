@@ -102,13 +102,13 @@ const HolidayModal: React.FC<HolidayModalProps> = ({ visible, onClose, holidays 
                     <View style={styles.header}>
                         <View style={styles.navRow}>
                             <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-                                <Text style={styles.navArrow}>‹</Text>
+                                <View style={{ width: 20 }} />
                             </TouchableOpacity>
                             <Text style={styles.monthTitle}>
                                 {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                             </Text>
                             <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-                                <Text style={styles.navArrow}>›</Text>
+                                <View style={{ width: 20 }} />
                             </TouchableOpacity>
                         </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeBtn}>

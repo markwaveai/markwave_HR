@@ -132,7 +132,7 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 </View>
             </View>
 
-            {user.team_name && (
+            {(user.team_name || (user.teams && user.teams.length > 0)) && (
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <View style={[styles.sectionIconBg, { backgroundColor: '#fff7ed' }]}>
@@ -141,18 +141,38 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                         <Text style={styles.sectionTitle}>Teams</Text>
                     </View>
                     <View style={styles.card}>
-                        <View style={styles.teamCard}>
-                            <View style={styles.teamInfo}>
-                                <Text style={styles.teamNameText}>Team {user.team_name}</Text>
-                                {user.team_lead_name && (
-                                    <View style={styles.leadRow}>
-                                        <Text style={styles.leadLabel}>Lead: </Text>
-                                        <Text style={styles.leadName}>{user.team_lead_name}</Text>
+                        {user.teams && user.teams.length > 0 ? (
+                            user.teams.map((team: any, index: number) => (
+                                <React.Fragment key={team.id || index}>
+                                    <View style={styles.teamCard}>
+                                        <View style={styles.teamInfo}>
+                                            <Text style={styles.teamNameText}>Team {team.name}</Text>
+                                            {team.manager_name && (
+                                                <View style={styles.leadRow}>
+                                                    <Text style={styles.leadLabel}>Lead: </Text>
+                                                    <Text style={styles.leadName}>{team.manager_name}</Text>
+                                                </View>
+                                            )}
+                                        </View>
+                                        <View style={styles.activeDot} />
                                     </View>
-                                )}
+                                    {index < user.teams.length - 1 && <View style={[styles.divider, { marginVertical: 12 }]} />}
+                                </React.Fragment>
+                            ))
+                        ) : (
+                            <View style={styles.teamCard}>
+                                <View style={styles.teamInfo}>
+                                    <Text style={styles.teamNameText}>Team {user.team_name}</Text>
+                                    {user.team_lead_name && (
+                                        <View style={styles.leadRow}>
+                                            <Text style={styles.leadLabel}>Lead: </Text>
+                                            <Text style={styles.leadName}>{user.team_lead_name}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                                <View style={styles.activeDot} />
                             </View>
-                            <View style={styles.activeDot} />
-                        </View>
+                        )}
                     </View>
                 </View>
             )}

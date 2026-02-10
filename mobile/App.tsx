@@ -50,7 +50,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MeScreen from './src/screens/MeScreen';
 import LeaveScreen from './src/screens/LeaveScreen';
-import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon } from './src/components/Icons';
+import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon } from './src/components/Icons';
 
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -208,16 +208,10 @@ function App() {
                     onPress={() => { setActiveTab('Home'); setIsDrawerVisible(false); }}
                   />
                   <DrawerItem
-                    title="Attendance"
+                    title="Me"
                     icon={<UserIcon color={activeTab === 'Me' ? '#48327d' : '#64748b'} size={24} />}
                     isActive={activeTab === 'Me'}
                     onPress={() => { setActiveTab('Me'); setIsDrawerVisible(false); }}
-                  />
-                  <DrawerItem
-                    title="Profile"
-                    icon={<UserIcon color={activeTab === 'Profile' ? '#48327d' : '#64748b'} size={24} />}
-                    isActive={activeTab === 'Profile'}
-                    onPress={() => { setActiveTab('Profile'); setIsDrawerVisible(false); }}
                   />
                   <DrawerItem
                     title="Settings"
@@ -269,16 +263,15 @@ function App() {
               style={{ padding: 8, flexDirection: 'row', alignItems: 'center' }}
             >
               <MenuIcon color="#48327d" size={26} />
-              <Text style={{ marginLeft: 4, color: '#48327d', fontWeight: 'bold', fontSize: 12 }}>MENU</Text>
             </TouchableOpacity>
 
             <Text style={{ fontSize: 16, fontWeight: '800', color: '#48327d', letterSpacing: 0.5 }}>MARKWAVE HR</Text>
 
-            <TouchableOpacity onPress={() => setActiveTab('Settings')}>
+            <View>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{getInitials()}</Text>
               </View>
-            </TouchableOpacity>
+            </View>
           </View>
 
           <Modal
@@ -326,71 +319,6 @@ function App() {
             {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}
           </View>
 
-          <View style={styles.tabBar}>
-            <TabButton
-              title="Home"
-              icon={<HomeIcon color={activeTab === 'Home' ? '#48327d' : '#94a3b8'} size={22} />}
-              isActive={activeTab === 'Home'}
-              onPress={() => setActiveTab('Home')}
-            />
-
-            <TabButton
-              title="Me"
-              icon={<UserIcon color={activeTab === 'Me' ? '#48327d' : '#94a3b8'} size={22} />}
-              isActive={activeTab === 'Me'}
-              onPress={() => setActiveTab('Me')}
-            />
-
-            <TabButton
-              title="Settings"
-              icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#94a3b8'} size={22} />}
-              isActive={activeTab === 'Settings'}
-              onPress={() => setActiveTab('Settings')}
-            />
-
-            {!isAdmin && (
-              <TabButton
-                title="My Team"
-                icon={<UsersIcon color={activeTab === 'Team' ? '#48327d' : '#94a3b8'} size={22} />}
-                isActive={activeTab === 'Team'}
-                onPress={() => setActiveTab('Team')}
-              />
-            )}
-
-            {isAdmin && (
-              <TabButton
-                title="Employees"
-                icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#94a3b8'} size={22} />}
-                isActive={activeTab === 'Employees'}
-                onPress={() => setActiveTab('Employees')}
-              />
-            )}
-
-            {!isAdmin && (
-              <TabButton
-                title="Leave"
-                icon={<CalendarIcon color={activeTab === 'Menu' ? '#48327d' : '#94a3b8'} size={22} />}
-                isActive={activeTab === 'Menu'}
-                onPress={() => setActiveTab('Menu')}
-              />
-            )}
-            {isAdmin && (
-              <TabButton
-                title="Leaves"
-                icon={<CheckCircleIcon color={activeTab === 'AdminLeave' ? '#48327d' : '#94a3b8'} size={22} />}
-                isActive={activeTab === 'AdminLeave'}
-                onPress={() => setActiveTab('AdminLeave')}
-              />
-            )}
-            {isAdmin && (
-              <TabButton
-                title="Teams"
-                icon={<BuildingIcon color={activeTab === 'Teams' ? '#48327d' : '#94a3b8'} size={22} />}
-                isActive={activeTab === 'Teams'}
-                onPress={() => setActiveTab('Teams')}
-              />
-            )}
-          </View>
 
         </SafeAreaView>
       )}
@@ -411,20 +339,20 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: Platform.OS === 'android' ? 40 : 15, // Increased for visibility
+    paddingBottom: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f2f6',
+    backgroundColor: '#ffffff',
+    borderBottomWidth: 2, // Thicker
+    borderBottomColor: '#48327d', // Purple border instead of light gray
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 3,
-    paddingTop: Platform.OS === 'android' ? 10 : 0, // Extra safety
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 8, // Higher elevation
+    zIndex: 100,
   },
   greetingText: {
     fontSize: 14,

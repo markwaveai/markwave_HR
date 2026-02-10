@@ -36,7 +36,7 @@ const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onSh
                         style={styles.arrowButton}
                         onPress={onShowAbsentees}
                     >
-                        <Text style={styles.arrowText}>→</Text>
+                        <Text style={styles.arrowText}></Text>
                     </TouchableOpacity>
                 </View>
             </View>

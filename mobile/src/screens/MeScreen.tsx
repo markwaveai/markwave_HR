@@ -75,7 +75,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             const [history, status, stats, requestsData] = await Promise.all([
                 attendanceApi.getHistory(user.id),
                 attendanceApi.getStatus(user.id),
-                teamApi.getStats(user.team_id),
+                teamApi.getStats(user.team_ids || user.team_id),
                 attendanceApi.getRequests(user.employee_id || user.id).catch(() => [])
             ]);
             setLogs(history);
@@ -496,12 +496,6 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                             <Text style={styles.greetingTitle}>Attendance Stats</Text>
                             <Text style={styles.greetingSubtitle}>Detailed tracking and productivity logs</Text>
                         </View>
-                        <TouchableOpacity
-                            style={{ backgroundColor: '#48327d1a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
-                            onPress={() => setActiveTabToSettings(user)}
-                        >
-                            <Text style={{ color: '#48327d', fontWeight: 'bold' }}>Settings</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -510,7 +504,6 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                     <View style={styles.cardHeaderFlex}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Text style={styles.cardHeaderTitle}>This Week</Text>
-                            <Text style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>▼</Text>
                         </View>
                         <Text style={{ color: '#b2bec3', fontSize: 13 }}>ⓘ</Text>
                     </View>

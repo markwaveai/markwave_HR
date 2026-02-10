@@ -35,7 +35,6 @@ import {
     CameraIcon,
     CloseIcon,
     ClockIcon,
-    ChevronDownIcon
 } from '../components/Icons';
 
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
@@ -311,12 +310,6 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                             <Text style={styles.greetingTitle}>{getGreeting()}, {user?.first_name || 'Markwave'} {user?.last_name || ''}!</Text>
                             <Text style={styles.greetingSubtitle}>You're doing great today.</Text>
                         </View>
-                        <TouchableOpacity
-                            style={{ backgroundColor: '#48327d1a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
-                            onPress={() => setActiveTabToSettings(user)}
-                        >
-                            <Text style={{ color: '#48327d', fontWeight: 'bold' }}>Settings</Text>
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -380,7 +373,6 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                             <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b' }}>
                                 {statsDuration === 'week' ? 'This Week' : 'This Month'}
                             </Text>
-                            <ChevronDownIcon color="#64748b" size={14} />
                         </TouchableOpacity>
                     </View>
                     <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
@@ -420,7 +412,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                             ]}
                         >
                             <Text style={styles.cardTitle}>Holidays</Text>
-                            <Text style={{ color: '#48327d', fontSize: 12, fontWeight: 'bold' }}>View All →</Text>
+                            <Text style={{ color: '#48327d', fontSize: 12, fontWeight: 'bold' }}>View All</Text>
                         </Pressable>
 
                         <View style={styles.holidayContent}>
@@ -445,13 +437,13 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                     onPress={() => setHolidayIndex(prev => Math.max(0, prev - 1))}
                                     disabled={holidayIndex === 0}
                                 >
-                                    <Text style={[styles.navArrow, holidayIndex === 0 && styles.disabledArrow]}>‹</Text>
+                                    <View style={holidayIndex === 0 && { opacity: 0.3 }} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setHolidayIndex(prev => Math.min(upcomingHolidays.length - 1, prev + 1))}
                                     disabled={holidayIndex === upcomingHolidays.length - 1}
                                 >
-                                    <Text style={[styles.navArrow, holidayIndex === upcomingHolidays.length - 1 && styles.disabledArrow]}>›</Text>
+                                    <View style={holidayIndex === upcomingHolidays.length - 1 && { opacity: 0.3 }} />
                                 </TouchableOpacity>
                             </View>
                         </View>

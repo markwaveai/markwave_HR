@@ -303,10 +303,10 @@ def member_detail(request, pk):
 @api_view(['GET'])
 def team_stats(request):
     try:
-        team_id = request.query_params.get('team_id')
+        team_ids_str = request.query_params.get('team_id')
         
         # If no team_id is provided, return null stats (user doesn't belong to a team)
-        if not team_id:
+        if not team_ids_str:
             return Response({
                 'total': 0,
                 'active': 0,
@@ -316,9 +316,11 @@ def team_stats(request):
                 'on_time_arrival': None
             })
         
+        team_ids = [tid.strip() for tid in team_ids_str.split(',') if tid.strip()]
+        
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
-        if team_id:
-            query = query.filter(teams__id=team_id)
+        if team_ids:
+            query = query.filter(teams__id__in=team_ids)
             
         members = query.all()
         
