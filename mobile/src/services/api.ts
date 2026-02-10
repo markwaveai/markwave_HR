@@ -12,8 +12,18 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `API Error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            console.log(`API Error (${response.status}) body:`, errorText);
+
+            let errorData = {};
+            try {
+                errorData = JSON.parse(errorText);
+            } catch (e) {
+                // Not JSON
+            }
+
+            // @ts-ignore
+            throw new Error(errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}\n${errorText.substring(0, 100)}`);
         }
 
         return response.json();

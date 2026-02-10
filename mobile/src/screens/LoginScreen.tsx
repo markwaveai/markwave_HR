@@ -40,7 +40,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     }, []);
 
     const handleSendOTP = async () => {
-        if (loginMethod === 'phone' && !phone) {
+        const trimmedPhone = phone.trim();
+        if (loginMethod === 'phone' && !trimmedPhone) {
             setError('Please enter mobile number');
             return;
         }
@@ -54,12 +55,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
         try {
             if (loginMethod === 'phone') {
-                await authApi.sendOTP(phone);
+                await authApi.sendOTP(trimmedPhone);
             } else {
                 await authApi.sendEmailOTP(email);
             }
             setStep('otp');
         } catch (err) {
+            console.error('Send OTP Error:', err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage || 'Failed to send OTP');
         } finally {
