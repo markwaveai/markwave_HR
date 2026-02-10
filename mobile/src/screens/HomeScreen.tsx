@@ -40,7 +40,7 @@ import {
 
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
 
-const HomeScreen = ({ user }: { user: any }) => {
+const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabToSettings: (u: any) => void }) => {
     if (!user) {
         return (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -306,8 +306,18 @@ const HomeScreen = ({ user }: { user: any }) => {
             >
                 {/* Welcome Section */}
                 <View style={styles.welcomeSection}>
-                    <Text style={styles.greetingTitle}>{getGreeting()}, {user?.first_name || 'Markwave'} {user?.last_name || ''}!</Text>
-                    <Text style={styles.greetingSubtitle}>You're doing great today.</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View>
+                            <Text style={styles.greetingTitle}>{getGreeting()}, {user?.first_name || 'Markwave'} {user?.last_name || ''}!</Text>
+                            <Text style={styles.greetingSubtitle}>You're doing great today.</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={{ backgroundColor: '#48327d1a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+                            onPress={() => setActiveTabToSettings(user)}
+                        >
+                            <Text style={{ color: '#48327d', fontWeight: 'bold' }}>Settings</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Clock Card */}

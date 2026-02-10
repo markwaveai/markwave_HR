@@ -21,7 +21,7 @@ interface MeScreenProps {
     user: any;
 }
 
-const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
+const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => void }> = ({ user, setActiveTabToSettings }) => {
     const [currentTime, setCurrentTime] = useState(new Date());
     const [selectedDayIndex, setSelectedDayIndex] = useState(0);
     const [logs, setLogs] = useState<any[]>([]);
@@ -491,8 +491,18 @@ const MeScreen: React.FC<MeScreenProps> = ({ user }) => {
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.welcomeSection}>
-                    <Text style={styles.greetingTitle}>Attendance Stats</Text>
-                    <Text style={styles.greetingSubtitle}>Detailed tracking and productivity logs</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View>
+                            <Text style={styles.greetingTitle}>Attendance Stats</Text>
+                            <Text style={styles.greetingSubtitle}>Detailed tracking and productivity logs</Text>
+                        </View>
+                        <TouchableOpacity
+                            style={{ backgroundColor: '#48327d1a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 }}
+                            onPress={() => setActiveTabToSettings(user)}
+                        >
+                            <Text style={{ color: '#48327d', fontWeight: 'bold' }}>Settings</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 {/* Web Style Attendance Stats */}

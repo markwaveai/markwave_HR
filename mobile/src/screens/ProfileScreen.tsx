@@ -1,37 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
-import { MailIcon, PhoneIcon, MapPinIcon, IdCardIcon } from '../components/Icons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
 const ProfileScreen = ({ user, onBack }: { user: any, onBack?: () => void }) => {
     if (!user) return null;
-
-    const getFormattedID = (id: any) => {
-        if (!id) return '----';
-        const numId = parseInt(id);
-        if (numId < 1000) {
-            return `MWI${numId.toString().padStart(3, '0')}`;
-        }
-        return `MW${numId}`;
-    };
 
     const getInitials = () => {
         return `${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`.toUpperCase();
     };
 
-    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-        <View style={styles.infoRow}>
-            <View style={styles.iconContainer}>
-                {icon}
-            </View>
-            <View style={styles.infoContent}>
-                <Text style={styles.label}>{label}</Text>
-                <Text style={styles.value}>{value || '-'}</Text>
-            </View>
-        </View>
-    );
-
     return (
-        <ScrollView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.header}>
                 {onBack && (
                     <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -42,40 +20,25 @@ const ProfileScreen = ({ user, onBack }: { user: any, onBack?: () => void }) => 
                     <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
                 </View>
                 <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
-                <Text style={styles.role}>{user.role}</Text>
-                <View style={styles.idTag}>
-                    <Text style={styles.idText}>{user.employee_id || getFormattedID(user.id)}</Text>
-                </View>
+                <Text style={styles.role}>{user.role || user.designation}</Text>
+                <Text style={styles.instruction}>Full details are available in the Settings tab.</Text>
             </View>
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Contact Information</Text>
-                <View style={styles.card}>
-                    <InfoRow icon={<MailIcon color="#48327d" size={20} />} label="Email" value={user.email} />
-                </View>
-            </View>
-
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Personal Details</Text>
-                <View style={styles.card}>
-                    <InfoRow icon={<IdCardIcon color="#48327d" size={20} />} label="Aadhar Number" value={user.aadhar ? user.aadhar.toString().replace(/(\d{4})(?=\d)/g, "$1 ") : '-'} />
-                </View>
-            </View>
-        </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f5f7fa',
+        backgroundColor: '#f8fafc',
     },
     header: {
         alignItems: 'center',
-        padding: 30,
+        paddingVertical: 60,
         backgroundColor: 'white',
         borderBottomWidth: 1,
-        borderBottomColor: '#e2e8f0',
+        borderBottomColor: '#f1f5f9',
+        flex: 1,
     },
     avatarLarge: {
         width: 100,
@@ -84,12 +47,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#48327d',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 16,
-        shadowColor: '#48327d',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 6,
+        marginBottom: 20,
     },
     avatarTextLarge: {
         fontSize: 36,
@@ -99,83 +57,19 @@ const styles = StyleSheet.create({
     name: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#2d3436',
+        color: '#0f172a',
         marginBottom: 4,
     },
     role: {
         fontSize: 16,
-        color: '#636e72',
-        marginBottom: 12,
+        color: '#64748b',
+        marginBottom: 20,
     },
-    idTag: {
-        backgroundColor: '#f1f2f6',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 20,
-    },
-    idText: {
+    instruction: {
         fontSize: 14,
-        fontWeight: 'bold',
-        color: '#48327d',
-    },
-    section: {
-        padding: 20,
-        paddingBottom: 0,
-    },
-    sectionTitle: {
-        fontSize: 14,
-        fontWeight: 'bold',
-        color: '#636e72',
-        marginBottom: 10,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-    },
-    card: {
-        backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 20,
-        borderWidth: 1,
-        borderColor: '#e2e8f0',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 4,
-        elevation: 2,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    iconContainer: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: '#f5f7fa',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
-    },
-    icon: {
-        fontSize: 20,
-    },
-    infoContent: {
-        flex: 1,
-    },
-    label: {
-        fontSize: 12,
-        color: '#636e72',
-        marginBottom: 2,
-    },
-    value: {
-        fontSize: 16,
-        color: '#2d3436',
-        fontWeight: '500',
-    },
-    divider: {
-        height: 1,
-        backgroundColor: '#f1f2f6',
-        marginVertical: 16,
-        marginLeft: 56, // Align with text
+        color: '#94a3b8',
+        fontStyle: 'italic',
+        marginTop: 20,
     },
     backButton: {
         position: 'absolute',
@@ -183,15 +77,15 @@ const styles = StyleSheet.create({
         right: 20,
         width: 36,
         height: 36,
-        borderRadius: 18,
-        backgroundColor: '#f1f2f6',
+        borderRadius: 12,
+        backgroundColor: '#f8fafc',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
     },
     backButtonText: {
-        fontSize: 20,
-        color: '#636e72',
+        fontSize: 18,
+        color: '#64748b',
         fontWeight: 'bold',
     },
 });

@@ -47,9 +47,10 @@ import EmployeeListScreen from './src/screens/EmployeeListScreen';
 import MyTeamScreen from './src/screens/MyTeamScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
 import MeScreen from './src/screens/MeScreen';
 import LeaveScreen from './src/screens/LeaveScreen';
-import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon } from './src/components/Icons';
+import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon } from './src/components/Icons';
 
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -82,12 +83,23 @@ const TabButton: React.FC<TabButtonProps> = ({ title, isActive, onPress, icon })
 
 
 
+const DrawerItem = ({ title, icon, isActive, onPress }: { title: string, icon: any, isActive: boolean, onPress: () => void }) => (
+  <TouchableOpacity
+    style={[styles.drawerItem, isActive && styles.drawerItemActive]}
+    onPress={onPress}
+  >
+    {icon}
+    <Text style={[styles.drawerItemText, isActive && styles.drawerItemTextActive]}>{title}</Text>
+  </TouchableOpacity>
+);
+
 function App() {
   const [activeTab, setActiveTab] = useState('Home');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
+  const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
   // Load user session on mount
   useEffect(() => {
@@ -166,14 +178,106 @@ function App() {
         <LoginScreen onLogin={handleLogin} />
       ) : (
         <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+          <Modal
+            animationType="fade"
+            transparent={true}
+            visible={isDrawerVisible}
+            onRequestClose={() => setIsDrawerVisible(false)}
+          >
+            <TouchableOpacity
+              style={styles.drawerOverlay}
+              activeOpacity={1}
+              onPress={() => setIsDrawerVisible(false)}
+            >
+              <View style={styles.drawerContent} onStartShouldSetResponder={() => true}>
+                <View style={styles.drawerHeader}>
+                  <View style={styles.drawerAvatar}>
+                    <Text style={styles.drawerAvatarText}>{getInitials()}</Text>
+                  </View>
+                  <View>
+                    <Text style={styles.drawerUserName}>{appUser?.first_name} {appUser?.last_name}</Text>
+                    <Text style={styles.drawerUserRole}>{appUser?.role || appUser?.designation}</Text>
+                  </View>
+                </View>
+
+                <ScrollView style={styles.drawerNav}>
+                  <DrawerItem
+                    title="Home"
+                    icon={<HomeIcon color={activeTab === 'Home' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Home'}
+                    onPress={() => { setActiveTab('Home'); setIsDrawerVisible(false); }}
+                  />
+                  <DrawerItem
+                    title="Attendance"
+                    icon={<UserIcon color={activeTab === 'Me' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Me'}
+                    onPress={() => { setActiveTab('Me'); setIsDrawerVisible(false); }}
+                  />
+                  <DrawerItem
+                    title="Profile"
+                    icon={<UserIcon color={activeTab === 'Profile' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Profile'}
+                    onPress={() => { setActiveTab('Profile'); setIsDrawerVisible(false); }}
+                  />
+                  <DrawerItem
+                    title="Settings"
+                    icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Settings'}
+                    onPress={() => { setActiveTab('Settings'); setIsDrawerVisible(false); }}
+                  />
+                  <DrawerItem
+                    title="Leaves"
+                    icon={<CalendarIcon color={activeTab === 'Menu' || activeTab === 'AdminLeave' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Menu' || activeTab === 'AdminLeave'}
+                    onPress={() => { setActiveTab(isAdmin ? 'AdminLeave' : 'Menu'); setIsDrawerVisible(false); }}
+                  />
+                  {isAdmin && (
+                    <DrawerItem
+                      title="Employees"
+                      icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'Employees'}
+                      onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
+                    />
+                  )}
+                  {isAdmin ? (
+                    <DrawerItem
+                      title="Team Mgmt"
+                      icon={<BuildingIcon color={activeTab === 'Teams' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'Teams'}
+                      onPress={() => { setActiveTab('Teams'); setIsDrawerVisible(false); }}
+                    />
+                  ) : (
+                    <DrawerItem
+                      title="My Team"
+                      icon={<UsersIcon color={activeTab === 'Team' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'Team'}
+                      onPress={() => { setActiveTab('Team'); setIsDrawerVisible(false); }}
+                    />
+                  )}
+                </ScrollView>
+
+                <TouchableOpacity style={styles.logoutBtn} onPress={handleLogoutPress}>
+                  <Text style={styles.logoutText}>Log Out</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => setActiveTab('Profile')}>
+            <TouchableOpacity
+              onPress={() => setIsDrawerVisible(true)}
+              style={{ padding: 8, flexDirection: 'row', alignItems: 'center' }}
+            >
+              <MenuIcon color="#48327d" size={26} />
+              <Text style={{ marginLeft: 4, color: '#48327d', fontWeight: 'bold', fontSize: 12 }}>MENU</Text>
+            </TouchableOpacity>
+
+            <Text style={{ fontSize: 16, fontWeight: '800', color: '#48327d', letterSpacing: 0.5 }}>MARKWAVE HR</Text>
+
+            <TouchableOpacity onPress={() => setActiveTab('Settings')}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>{getInitials()}</Text>
               </View>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handleLogoutPress} style={styles.logoutBtn}>
-              <Text style={styles.logoutText}>Logout</Text>
             </TouchableOpacity>
           </View>
 
@@ -211,14 +315,15 @@ function App() {
           </Modal>
 
           <View style={{ flex: 1 }}>
-            {activeTab === 'Home' && <HomeScreen user={appUser} />}
+            {activeTab === 'Home' && <HomeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
             {activeTab === 'Team' && <MyTeamScreen user={appUser} />}
-            {activeTab === 'Me' && <MeScreen user={appUser} />}
+            {activeTab === 'Me' && <MeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
             {activeTab === 'Menu' && <LeaveScreen user={appUser} />}
             {activeTab === 'Employees' && <EmployeeListScreen />}
             {activeTab === 'AdminLeave' && <AdminLeaveScreen />}
             {activeTab === 'Teams' && <TeamManagementScreen />}
             {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
+            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}
           </View>
 
           <View style={styles.tabBar}>
@@ -234,6 +339,13 @@ function App() {
               icon={<UserIcon color={activeTab === 'Me' ? '#48327d' : '#94a3b8'} size={22} />}
               isActive={activeTab === 'Me'}
               onPress={() => setActiveTab('Me')}
+            />
+
+            <TabButton
+              title="Settings"
+              icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#94a3b8'} size={22} />}
+              isActive={activeTab === 'Settings'}
+              onPress={() => setActiveTab('Settings')}
             />
 
             {!isAdmin && (
@@ -307,13 +419,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f2f6',
-  },
-  logoutBtn: {
-    padding: 8,
-  },
-  logoutText: {
-    color: '#ff6b6b',
-    fontWeight: '600',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 3,
+    paddingTop: Platform.OS === 'android' ? 10 : 0, // Extra safety
   },
   greetingText: {
     fontSize: 14,
@@ -612,6 +723,90 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 14,
+  },
+  // Drawer Styles
+  drawerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  drawerContent: {
+    width: '75%',
+    height: '100%',
+    backgroundColor: 'white',
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 5, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  drawerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 15,
+    marginBottom: 40,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  drawerAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#48327d',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  drawerAvatarText: {
+    color: 'white',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  drawerUserName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0f172a',
+  },
+  drawerUserRole: {
+    fontSize: 14,
+    color: '#64748b',
+  },
+  drawerNav: {
+    flex: 1,
+  },
+  drawerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 15,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+  },
+  drawerItemActive: {
+    backgroundColor: '#f3e8ff',
+  },
+  drawerItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748b',
+    marginLeft: 15,
+  },
+  drawerItemTextActive: {
+    color: '#48327d',
+  },
+  logoutBtn: {
+    marginTop: 'auto',
+    marginBottom: 40,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  logoutText: {
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 
