@@ -86,7 +86,12 @@ export const teamApi = {
     }),
     getMembers: (teamId?: number) => apiFetch(`/team/members/${teamId ? `?team_id=${teamId}` : ''}`),
     getAttendanceRegistry: () => apiFetch('/team/registry/'),
-    getStats: (teamId?: number) => apiFetch(`/team/stats/${teamId ? `?team_id=${teamId}` : ''}`),
+    getStats: (teamId?: number, duration?: string) => {
+        let qs = '';
+        if (teamId) qs += `team_id=${teamId}`;
+        if (duration) qs += `${qs ? '&' : ''}duration=${duration}`;
+        return apiFetch(`/team/stats/${qs ? `?${qs}` : ''}`);
+    },
     addEmployee: (data: any) => apiFetch('/team/members/', {
         method: 'POST',
         body: JSON.stringify(data)
@@ -111,7 +116,8 @@ export const attendanceApi = {
         method: 'POST',
         body: JSON.stringify(data)
     }),
-    getRequests: (employeeId: string) => apiFetch(`/attendance/regularization-requests/${employeeId}/?role=employee&_t=${new Date().getTime()}`)
+    getRequests: (employeeId: string) => apiFetch(`/attendance/regularization-requests/${employeeId}/?role=employee&_t=${new Date().getTime()}`),
+    resolveLocation: (lat: number, lon: number) => apiFetch(`/attendance/resolve-location/?lat=${lat}&lon=${lon}`),
 };
 
 export const feedApi = {

@@ -58,13 +58,11 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
         }
     };
 
-    const InfoRow = ({ icon, label, value }: { icon: any, label: string, value: string }) => (
-        <View style={styles.infoRow}>
-            <View style={styles.iconContainer}>
-                {icon}
-            </View>
-            <View style={styles.infoContent}>
-                <Text style={styles.label}>{label}</Text>
+    const InfoItem = ({ icon, label, value, isFullWidth = false }: { icon: any, label: string, value: string, isFullWidth?: boolean }) => (
+        <View style={[styles.infoItem, isFullWidth ? { width: '100%' } : { width: '48%' }]}>
+            <Text style={styles.label}>{label}</Text>
+            <View style={styles.valueRow}>
+                <View style={styles.iconMini}>{icon}</View>
                 <Text style={styles.value}>{value || '-'}</Text>
             </View>
         </View>
@@ -78,104 +76,148 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                         <Text style={styles.backButtonText}>✕</Text>
                     </TouchableOpacity>
                 )}
-                <View style={styles.avatarLarge}>
-                    <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
-                    <View style={styles.statusDot} />
-                </View>
-                <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
-                <View style={styles.headerSubInfo}>
-                    <Text style={styles.role}>{user.role || user.designation}</Text>
-                    <Text style={styles.dotSeparator}>•</Text>
-                    <Text style={styles.idTextSmall}>{user.employee_id || getFormattedID(user.id)}</Text>
+                <View style={styles.headerContent}>
+                    <View style={styles.avatarLarge}>
+                        <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
+                        <View style={styles.statusDot} />
+                    </View>
+                    <View>
+                        <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
+                        <View style={styles.headerSubInfo}>
+                            <BriefcaseIcon size={14} color="#64748b" />
+                            <Text style={styles.role}>{user.role || user.designation}</Text>
+                            <Text style={styles.dotSeparator}>•</Text>
+                            <Text style={styles.idTextSmall}>{user.employee_id || getFormattedID(user.id)}</Text>
+                        </View>
+                    </View>
                 </View>
             </View>
 
             <View style={styles.section}>
                 <View style={styles.sectionHeader}>
                     <View style={[styles.sectionIconBg, { backgroundColor: '#f3e8ff' }]}>
-                        <UserIcon color="#48327d" size={18} />
+                        <UserIcon color="#48327d" size={20} />
                     </View>
                     <Text style={styles.sectionTitle}>Personal Profile</Text>
                 </View>
                 <View style={styles.card}>
-                    <InfoRow icon={<MailIcon color="#48327d" size={18} />} label="EMAIL ADDRESS" value={user.email} />
+                    <InfoItem
+                        icon={<MailIcon color="#94a3b8" size={14} />}
+                        label="EMAIL ADDRESS"
+                        value={user.email}
+                        isFullWidth
+                    />
                     <View style={styles.divider} />
-                    <InfoRow icon={<PhoneIcon color="#48327d" size={18} />} label="PHONE NUMBER" value={user.phone} />
+                    <InfoItem
+                        icon={<PhoneIcon color="#94a3b8" size={14} />}
+                        label="PHONE NUMBER"
+                        value={user.contact || user.phone}
+                        isFullWidth
+                    />
                     <View style={styles.divider} />
-                    <InfoRow icon={<MapPinIcon color="#48327d" size={18} />} label="LOCATION" value={user.location} />
+                    <InfoItem
+                        icon={<MapPinIcon color="#94a3b8" size={14} />}
+                        label="LOCATION"
+                        value={user.location}
+                        isFullWidth
+                    />
                     <View style={styles.divider} />
-                    <InfoRow icon={<IdCardIcon color="#48327d" size={18} />} label="AADHAR" value={user.aadhar ? user.aadhar.toString().replace(/(\d{4})(?=\d)/g, "$1 ") : '-'} />
+                    <InfoItem
+                        icon={<IdCardIcon color="#94a3b8" size={14} />}
+                        label="AADHAR"
+                        value={user.aadhar ? user.aadhar.toString().replace(/(\d{4})(?=\d)/g, "$1 ") : '-'}
+                        isFullWidth
+                    />
                     <View style={styles.divider} />
-                    <InfoRow icon={<BriefcaseIcon color="#48327d" size={18} />} label="QUALIFICATION" value={user.qualification || 'B.Tech'} />
+                    <InfoItem
+                        icon={<BriefcaseIcon color="#94a3b8" size={14} />}
+                        label="QUALIFICATION"
+                        value={user.qualification || 'B.Tech'}
+                        isFullWidth
+                    />
                     <View style={styles.divider} />
-                    <InfoRow icon={<CalendarIcon color="#48327d" size={18} />} label="JOINING DATE" value={formatDate(user.date_joined || user.joining_date)} />
+                    <InfoItem
+                        icon={<CalendarIcon color="#94a3b8" size={14} />}
+                        label="JOINING DATE"
+                        value={formatDate(user.date_joined || user.joining_date)}
+                        isFullWidth
+                    />
                 </View>
             </View>
 
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <View style={[styles.sectionIconBg, { backgroundColor: '#e0f2fe' }]}>
-                        <BriefcaseIcon color="#0284c7" size={18} />
-                    </View>
-                    <Text style={styles.sectionTitle}>Work</Text>
-                </View>
-                <View style={styles.card}>
-                    <View style={styles.workDetailRow}>
-                        <Text style={styles.workLabel}>Employee ID</Text>
-                        <Text style={styles.workValueBold}>{user.employee_id || getFormattedID(user.id)}</Text>
-                    </View>
-                    <View style={styles.divider} />
-                    <View style={styles.workDetailRow}>
-                        <Text style={styles.workLabel}>Designation</Text>
-                        <Text style={styles.workValue}>{user.role || user.designation}</Text>
-                    </View>
-                </View>
-            </View>
-
-            {(user.team_name || (user.teams && user.teams.length > 0)) && (
-                <View style={styles.section}>
+            <View style={styles.rowSection}>
+                <View style={[styles.section, { flex: 1, marginTop: 0 }]}>
                     <View style={styles.sectionHeader}>
-                        <View style={[styles.sectionIconBg, { backgroundColor: '#fff7ed' }]}>
-                            <UsersIcon color="#ea580c" size={18} />
+                        <View style={[styles.sectionIconBg, { backgroundColor: '#e0f2fe' }]}>
+                            <BriefcaseIcon color="#0284c7" size={20} />
                         </View>
-                        <Text style={styles.sectionTitle}>Teams</Text>
+                        <Text style={styles.sectionTitle}>Work</Text>
                     </View>
                     <View style={styles.card}>
-                        {user.teams && user.teams.length > 0 ? (
-                            user.teams.map((team: any, index: number) => (
-                                <React.Fragment key={team.id || index}>
-                                    <View style={styles.teamCard}>
-                                        <View style={styles.teamInfo}>
-                                            <Text style={styles.teamNameText}>Team {team.name}</Text>
-                                            {team.manager_name && (
-                                                <View style={styles.leadRow}>
-                                                    <Text style={styles.leadLabel}>Lead: </Text>
-                                                    <Text style={styles.leadName}>{team.manager_name}</Text>
-                                                </View>
-                                            )}
-                                        </View>
-                                        <View style={styles.activeDot} />
-                                    </View>
-                                    {index < user.teams.length - 1 && <View style={[styles.divider, { marginVertical: 12 }]} />}
-                                </React.Fragment>
-                            ))
-                        ) : (
-                            <View style={styles.teamCard}>
-                                <View style={styles.teamInfo}>
-                                    <Text style={styles.teamNameText}>Team {user.team_name}</Text>
-                                    {user.team_lead_name && (
-                                        <View style={styles.leadRow}>
-                                            <Text style={styles.leadLabel}>Lead: </Text>
-                                            <Text style={styles.leadName}>{user.team_lead_name}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                                <View style={styles.activeDot} />
-                            </View>
-                        )}
+                        <View style={styles.workDetailRow}>
+                            <Text style={styles.workLabel}>Employee ID</Text>
+                            <Text style={styles.workValueBold}>{user.employee_id || getFormattedID(user.id)}</Text>
+                        </View>
+                        <View style={styles.divider} />
+                        <View style={styles.workDetailRow}>
+                            <Text style={styles.workLabel}>Designation</Text>
+                            <Text style={styles.workValue}>{user.role || user.designation}</Text>
+                        </View>
                     </View>
                 </View>
-            )}
+
+                {(user.team_name || (user.teams && user.teams.length > 0)) && (
+                    <View style={[styles.section, { flex: 1, marginTop: 0, paddingLeft: 0 }]}>
+                        <View style={styles.sectionHeader}>
+                            <View style={[styles.sectionIconBg, { backgroundColor: '#fff7ed' }]}>
+                                <UsersIcon color="#ea580c" size={20} />
+                            </View>
+                            <Text style={styles.sectionTitle}>Teams</Text>
+                        </View>
+                        <View style={styles.card}>
+                            {user.teams && user.teams.length > 0 ? (
+                                user.teams.map((team: any, index: number) => (
+                                    <React.Fragment key={team.id || index}>
+                                        <View style={styles.teamCard}>
+                                            <View style={styles.activeDot} />
+                                            <View style={styles.teamInfo}>
+                                                <Text style={styles.teamNameText}>
+                                                    {team.name.startsWith('Team ') ? team.name : `Team ${team.name}`}
+                                                </Text>
+                                                {team.manager_name && (
+                                                    <View style={styles.leadRow}>
+                                                        <UserIcon size={12} color="#94a3b8" />
+                                                        <Text style={styles.leadLabel}> Lead: </Text>
+                                                        <Text style={styles.leadName}>{team.manager_name}</Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+                                        {index < user.teams.length - 1 && <View style={[styles.divider, { marginVertical: 12 }]} />}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                <View style={styles.teamCard}>
+                                    <View style={styles.activeDot} />
+                                    <View style={styles.teamInfo}>
+                                        <Text style={styles.teamNameText}>
+                                            {user.team_name.startsWith('Team ') ? user.team_name : `Team ${user.team_name}`}
+                                        </Text>
+                                        {user.team_lead_name && (
+                                            <View style={styles.leadRow}>
+                                                <UserIcon size={12} color="#94a3b8" />
+                                                <Text style={styles.leadLabel}> Lead: </Text>
+                                                <Text style={styles.leadName}>{user.team_lead_name}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                )}
+            </View>
+
             <View style={{ height: 100 }} />
         </ScrollView>
     );
@@ -193,84 +235,97 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8fafc',
     },
     header: {
-        alignItems: 'center',
-        paddingVertical: 40,
         backgroundColor: 'white',
-        borderBottomWidth: 1,
-        borderBottomColor: '#f1f5f9',
+        padding: 24,
+        paddingTop: 40,
+        margin: 16,
+        borderRadius: 24,
+        shadowColor: '#0f172a',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.05,
+        shadowRadius: 12,
+        elevation: 3,
+    },
+    headerContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 20
     },
     avatarLarge: {
-        width: 110,
-        height: 110,
-        borderRadius: 24,
+        width: 80,
+        height: 80,
+        borderRadius: 20,
         backgroundColor: '#48327d',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
         position: 'relative',
     },
     avatarTextLarge: {
-        fontSize: 42,
+        fontSize: 32,
         fontWeight: 'bold',
         color: 'white',
     },
     statusDot: {
         position: 'absolute',
-        bottom: -5,
-        right: -5,
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        bottom: -2,
+        right: -2,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         backgroundColor: '#22c55e',
         borderWidth: 3,
         borderColor: 'white',
     },
     name: {
-        fontSize: 28,
-        fontWeight: 'bold',
+        fontSize: 22,
+        fontWeight: '800',
         color: '#0f172a',
-        marginBottom: 8,
+        marginBottom: 6,
     },
     headerSubInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 6,
     },
     role: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#64748b',
-        fontWeight: '500',
+        fontWeight: '600',
     },
     dotSeparator: {
         color: '#cbd5e1',
-        fontSize: 16,
+        fontSize: 14,
     },
     idTextSmall: {
-        fontSize: 15,
+        fontSize: 14,
         color: '#94a3b8',
-        fontWeight: '500',
+        fontWeight: '600',
         letterSpacing: 0.5,
     },
     section: {
-        paddingHorizontal: 20,
-        marginTop: 24,
+        paddingHorizontal: 16,
+        marginBottom: 24,
+    },
+    rowSection: {
+        flexDirection: 'row',
+        paddingHorizontal: 0,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: 16,
         gap: 12,
     },
     sectionIconBg: {
-        width: 36,
-        height: 36,
-        borderRadius: 10,
+        width: 40,
+        height: 40,
+        borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: '700',
+        fontWeight: '800',
         color: '#1e293b',
     },
     card: {
@@ -285,38 +340,40 @@ const styles = StyleSheet.create({
         shadowRadius: 10,
         elevation: 2,
     },
-    infoRow: {
+    row: {
         flexDirection: 'row',
-        alignItems: 'center',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
     },
-    iconContainer: {
-        width: 44,
-        height: 44,
-        borderRadius: 12,
-        backgroundColor: '#f8fafc',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginRight: 16,
+    infoItem: {
+        marginBottom: 4,
     },
-    infoContent: {
-        flex: 1,
+    iconMini: {
+        marginRight: 6,
+        marginTop: 2
+    },
+    valueRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start'
     },
     label: {
         fontSize: 11,
         color: '#94a3b8',
-        fontWeight: '700',
-        marginBottom: 4,
+        fontWeight: '800',
+        marginBottom: 6,
         letterSpacing: 0.5,
+        textTransform: 'uppercase'
     },
     value: {
-        fontSize: 16,
+        fontSize: 14,
         color: '#334155',
-        fontWeight: '500',
+        fontWeight: '600',
+        flex: 1,
     },
     divider: {
         height: 1,
         backgroundColor: '#f1f5f9',
-        marginVertical: 20,
+        marginVertical: 16,
     },
     workDetailRow: {
         flexDirection: 'row',
@@ -324,24 +381,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     workLabel: {
-        fontSize: 15,
+        fontSize: 14,
         color: '#64748b',
         fontWeight: '500',
     },
     workValue: {
-        fontSize: 15,
+        fontSize: 14,
         color: '#334155',
-        fontWeight: '500',
+        fontWeight: '600',
     },
     workValueBold: {
-        fontSize: 15,
+        fontSize: 14,
         color: '#0f172a',
         fontWeight: '700',
         letterSpacing: 0.5,
     },
     teamCard: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 4,
     },
@@ -349,7 +405,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     teamNameText: {
-        fontSize: 17,
+        fontSize: 15,
         fontWeight: '700',
         color: '#1e293b',
         marginBottom: 4,
@@ -359,36 +415,36 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     leadLabel: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#64748b',
+        fontWeight: '600'
     },
     leadName: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#334155',
         fontWeight: '500',
     },
     activeDot: {
-        width: 10,
-        height: 10,
-        borderRadius: 5,
+        width: 8,
+        height: 8,
+        borderRadius: 4,
         backgroundColor: '#f97316',
+        marginRight: 12
     },
     backButton: {
         position: 'absolute',
         top: 20,
         right: 20,
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        backgroundColor: '#f8fafc',
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#f1f5f9',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
     },
     backButtonText: {
-        fontSize: 18,
+        fontSize: 14,
         color: '#64748b',
         fontWeight: 'bold',
     },

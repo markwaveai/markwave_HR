@@ -56,6 +56,7 @@ import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import TeamManagementScreen from './src/screens/TeamManagementScreen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
+import ProfileModal from './src/components/ProfileModal';
 
 /* ... existing interfaces ... */
 
@@ -100,6 +101,7 @@ function App() {
   const [modalVisible, setModalVisible] = useState(false);
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
+  const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
 
   // Load user session on mount
   useEffect(() => {
@@ -213,26 +215,6 @@ function App() {
                     isActive={activeTab === 'Me'}
                     onPress={() => { setActiveTab('Me'); setIsDrawerVisible(false); }}
                   />
-                  <DrawerItem
-                    title="Settings"
-                    icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#64748b'} size={24} />}
-                    isActive={activeTab === 'Settings'}
-                    onPress={() => { setActiveTab('Settings'); setIsDrawerVisible(false); }}
-                  />
-                  <DrawerItem
-                    title="Leaves"
-                    icon={<CalendarIcon color={activeTab === 'Menu' || activeTab === 'AdminLeave' ? '#48327d' : '#64748b'} size={24} />}
-                    isActive={activeTab === 'Menu' || activeTab === 'AdminLeave'}
-                    onPress={() => { setActiveTab(isAdmin ? 'AdminLeave' : 'Menu'); setIsDrawerVisible(false); }}
-                  />
-                  {isAdmin && (
-                    <DrawerItem
-                      title="Employees"
-                      icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#64748b'} size={24} />}
-                      isActive={activeTab === 'Employees'}
-                      onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
-                    />
-                  )}
                   {isAdmin ? (
                     <DrawerItem
                       title="Team Mgmt"
@@ -248,6 +230,26 @@ function App() {
                       onPress={() => { setActiveTab('Team'); setIsDrawerVisible(false); }}
                     />
                   )}
+                  <DrawerItem
+                    title="Leaves"
+                    icon={<CalendarIcon color={activeTab === 'Menu' || activeTab === 'AdminLeave' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Menu' || activeTab === 'AdminLeave'}
+                    onPress={() => { setActiveTab(isAdmin ? 'AdminLeave' : 'Menu'); setIsDrawerVisible(false); }}
+                  />
+                  {isAdmin && (
+                    <DrawerItem
+                      title="Employees"
+                      icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'Employees'}
+                      onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
+                    />
+                  )}
+                  <DrawerItem
+                    title="Settings"
+                    icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#64748b'} size={24} />}
+                    isActive={activeTab === 'Settings'}
+                    onPress={() => { setActiveTab('Settings'); setIsDrawerVisible(false); }}
+                  />
                 </ScrollView>
 
                 <TouchableOpacity style={styles.logoutBtn} onPress={handleLogoutPress}>
@@ -268,11 +270,20 @@ function App() {
             <Text style={{ fontSize: 16, fontWeight: '800', color: '#48327d', letterSpacing: 0.5 }}>MARKWAVE HR</Text>
 
             <View>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{getInitials()}</Text>
-              </View>
+              <TouchableOpacity onPress={() => setIsProfileModalVisible(true)}>
+                <View style={styles.avatar}>
+                  <Text style={styles.avatarText}>{getInitials()}</Text>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
+
+          <ProfileModal
+            visible={isProfileModalVisible}
+            onClose={() => setIsProfileModalVisible(false)}
+            onLogout={confirmLogout}
+            user={appUser}
+          />
 
           <Modal
             animationType="fade"

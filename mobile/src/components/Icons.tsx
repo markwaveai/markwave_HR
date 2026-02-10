@@ -416,3 +416,87 @@ export const MenuIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, st
         />
     </Svg>
 );
+
+export const ChevronRightIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Polyline points="9 18 15 12 9 6" />
+    </Svg>
+);
+
+export const ChevronLeftIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Polyline points="15 18 9 12 15 6" />
+    </Svg>
+);
+
+export const ChevronDownIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Polyline points="6 9 12 15 18 9" />
+    </Svg>
+);
+
+export const MoreVerticalIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Circle cx="12" cy="12" r="1" />
+        <Circle cx="12" cy="5" r="1" />
+        <Circle cx="12" cy="19" r="1" />
+    </Svg>
+);
+
+export const LogOutIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+        <Polyline points="16 17 21 12 16 7" />
+        <Line x1="21" y1="12" x2="9" y2="12" />
+    </Svg>
+);

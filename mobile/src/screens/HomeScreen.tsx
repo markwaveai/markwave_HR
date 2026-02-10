@@ -35,6 +35,8 @@ import {
     CameraIcon,
     CloseIcon,
     ClockIcon,
+    SearchIcon,
+    ChevronDownIcon,
 } from '../components/Icons';
 
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
@@ -77,6 +79,9 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const [statsDuration, setStatsDuration] = useState<'week' | 'month'>('week');
     const [isRegularizeModalVisible, setIsRegularizeModalVisible] = useState(false);
     const [missedCheckoutDate, setMissedCheckoutDate] = useState<string | null>(null);
+    const [absenteeSearch, setAbsenteeSearch] = useState('');
+    const [absenteeFilter, setAbsenteeFilter] = useState('All Status');
+    const [isStatusDropdownVisible, setIsStatusDropdownVisible] = useState(false);
 
     const isAdmin = user?.is_admin === true ||
         ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Intern'].includes(user?.role);
@@ -663,23 +668,99 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
             <Modal animationType="slide" transparent={true} visible={isAbsenteesModalVisible} onRequestClose={() => setIsAbsenteesModalVisible(false)}>
                 <View style={styles.absenteesModalOverlay}>
                     <View style={styles.absenteesModalContent}>
+                        {/* Header */}
                         <View style={styles.absenteesModalHeader}>
-                            <Text style={styles.absenteesModalTitle}>Today's Absentees</Text>
-                            <TouchableOpacity onPress={() => setIsAbsenteesModalVisible(false)}><Text style={styles.absenteesCloseButtonText}>✕</Text></TouchableOpacity>
+                            <View>
+                                <Text style={styles.absenteesModalTitle}>Today's Absentees</Text>
+                                <Text style={styles.syncStatusText}>SYNC STATUS: {new Date().toLocaleDateString()}</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setIsAbsenteesModalVisible(false)}>
+                                <CloseIcon color="#94a3b8" size={24} />
+                            </TouchableOpacity>
                         </View>
+
+                        {/* Search & Filter */}
+                        <View style={styles.searchFilterContainer}>
+                            <View style={styles.searchContainer}>
+                                <SearchIcon color="#94a3b8" size={18} />
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Search name/role..."
+                                    placeholderTextColor="#94a3b8"
+                                    value={absenteeSearch}
+                                    onChangeText={setAbsenteeSearch}
+                                />
+                            </View>
+                            <View style={{ position: 'relative' }}>
+                                <TouchableOpacity
+                                    style={styles.filterBtn}
+                                    onPress={() => setIsStatusDropdownVisible(!isStatusDropdownVisible)}
+                                >
+                                    <Text style={styles.filterBtnText}>{absenteeFilter}</Text>
+                                    <ChevronDownIcon color="#64748b" size={16} />
+                                </TouchableOpacity>
+
+                                {isStatusDropdownVisible && (
+                                    <View style={styles.dropdownMenu}>
+                                        {['All Status', 'Absent', 'On Leave'].map((status) => (
+                                            <TouchableOpacity
+                                                key={status}
+                                                style={[styles.dropdownItem, absenteeFilter === status && styles.dropdownItemActive]}
+                                                onPress={() => {
+                                                    setAbsenteeFilter(status);
+                                                    setIsStatusDropdownVisible(false);
+                                                }}
+                                            >
+                                                <Text style={[styles.dropdownItemText, absenteeFilter === status && styles.dropdownItemTextActive]}>
+                                                    {status}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
                         <FlatList
-                            data={dashboardStats?.absentees || []}
+                            data={(dashboardStats?.absentees || []).filter((a: any) => {
+                                const matchesSearch = a.name.toLowerCase().includes(absenteeSearch.toLowerCase()) ||
+                                    (a.role && a.role.toLowerCase().includes(absenteeSearch.toLowerCase()));
+
+                                const matchesStatus = absenteeFilter === 'All Status'
+                                    ? true
+                                    : (a.status || 'Absent') === absenteeFilter;
+
+                                return matchesSearch && matchesStatus;
+                            })}
                             keyExtractor={(item, index) => index.toString()}
                             renderItem={({ item }) => (
-                                <View style={styles.memberItem}>
-                                    <View style={[styles.memberAvatar, { backgroundColor: '#48327d' }]}><Text style={[styles.memberAvatarText, { color: 'white' }]}>{item.name[0]}</Text></View>
-                                    <View style={{ flex: 1 }}><Text style={styles.memberName}>{item.name}</Text><Text style={styles.memberRole}>{item.role || 'Employee'}</Text></View>
-                                    <View style={[styles.statusTag, styles.statusTagAbsent]}><Text style={[styles.statusTagText, styles.statusTagTextAbsent]}>ABSENT</Text></View>
+                                <View style={styles.absenteeCard}>
+                                    <View style={styles.absenteeInfo}>
+                                        <Text style={styles.absenteeName}>{item.name}</Text>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                            {/* ID Badge - Mocking MWID if not present */}
+                                            <View style={styles.idBadge}>
+                                                <Text style={styles.idBadgeText}>{item.employee_id || `MW${1000 + Math.floor(Math.random() * 100)}`}</Text>
+                                            </View>
+                                            <Text style={styles.absenteeRole}>{item.role || 'Employee'}</Text>
+                                        </View>
+                                    </View>
+                                    <View style={[styles.statusTag, (item.status === 'On Leave' ? styles.statusTagLeave : styles.statusTagAbsent)]}>
+                                        <Text style={[styles.statusTagText, (item.status === 'On Leave' ? styles.statusTagTextLeave : styles.statusTagTextAbsent)]}>
+                                            {item.status || 'Absent'}
+                                        </Text>
+                                    </View>
                                 </View>
                             )}
-                            ListEmptyComponent={<Text style={styles.emptyStateText}>Everyone is present! 🎉</Text>}
+                            ListEmptyComponent={<Text style={styles.emptyStateText}>No absentees found.</Text>}
+                            contentContainerStyle={{ paddingBottom: 20 }}
                         />
-                        <TouchableOpacity style={styles.doneButton} onPress={() => setIsAbsenteesModalVisible(false)}><Text style={styles.doneButtonText}>Close</Text></TouchableOpacity>
+
+                        <View style={styles.modalFooter}>
+                            <TouchableOpacity style={styles.gotItButton} onPress={() => setIsAbsenteesModalVisible(false)}>
+                                <Text style={styles.gotItButtonText}>Got It</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -757,23 +838,7 @@ const styles = StyleSheet.create({
     modalActionsRow: { flexDirection: 'row', marginBottom: 20 },
     photoSelectBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
     photoSelectBtnText: { fontSize: 12, color: '#64748b', fontWeight: 'bold' },
-    statusTag: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12, marginLeft: 8 },
-    statusTagAbsent: { backgroundColor: '#ffe5e5' },
-    statusTagText: { fontSize: 12, fontWeight: 'bold' },
-    statusTagTextAbsent: { color: '#ff7675' },
-    absenteesModalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
-    absenteesModalContent: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, maxHeight: '80%', minHeight: '50%' },
-    absenteesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' },
-    absenteesModalTitle: { fontSize: 20, fontWeight: 'bold', color: '#2d3436' },
-    absenteesCloseButtonText: { fontSize: 24, color: '#b2bec3', fontWeight: 'bold' },
-    memberItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' },
-    memberAvatar: { width: 40, height: 40, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-    memberAvatarText: { fontSize: 16, fontWeight: 'bold' },
-    memberName: { fontSize: 16, fontWeight: '600', color: '#2d3436' },
-    memberRole: { fontSize: 12, color: '#636e72', marginTop: 2 },
-    emptyStateText: { fontSize: 16, color: '#b2bec3', marginTop: 10, textAlign: 'center' },
-    doneButton: { backgroundColor: '#48327d', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 20 },
-    doneButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
     // Post Bar Card
     postBarCard: {
         backgroundColor: 'white',
@@ -859,6 +924,56 @@ const styles = StyleSheet.create({
         fontSize: 12,
         fontWeight: '900',
     },
+
+    // Absentees Modal Styles
+    absenteesModalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
+    absenteesModalContent: { backgroundColor: '#F8FAFC', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%', minHeight: '60%' },
+    absenteesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+    absenteesModalTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
+    syncStatusText: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 4, textTransform: 'uppercase' },
+
+    searchFilterContainer: { flexDirection: 'row', gap: 12, marginBottom: 20, zIndex: 100 },
+    searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingHorizontal: 12, height: 44 },
+    searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#1e293b' },
+    filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingHorizontal: 16, height: 44, justifyContent: 'center' },
+    filterBtnText: { fontSize: 14, fontWeight: '600', color: '#2d3436' },
+
+    dropdownMenu: { position: 'absolute', top: 50, right: 0, width: 140, backgroundColor: 'white', borderRadius: 8, elevation: 5, paddingVertical: 4, zIndex: 1000, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, borderWidth: 1, borderColor: '#f1f5f9' },
+    dropdownItem: { paddingVertical: 10, paddingHorizontal: 16 },
+    dropdownItemActive: { backgroundColor: '#64748b' },
+    dropdownItemText: { fontSize: 13, color: '#475569', fontWeight: '500' },
+    dropdownItemTextActive: { color: 'white', fontWeight: 'bold' },
+
+    absenteeCard: { backgroundColor: 'white', borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+    absenteeInfo: { flex: 1 },
+    absenteeName: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
+    absenteeRole: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
+
+    idBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+    idBadgeText: { fontSize: 11, fontWeight: '700', color: '#64748b' },
+
+    statusTag: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, },
+    statusTagAbsent: { backgroundColor: '#ffe5e5' },
+    statusTagText: { fontSize: 12, fontWeight: 'bold' },
+    statusTagTextAbsent: { color: '#ff7675' },
+    statusTagLeave: { backgroundColor: '#e0f2fe' },
+    statusTagTextLeave: { color: '#0284c7' },
+
+    modalFooter: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 16, marginTop: 10 },
+    gotItButton: { backgroundColor: '#48327d', paddingVertical: 14, borderRadius: 12, alignItems: 'center', width: '100%' },
+    gotItButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+
+    emptyStateText: { fontSize: 14, color: '#94a3b8', marginTop: 20, textAlign: 'center' },
+
+    // Legacy styles (hidden)
+    absenteesCloseButtonText: { display: 'none' },
+    memberItem: { display: 'none' },
+    memberAvatar: { display: 'none' },
+    memberAvatarText: { display: 'none' },
+    memberName: { display: 'none' },
+    memberRole: { display: 'none' },
+    doneButton: { display: 'none' },
+    doneButtonText: { display: 'none' },
 });
 
 export default HomeScreen;

@@ -85,7 +85,7 @@ const ClockCard: React.FC<ClockCardProps> = ({
 
             {/* Location Footer */}
             {locationState && (
-                <Text style={styles.locationText} numberOfLines={1}>
+                <Text style={styles.locationText} numberOfLines={3}>
                     📍 {locationState}
                 </Text>
             )}

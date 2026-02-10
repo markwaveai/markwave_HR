@@ -24,13 +24,31 @@ def resolve_location(request):
         if response.ok:
             data = response.json()
             addr = data.get('address', {})
-            parts = [
-                addr.get('office') or addr.get('amenity') or addr.get('building') or addr.get('shop') or addr.get('industrial'),
-                addr.get('neighbourhood') or addr.get('suburb') or addr.get('road'),
-                addr.get('city') or addr.get('town') or addr.get('village')
-            ]
-            parts = [p for p in parts if p]
+            parts = []
             
+            # 1. House Number (for exactness)
+            if addr.get('house_number'):
+                parts.append(addr.get('house_number'))
+                
+            # 2. Building / Amenity / Office
+            entity = addr.get('office') or addr.get('amenity') or addr.get('building') or addr.get('shop') or addr.get('industrial')
+            if entity:
+                parts.append(entity)
+            
+            # 3. Road (Critical for "exact" location)
+            if addr.get('road'):
+                parts.append(addr.get('road'))
+
+            # 4. Area / Neighbourhood
+            area = addr.get('neighbourhood') or addr.get('suburb') or addr.get('residential')
+            if area:
+                parts.append(area)
+                
+            # 5. City / Town
+            city = addr.get('city') or addr.get('town') or addr.get('village')
+            if city:
+                parts.append(city)
+                
             name = ", ".join(parts) if parts else data.get('display_name', '').split(',')[0:3]
             if isinstance(name, list): name = ", ".join(name)
             
@@ -409,7 +427,7 @@ def get_history(request, employee_id):
     # We'll filter visually on frontend, but here we just need to enhance the data we return
     leaves = Leaves.objects.filter(
         employee=employee, 
-        status='Approved',
+        status__iexact='Approved',
         # Simple optimization: leaves that end after start_date
         to_date__gte=start_date
     )

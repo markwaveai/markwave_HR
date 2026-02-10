@@ -42,7 +42,8 @@ const LeaveScreen = ({ user }: { user: any }) => {
         'bl': { name: 'Bereavement Leave', code: 'bl', icon: '🕯️', color: '#e67e22', bg: '#fff3e0' },
         'pl': { name: 'Paternity Leave', code: 'pl', icon: '👶', color: '#1abc9c', bg: '#e0f2f1' },
         'll': { name: 'Long Leave', code: 'll', icon: '🏠', color: '#34495e', bg: '#eceff1' },
-        'co': { name: 'Comp Off', code: 'co', icon: '⏳', color: '#f1c40f', bg: '#fffde7' }
+        'co': { name: 'Comp Off', code: 'co', icon: '⏳', color: '#f1c40f', bg: '#fffde7' },
+        'lwp': { name: 'Leave Without Pay', code: 'lwp', icon: '🚫', color: '#95a5a6', bg: '#f1f2f6' }
     };
 
     const fetchLeaves = async () => {
@@ -72,8 +73,6 @@ const LeaveScreen = ({ user }: { user: any }) => {
             authApi.getProfile(EMPLOYEE_ID).then(p => setProfile(p)).catch(console.log);
         }
     }, [EMPLOYEE_ID]);
-
-    // calculateBalances removed as it is handled in LeaveBalanceCard
 
     const handleApply = async () => {
         if (!fromDate || !reason || notifyTo.length === 0) {
@@ -149,6 +148,18 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
     const getLeaveLabel = (code: string) => {
         return LEAVE_CONFIG[code]?.name || code.toUpperCase();
+    };
+
+    // Helper to format dropdown label
+    const getLeaveDropdownLabel = (code: string) => {
+        const config = LEAVE_CONFIG[code];
+        if (!config) return code.toUpperCase();
+
+        // LWP doesn't have a balance
+        if (code === 'lwp') return config.name.toUpperCase();
+
+        const balance = apiBalance[code] !== undefined ? apiBalance[code] : 0;
+        return `${config.name.toUpperCase()} (${balance} Remaining)`;
     };
 
     const formatDateWithDay = (dateStr: string) => {
@@ -255,7 +266,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                 onPress={() => setIsTypePickerVisible(true)}
                             >
                                 <Text style={styles.dropdownText}>
-                                    {getLeaveLabel(leaveType)}
+                                    {getLeaveDropdownLabel(leaveType)}
                                 </Text>
                             </TouchableOpacity>
 
@@ -357,7 +368,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                 {(() => {
                                     // Reverse priority: profile is fresh from getProfile, user might be stale from session
                                     const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
-                                    const leads = leadStr.split(',').map(s => s.trim()).filter(name => name && name !== 'Team Lead');
+                                    const leads = leadStr.split(',').map((s: string) => s.trim()).filter((name: string) => name && name !== 'Team Lead');
 
                                     const allSuggestions = [
                                         ...leads,
@@ -367,7 +378,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
                                     // Deduplicate and filter out "Team Lead" specifically
                                     const uniqueSuggestions = Array.from(new Set(allSuggestions))
-                                        .filter(name => name && name !== 'Team Lead');
+                                        .filter((name: any) => name && name !== 'Team Lead');
 
                                     return uniqueSuggestions
                                         .filter(name => !notifyTo.includes(name))
@@ -409,19 +420,24 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 >
                     <View style={styles.pickerContent}>
                         {Object.values(LEAVE_CONFIG)
-                            .filter((item: any) => apiBalance?.hasOwnProperty(item.code) || ['cl', 'sl'].includes(item.code))
-                            .map((item: any) => (
-                                <TouchableOpacity
-                                    key={item.code}
-                                    style={styles.pickerItem}
-                                    onPress={() => {
-                                        setLeaveType(item.code);
-                                        setIsTypePickerVisible(false);
-                                    }}
-                                >
-                                    <Text style={styles.pickerItemText}>{item.name}</Text>
-                                </TouchableOpacity>
-                            ))}
+                            .filter((item: any) => apiBalance?.hasOwnProperty(item.code) || ['cl', 'sl', 'lwp'].includes(item.code))
+                            .map((item: any) => {
+                                const isSelected = item.code === leaveType;
+                                return (
+                                    <TouchableOpacity
+                                        key={item.code}
+                                        style={[styles.pickerItem, isSelected && styles.selectedPickerItem]}
+                                        onPress={() => {
+                                            setLeaveType(item.code);
+                                            setIsTypePickerVisible(false);
+                                        }}
+                                    >
+                                        <Text style={[styles.pickerItemText, isSelected && styles.selectedPickerItemText]}>
+                                            {getLeaveDropdownLabel(item.code)}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
                     </View>
                 </TouchableOpacity>
             </Modal>
@@ -432,7 +448,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 onSelect={handleDateSelect}
                 value={activeDateInput === 'from' ? fromDate : toDate}
             />
-        </View>
+        </View >
     );
 };
 
@@ -521,7 +537,9 @@ const styles = StyleSheet.create({
 
     pickerContent: { backgroundColor: 'white', borderRadius: 12, marginHorizontal: 40, marginTop: 200, elevation: 20, padding: 10 },
     pickerItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' },
+    selectedPickerItem: { backgroundColor: '#636e72' },
     pickerItemText: { fontSize: 16, color: '#2d3436' },
+    selectedPickerItemText: { color: 'white', fontWeight: 'bold' },
 
     submitBtn: { backgroundColor: '#48327d', paddingVertical: 14, borderRadius: 10, marginTop: 24, alignItems: 'center', shadowColor: '#48327d', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 } },
     submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },

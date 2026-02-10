@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { UsersIcon, ChevronRightIcon } from './Icons';
 
 interface EmployeeOverviewCardProps {
     stats: any;
@@ -15,7 +16,7 @@ const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onSh
         <View style={styles.card}>
             <View style={styles.cardHeader}>
                 <Text style={styles.cardTitle}>Employee Overview</Text>
-                <Text style={{ fontSize: 20 }}>👥</Text>
+                <UsersIcon color="#3b82f6" size={24} />
             </View>
 
             <View style={styles.statsRow}>
@@ -36,7 +37,7 @@ const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onSh
                         style={styles.arrowButton}
                         onPress={onShowAbsentees}
                     >
-                        <Text style={styles.arrowText}></Text>
+                        <ChevronRightIcon color="#48327d" size={24} />
                     </TouchableOpacity>
                 </View>
             </View>

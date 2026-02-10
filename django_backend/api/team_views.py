@@ -345,6 +345,8 @@ def team_stats(request):
         
         team_ids = [tid.strip() for tid in team_ids_str.split(',') if tid.strip()]
         
+        duration = request.query_params.get('duration', 'This Week')
+        
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
         if team_ids:
             query = query.filter(teams__id__in=team_ids)
@@ -354,10 +356,24 @@ def team_stats(request):
         total = len(members)
         now = datetime.utcnow() + timedelta(hours=5, minutes=30)
         today_date = now.strftime('%Y-%m-%d')
-        monday = now - timedelta(days=now.weekday())
-        monday_str = monday.strftime('%Y-%m-%d')
+        
+        # Determine start date based on duration
+        if duration == 'Today':
+            start_date_str = today_date
+        elif duration == 'This Month':
+            start_date = now.replace(day=1)
+            start_date_str = start_date.strftime('%Y-%m-%d')
+        else: # This Week (Default)
+            monday = now - timedelta(days=now.weekday())
+            start_date_str = monday.strftime('%Y-%m-%d')
         
         # Calculate On Leave from Leaves table
+        # Note: Leaves might need to be filtered by the duration range too, but usually "On Leave" status implies *currently* on leave or relevant to the period.
+        # For simple stats, we often look at "Current Status". 
+        # However, if we want "Avg Hours" over a month, "On Leave" count is less relevant than "Total Absent Days".
+        # But keeping existing logic for "On Leave" count as "People currently on leave" seems safer for now unless specified.
+        # The original code filtered leaves intersecting with TODAY. Let's keep that for the "Status Cards" usually show current state.
+        
         on_leave_ids = Leaves.objects.filter(
             employee__employee_id__in=list(query.values_list('employee_id', flat=True)),
             status='Approved',
@@ -368,13 +384,11 @@ def team_stats(request):
         on_leave = on_leave_ids.count()
         
         # Active Now = Active Status AND NOT On Leave
-        # on_leave_ids contains employee_id strings (because Leaves.employee points to to_field='employee_id')
-        # So we must exclude based on employee_id, not id (which is int)
         active = query.filter(status='Active').exclude(employee_id__in=on_leave_ids).count()
         
         attendance_records = Attendance.objects.filter(
             employee__employee_id__in=list(query.values_list('employee_id', flat=True)),
-            date__gte=monday_str
+            date__gte=start_date_str
         )
         
         total_minutes = 0

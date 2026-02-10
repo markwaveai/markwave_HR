@@ -14,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 // import Geolocation from '@react-native-community/geolocation';
 import { attendanceApi, teamApi } from '../services/api';
+import { ChevronDownIcon, MoreVerticalIcon, UserIcon } from '../components/Icons';
+import RegularizeModal from '../components/RegularizeModal';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +39,11 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     const [clockLoading, setClockLoading] = useState(false);
     const [activeTab, setActiveTab] = useState<'Log' | 'Requests'>('Log');
     const [requests, setRequests] = useState<any[]>([]);
+    const [statsDuration, setStatsDuration] = useState('This Week');
+    const [showDurationDropdown, setShowDurationDropdown] = useState(false);
+    const [regularizeModalVisible, setRegularizeModalVisible] = useState(false);
+    const [activeRegularizeLog, setActiveRegularizeLog] = useState<any>(null);
+    const [activeMenuLogDate, setActiveMenuLogDate] = useState<string | null>(null);
 
     const DAYS_ABBR = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -67,7 +74,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         if (user?.id) {
             fetchData();
         }
-    }, [user]);
+    }, [user, statsDuration]);
 
     const fetchData = async () => {
         try {
@@ -75,7 +82,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             const [history, status, stats, requestsData] = await Promise.all([
                 attendanceApi.getHistory(user.id),
                 attendanceApi.getStatus(user.id),
-                teamApi.getStats(user.team_ids || user.team_id),
+                teamApi.getStats(user.team_ids || user.team_id, statsDuration),
                 attendanceApi.getRequests(user.employee_id || user.id).catch(() => [])
             ]);
             setLogs(history);
@@ -318,13 +325,21 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     const meStats = useMemo(() => {
         if (!logs.length) return { avg: '0h 00m', onTime: '0%' };
 
-        // Current week Monday
         const now = new Date();
-        const monday = new Date(now);
-        const day = now.getDay();
-        const diff = now.getDate() - (day === 0 ? 6 : day - 1);
-        monday.setDate(diff);
-        monday.setHours(0, 0, 0, 0);
+        now.setHours(0, 0, 0, 0);
+
+        let startDate = new Date(now);
+
+        if (statsDuration === 'Today') {
+            startDate = new Date(now);
+        } else if (statsDuration === 'This Month') {
+            startDate.setDate(1); // 1st of month
+        } else {
+            // This Week (Mon-Sun)
+            const day = now.getDay();
+            const diff = now.getDate() - (day === 0 ? 6 : day - 1);
+            startDate.setDate(diff);
+        }
 
         let totalMins = 0;
         let presentDays = 0;
@@ -332,7 +347,23 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
 
         logs.forEach(log => {
             const logDate = new Date(log.date);
-            if (logDate >= monday && log.checkIn && log.checkIn !== '-') {
+            const logDateOnly = new Date(logDate);
+            logDateOnly.setHours(0, 0, 0, 0);
+
+            // Filter logic
+            let include = false;
+
+            if (statsDuration === 'Today') {
+                include = logDateOnly.getTime() === now.getTime();
+            } else if (statsDuration === 'This Month') {
+                // Check if same month and year
+                include = logDate.getMonth() === now.getMonth() && logDate.getFullYear() === now.getFullYear() && logDate <= now;
+            } else {
+                // Week
+                include = logDateOnly >= startDate && logDateOnly <= now;
+            }
+
+            if (include && log.checkIn && log.checkIn !== '-') {
                 const stats = calculateStats(log);
                 if (stats.effective !== '-') {
                     const match = stats.effective.match(/(\d+)h\s+(\d+)m/);
@@ -352,7 +383,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             avg: `${Math.floor(avgMins / 60)}h ${String(avgMins % 60).padStart(2, '0')}m`,
             onTime: `${Math.round((onTimeDays / presentDays) * 100)}%`
         };
-    }, [logs, currentTime]);
+    }, [logs, currentTime, statsDuration]);
 
     const displayedLogs = useMemo(() => {
         let dates: string[] = [];
@@ -489,6 +520,17 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
 
             {renderBreakModal()}
 
+            <RegularizeModal
+                visible={regularizeModalVisible}
+                onClose={() => setRegularizeModalVisible(false)}
+                date={activeRegularizeLog?.date}
+                employeeId={user.id}
+                onSuccess={() => {
+                    fetchData();
+                    setRegularizeModalVisible(false);
+                }}
+            />
+
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 <View style={styles.welcomeSection}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -500,10 +542,61 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 </View>
 
                 {/* Web Style Attendance Stats */}
-                <View style={[styles.card, { marginBottom: 16 }]}>
+                <View style={[styles.card, { marginBottom: 16, zIndex: 10 }]}>
                     <View style={styles.cardHeaderFlex}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <Text style={styles.cardHeaderTitle}>This Week</Text>
+                        <View style={{ position: 'relative', zIndex: 20 }}>
+                            <TouchableOpacity
+                                style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }}
+                                onPress={() => setShowDurationDropdown(!showDurationDropdown)}
+                            >
+                                <Text style={styles.cardHeaderTitle}>{statsDuration}</Text>
+                                <ChevronDownIcon size={16} color="#48327d" />
+                            </TouchableOpacity>
+
+                            {/* Dropdown Menu */}
+                            {showDurationDropdown && (
+                                <View style={{
+                                    position: 'absolute',
+                                    top: 30,
+                                    left: 0,
+                                    backgroundColor: 'white',
+                                    borderRadius: 8,
+                                    padding: 4,
+                                    elevation: 5,
+                                    shadowColor: '#000',
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.1,
+                                    shadowRadius: 4,
+                                    minWidth: 120,
+                                    borderWidth: 1,
+                                    borderColor: '#f1f5f9',
+                                    zIndex: 50
+                                }}>
+                                    {['Today', 'This Week', 'This Month'].map((opt) => (
+                                        <TouchableOpacity
+                                            key={opt}
+                                            style={{
+                                                paddingVertical: 8,
+                                                paddingHorizontal: 12,
+                                                backgroundColor: statsDuration === opt ? '#f8fafc' : 'transparent',
+                                                borderRadius: 6
+                                            }}
+                                            onPress={() => {
+                                                setStatsDuration(opt);
+                                                setShowDurationDropdown(false);
+                                            }}
+                                        >
+                                            <Text style={{
+                                                fontSize: 13,
+                                                fontWeight: statsDuration === opt ? '700' : '500',
+                                                color: statsDuration === opt ? '#48327d' : '#64748b'
+                                            }}>
+                                                {opt}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
                         </View>
                         <Text style={{ color: '#b2bec3', fontSize: 13 }}>ⓘ</Text>
                     </View>
@@ -781,9 +874,9 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                                     <Text style={styles.dateText}>
                                                         {new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}
                                                     </Text>
-                                                    {showAsOffDay && (
+                                                    {(showAsOffDay || isApprovedLeave) && (
                                                         <Text style={[styles.offBadge, isAbsent && { backgroundColor: '#fef2f2', color: '#ef4444' }]}>
-                                                            {isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : isApprovedLeave ? (getLeaveCode(log.leaveType) || 'LEAVE') : 'ABSENT'}
+                                                            {isApprovedLeave ? (getLeaveCode(log.leaveType) || 'LEAVE') : isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : 'ABSENT'}
                                                         </Text>
                                                     )}
                                                 </View>
@@ -828,7 +921,35 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                                         </TouchableOpacity>
                                                         <View style={[styles.cell, { width: COL_WIDTHS.inOut }]}>
                                                             {log.checkOut === '-' && log.checkIn !== '-' && log.date !== toLocalDateString(new Date()) ? (
-                                                                <Text style={styles.missingCheckOutText}>Missed Check-Out</Text>
+                                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                                    <View style={styles.missedCheckOutBadge}>
+                                                                        <Text style={styles.missedCheckOutText}>MISSED CHECK-OUT</Text>
+                                                                    </View>
+                                                                    <View style={{ position: 'relative', zIndex: 10 }}>
+                                                                        <TouchableOpacity
+                                                                            onPress={() => setActiveMenuLogDate(activeMenuLogDate === log.date ? null : log.date)}
+                                                                            style={styles.moreBtn}
+                                                                        >
+                                                                            <MoreVerticalIcon size={16} color="#1e293b" />
+                                                                        </TouchableOpacity>
+
+                                                                        {activeMenuLogDate === log.date && (
+                                                                            <View style={styles.popupMenu}>
+                                                                                <TouchableOpacity
+                                                                                    style={styles.popupMenuItem}
+                                                                                    onPress={() => {
+                                                                                        setActiveRegularizeLog(log);
+                                                                                        setRegularizeModalVisible(true);
+                                                                                        setActiveMenuLogDate(null);
+                                                                                    }}
+                                                                                >
+                                                                                    <UserIcon size={14} color="#48327d" style={{ marginRight: 8 }} />
+                                                                                    <Text style={styles.popupMenuText}>Regularize</Text>
+                                                                                </TouchableOpacity>
+                                                                            </View>
+                                                                        )}
+                                                                    </View>
+                                                                </View>
                                                             ) : (
                                                                 <Text style={styles.timeText}>{log.checkOut || '-'}</Text>
                                                             )}
@@ -1046,7 +1167,30 @@ const styles = StyleSheet.create({
     noBreakText: { textAlign: 'center', color: '#94a3b8', fontSize: 12, padding: 10 },
     modalFooter: { marginTop: 10, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between' },
     modalTotalLabel: { fontSize: 11, fontWeight: '900', color: '#94a3b8' },
-    modalTotalValue: { fontSize: 12, fontWeight: '900', color: '#6366f1' }
+    modalTotalValue: { fontSize: 12, fontWeight: '900', color: '#6366f1' },
+
+    missedCheckOutBadge: { backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
+    missedCheckOutText: { fontSize: 8, fontWeight: '800', color: '#ef4444', textTransform: 'uppercase' },
+    moreBtn: { padding: 4, borderRadius: 12, backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', width: 24, height: 24, justifyContent: 'center', alignItems: 'center' },
+    popupMenu: {
+        position: 'absolute',
+        top: 30,
+        right: 0,
+        backgroundColor: 'white',
+        borderRadius: 8,
+        padding: 4,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 5,
+        minWidth: 120,
+        zIndex: 50,
+        borderWidth: 1,
+        borderColor: '#f1f5f9'
+    },
+    popupMenuItem: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12 },
+    popupMenuText: { fontSize: 13, fontWeight: '600', color: '#1e293b' }
 });
 
 export default MeScreen;
