@@ -44,7 +44,8 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     const [canClock, setCanClock] = useState(true);
     const [disabledReason, setDisabledReason] = useState<string | null>(null);
     const [debugInfo, setDebugInfo] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
+    const [initialLoad, setInitialLoad] = useState(true);
     const [filterType, setFilterType] = useState('Month');
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
     const [activeBreakLog, setActiveBreakLog] = useState<any>(null);
@@ -115,6 +116,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             console.log("Error fetching data:", error);
         } finally {
             setLoading(false);
+            setInitialLoad(false);
         }
     };
 
@@ -607,7 +609,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         </>
     );
 
-    if (loading) {
+    if (initialLoad) {
         return <View style={styles.centered}><ActivityIndicator size="large" color="#6366f1" /><Text style={styles.loadingText}>Syncing records...</Text></View>;
     }
 

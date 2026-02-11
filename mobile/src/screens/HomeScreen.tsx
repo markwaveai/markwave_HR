@@ -114,11 +114,11 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     Alert.alert('Error Loading Leave Balance', err.message || 'Could not fetch leave balance. Please check your connection.');
                     return null;
                 }),
-                isAdmin ? adminApi.getDashboardStats().catch((err) => {
+                adminApi.getDashboardStats().catch((err) => {
                     console.error('❌ Admin Stats API Error:', err);
                     errors.adminStats = err.message || 'Failed to load admin stats';
                     return null;
-                }) : Promise.resolve(null),
+                }),
                 attendanceApi.getHolidays().catch((err) => {
                     console.error('❌ Holidays API Error:', err);
                     errors.holidays = err.message || 'Failed to load holidays';
@@ -391,8 +391,8 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     disabledReason={disabledReason}
                 />
 
-                {/* Dashboard Stats (Admin Only) */}
-                {isAdmin && dashboardStats && (
+                {/* Dashboard Stats - Employee Overview */}
+                {dashboardStats && (
                     <EmployeeOverviewCard
                         stats={dashboardStats}
                         onShowAbsentees={() => setIsAbsenteesModalVisible(true)}
