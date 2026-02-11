@@ -1,15 +1,24 @@
 import { API_BASE_URL } from '../config';
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const url = `${API_BASE_URL}${endpoint}`;
+
+
+
     try {
-        const url = `${API_BASE_URL}${endpoint}`;
         const response = await fetch(url, {
             ...options,
+            signal: controller.signal,
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers,
             },
         });
+
+        clearTimeout(timeoutId);
+
 
         if (!response.ok) {
             const errorText = await response.text();
@@ -27,7 +36,12 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
         }
 
         return response.json();
-    } catch (error) {
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            console.log(`Request timed out: ${endpoint}`);
+            throw new Error('Request timed out. Please check your connection.');
+        }
         console.log(`Fetch error for ${API_BASE_URL}${endpoint}:`, error instanceof Error ? error.message : JSON.stringify(error));
         throw error;
     }
@@ -99,6 +113,9 @@ export const teamApi = {
     updateMember: (id: string, data: any) => apiFetch(`/team/members/${id}/`, {
         method: 'PUT',
         body: JSON.stringify(data)
+    }),
+    deleteMember: (id: number) => apiFetch(`/team/members/${id}/`, {
+        method: 'DELETE'
     }),
     getDesignations: () => apiFetch('/team/designations/')
 };

@@ -8,6 +8,7 @@ import {
     Dimensions,
     Platform
 } from 'react-native';
+import { ChevronLeftIcon, ChevronRightIcon } from './Icons';
 
 interface HolidayModalProps {
     visible: boolean;
@@ -102,13 +103,13 @@ const HolidayModal: React.FC<HolidayModalProps> = ({ visible, onClose, holidays 
                     <View style={styles.header}>
                         <View style={styles.navRow}>
                             <TouchableOpacity onPress={prevMonth} style={styles.navBtn}>
-                                <View style={{ width: 20 }} />
+                                <ChevronLeftIcon color="#64748b" size={24} />
                             </TouchableOpacity>
                             <Text style={styles.monthTitle}>
                                 {monthNames[viewDate.getMonth()]} {viewDate.getFullYear()}
                             </Text>
                             <TouchableOpacity onPress={nextMonth} style={styles.navBtn}>
-                                <View style={{ width: 20 }} />
+                                <ChevronRightIcon color="#64748b" size={24} />
                             </TouchableOpacity>
                         </View>
                         <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
@@ -116,19 +117,6 @@ const HolidayModal: React.FC<HolidayModalProps> = ({ visible, onClose, holidays 
                         </TouchableOpacity>
                     </View>
 
-                    {/* Weekday Labels */}
-                    <View style={styles.weekLabels}>
-                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => (
-                            <View key={d} style={styles.dayBox}>
-                                <Text style={styles.weekLabelText}>{d}</Text>
-                            </View>
-                        ))}
-                    </View>
-
-                    {/* Calendar Grid */}
-                    <View style={styles.calendarGrid}>
-                        {renderCalendar()}
-                    </View>
 
                     {/* Holiday List */}
                     <View style={styles.holidayList}>

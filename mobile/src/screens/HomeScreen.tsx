@@ -37,6 +37,9 @@ import {
     ClockIcon,
     SearchIcon,
     ChevronDownIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    CalendarIcon,
 } from '../components/Icons';
 
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
@@ -60,7 +63,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
     const [personalStats, setPersonalStats] = useState<any>(null);
     const [posts, setPosts] = useState<any[]>([]);
-    const [isFeedLoading, setIsFeedLoading] = useState(true);
+    const [isFeedLoading, setIsFeedLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
     const [showHolidayCalendar, setShowHolidayCalendar] = useState(false);
@@ -88,15 +91,11 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
     console.log('Is admin check:', isAdmin, 'Role:', user?.role, 'is_admin flag:', user?.is_admin);
 
-    const fetchData = async (isRefresh = false) => {
+    const fetchDashboardData = async () => {
         try {
-            if (isRefresh) setRefreshing(true);
-            else setIsFeedLoading(true);
-
-            const [statusData, statsData, postsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
+            const [statusData, statsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
                 attendanceApi.getStatus(user.id).catch(() => ({ status: 'OUT' })),
                 attendanceApi.getPersonalStats(user.id).catch(() => null),
-                feedApi.getPosts().catch(() => []),
                 leaveApi.getBalance(user.id).catch(() => null),
                 isAdmin ? adminApi.getDashboardStats().catch(() => null) : Promise.resolve(null),
                 attendanceApi.getHolidays().catch(() => []),
@@ -104,30 +103,15 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 attendanceApi.getHistory(user.id).catch(() => [])
             ]);
 
+
             setIsClockedIn(statusData.status === 'IN');
             setCanClock(statusData.can_clock !== false);
             setDisabledReason(statusData.disabled_reason || null);
             setPersonalStats(statsData);
-            setPosts(postsData || []);
             setLeaveBalance(balanceData);
             setDashboardStats(adminStatsData);
             setHolidays(holidayData || []);
             setLeaveHistory(historyData || []);
-
-            // Check for missed checkout
-            // We look for a past date with status 'Present' (or similar) but checkOut is missing or '-'
-            // limit to last 7 days to avoid annoying old alerts
-            const history = statusData.history || []; // Wait, getStatus doesn't return history. We added it to the Promise.all
-            // The result array index 7 is history (index 6 was leaves) if I added it at end?
-            // Wait, Promise.all returns array.
-            // index 0: statusData
-            // index 1: statsData
-            // index 2: postsData
-            // index 3: balanceData
-            // index 4: adminStatsData
-            // index 5: holidayData
-            // index 6: historyData (Leaves)
-            // I need to add index 7: attendanceHistory
 
             if (attHistoryData && Array.isArray(attHistoryData)) {
                 const today = new Date().toISOString().split('T')[0];
@@ -139,13 +123,33 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 if (missed) setMissedCheckoutDate(missed.date);
                 else setMissedCheckoutDate(null);
             }
-
         } catch (error) {
             console.log("Failed to fetch dashboard data:", error);
+        }
+    };
+
+    const fetchFeedData = async () => {
+        try {
+            setIsFeedLoading(true);
+            const postsData = await feedApi.getPosts().catch(() => []);
+            setPosts(postsData || []);
+        } catch (error) {
+            console.log("Failed to fetch feed:", error);
         } finally {
             setIsFeedLoading(false);
-            setRefreshing(false);
         }
+    };
+
+    const fetchData = async (isRefresh = false) => {
+        if (isRefresh) setRefreshing(true);
+
+        // Fetch critical data first, don't wait for feed if not refreshing
+        await fetchDashboardData();
+
+        // Then fetch feed
+        fetchFeedData();
+
+        if (isRefresh) setRefreshing(false);
     };
 
     const onRefresh = useCallback(() => {
@@ -166,7 +170,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const handleToggleLike = async (postId: number) => {
         try {
             await feedApi.toggleLike(postId, user.id);
-            fetchData();
+            fetchFeedData();
         } catch (error) {
             console.log("Like failed:", error);
         }
@@ -178,7 +182,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
             await feedApi.addComment(postId, user.id, newComment);
             setNewComment('');
             setCommentingOn(null);
-            fetchData();
+            fetchFeedData();
         } catch (error) {
             console.log("Comment failed:", error);
         }
@@ -196,7 +200,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
             setNewPostContent('');
             setSelectedImages([]);
             setIsCreateModalVisible(false);
-            fetchData();
+            fetchFeedData();
         } catch (error) {
             Alert.alert("Error", "Failed to create post. Please try again.");
         }
@@ -214,7 +218,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     onPress: async () => {
                         try {
                             await feedApi.deletePost(postId);
-                            fetchData();
+                            fetchFeedData();
                         } catch (error) {
                             Alert.alert("Error", "Failed to delete post.");
                         }
@@ -244,15 +248,27 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 if (granted === PermissionsAndroid.RESULTS.GRANTED) {
                     await new Promise<void>((resolve, reject) => {
                         Geolocation.getCurrentPosition(
-                            (position) => {
+                            async (position) => {
                                 const { latitude, longitude } = position.coords;
-                                finalLocation = `Lat: ${latitude.toFixed(4)}, Long: ${longitude.toFixed(4)}`;
+                                try {
+                                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
+                                        headers: { 'User-Agent': 'MarkwaveHR-Mobile/1.0' }
+                                    });
+                                    const data = await response.json();
+                                    if (data.display_name) {
+                                        finalLocation = `${data.display_name} (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
+                                    } else {
+                                        finalLocation = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+                                    }
+                                } catch (error) {
+                                    finalLocation = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+                                }
                                 resolve();
                             },
                             (error) => {
                                 console.log(error.code, error.message);
                                 finalLocation = "Location Error (GPS)";
-                                resolve(); // Proceed even if location fails, or reject if strict
+                                resolve();
                             },
                             { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
                         );
@@ -274,7 +290,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 location: finalLocation,
                 type: nextType
             });
-            fetchData();
+            fetchDashboardData();
             setLocationState(finalLocation);
         } catch (error) {
             Alert.alert('Error', 'Failed to update attendance');
@@ -338,11 +354,14 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 )}
 
 
-                {/* Leave Balance Card - Only show for non-admin users OR specific roles */}
-                {(!isAdmin || ['Intern', 'Project Manager'].includes(user?.role)) && (
+                {/* Leave Balance Card - Only show for non-admin users */}
+                {!isAdmin && (
                     <View style={styles.card}>
                         <View style={styles.cardHeader}>
-                            <Text style={styles.cardTitle}>Leave Balance</Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                <CalendarIcon color="#64748b" size={20} strokeWidth={2} />
+                                <Text style={styles.cardTitle}>Leave Balance</Text>
+                            </View>
                         </View>
                         <View style={styles.balanceGridContainer}>
                             {[
@@ -372,12 +391,10 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                             <Text style={styles.cardTitle}>Avg. Working Hours</Text>
                         </View>
                         <TouchableOpacity
-                            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 }}
+                            style={{ padding: 4 }}
                             onPress={() => setStatsDuration(prev => prev === 'week' ? 'month' : 'week')}
                         >
-                            <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b' }}>
-                                {statsDuration === 'week' ? 'This Week' : 'This Month'}
-                            </Text>
+                            <ClockIcon color="#48327d" size={24} strokeWidth={2} />
                         </TouchableOpacity>
                     </View>
                     <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
@@ -442,13 +459,13 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                     onPress={() => setHolidayIndex(prev => Math.max(0, prev - 1))}
                                     disabled={holidayIndex === 0}
                                 >
-                                    <View style={holidayIndex === 0 && { opacity: 0.3 }} />
+                                    <ChevronLeftIcon color={holidayIndex === 0 ? "#cbd5e1" : "#48327d"} size={24} />
                                 </TouchableOpacity>
                                 <TouchableOpacity
                                     onPress={() => setHolidayIndex(prev => Math.min(upcomingHolidays.length - 1, prev + 1))}
                                     disabled={holidayIndex === upcomingHolidays.length - 1}
                                 >
-                                    <View style={holidayIndex === upcomingHolidays.length - 1 && { opacity: 0.3 }} />
+                                    <ChevronRightIcon color={holidayIndex === upcomingHolidays.length - 1 ? "#cbd5e1" : "#48327d"} size={24} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -661,7 +678,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 onClose={() => setIsRegularizeModalVisible(false)}
                 date={missedCheckoutDate || ''}
                 employeeId={user.id}
-                onSuccess={() => fetchData(true)}
+                onSuccess={() => fetchDashboardData()}
             />
 
             {/* Absentees Modal */}

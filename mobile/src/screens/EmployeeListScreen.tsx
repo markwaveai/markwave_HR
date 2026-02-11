@@ -12,6 +12,7 @@ import {
     Platform
 } from 'react-native';
 import { teamApi } from '../services/api';
+import { SearchIcon, UserIcon, PlusIcon, TrashIcon } from '../components/Icons';
 
 interface Employee {
     id: number;
@@ -124,6 +125,32 @@ const EmployeeListScreen = () => {
         }
     };
 
+    const handleDelete = (id: number, name: string) => {
+        Alert.alert(
+            'Confirm Delete',
+            `Are you sure you want to delete ${name}? This action cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            setIsLoading(true);
+                            await teamApi.deleteMember(id);
+                            Alert.alert('Success', 'Employee deleted successfully');
+                            fetchEmployees();
+                        } catch (error) {
+                            console.log('Delete error:', error);
+                            Alert.alert('Error', 'Failed to delete employee');
+                            setIsLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
+
     const renderHeader = () => (
         <View style={styles.tableHeaderRow}>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.id }]}>EMP ID</Text>
@@ -134,6 +161,7 @@ const EmployeeListScreen = () => {
             <Text style={[styles.headerCell, { width: COL_WIDTHS.email }]}>EMAIL</Text>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.aadhar }]}>AADHAR</Text>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.loc }]}>LOCATION</Text>
+            <Text style={[styles.headerCell, { width: 50, textAlign: 'center' }]}>ACT</Text>
         </View>
     );
 
@@ -149,6 +177,11 @@ const EmployeeListScreen = () => {
             <Text style={[styles.cell, { width: COL_WIDTHS.email, color: '#636e72' }]}>{item.email}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.aadhar, color: '#636e72' }]}>{item.aadhar || '-'}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.loc, color: '#636e72' }]}>{item.location || '-'}</Text>
+            <View style={[styles.cell, { width: 50, alignItems: 'center', justifyContent: 'center' }]}>
+                <TouchableOpacity onPress={() => handleDelete(item.id, item.first_name)}>
+                    <TrashIcon color="#ef4444" size={18} />
+                </TouchableOpacity>
+            </View>
         </View>
     );
 
@@ -175,10 +208,11 @@ const EmployeeListScreen = () => {
                 </View>
             </View>
 
+
             {/* Search Bar and Register Button Row */}
             <View style={styles.searchRow}>
                 <View style={styles.searchContainer}>
-                    <Text style={styles.searchIcon}>🔍</Text>
+                    <SearchIcon color="#94a3b8" size={18} style={{ marginRight: 8 }} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search employees..."
@@ -191,7 +225,10 @@ const EmployeeListScreen = () => {
                     style={styles.registerButton}
                     onPress={() => setIsModalVisible(true)}
                 >
-                    <Text style={styles.registerButtonIcon}>👤+</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <UserIcon color="white" size={18} />
+                        <PlusIcon color="white" size={12} style={{ marginLeft: -4, marginTop: -6 }} />
+                    </View>
                     <Text style={styles.registerButtonText}>Register Employee</Text>
                 </TouchableOpacity>
             </View>
@@ -235,7 +272,10 @@ const EmployeeListScreen = () => {
                     <View style={styles.registerModalContent}>
                         <View style={styles.modalHeader}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                                <Text style={{ fontSize: 20 }}>👤+</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <UserIcon color="#48327d" size={24} />
+                                    <PlusIcon color="#48327d" size={16} style={{ marginLeft: -6, marginTop: -8 }} />
+                                </View>
                                 <Text style={styles.modalTitle}>Register New Employee</Text>
                             </View>
                             <TouchableOpacity onPress={() => setIsModalVisible(false)}>
@@ -587,10 +627,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         height: 44,
     },
-    searchIcon: {
-        fontSize: 16,
-        marginRight: 8,
-    },
     searchInput: {
         flex: 1,
         fontSize: 14,
@@ -605,10 +641,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         borderRadius: 8,
         gap: 6,
-    },
-    registerButtonIcon: {
-        fontSize: 16,
-        color: 'white',
     },
     registerButtonText: {
         color: 'white',
