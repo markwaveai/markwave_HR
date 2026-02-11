@@ -91,6 +91,8 @@ class Teams(models.Model):
     manager = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id', blank=True, null=True, related_name='managed_teams')
     shift_start = models.CharField(max_length=20, default='09:30 AM')
     shift_end = models.CharField(max_length=20, default='06:30 PM')
+    whatsapp_chat_id = models.CharField(max_length=100, blank=True, null=True)
+    whatsapp_group_url = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = True

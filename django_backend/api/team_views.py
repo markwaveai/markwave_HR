@@ -18,6 +18,8 @@ def is_user_admin(employee):
         employee.first_name == 'Admin'
     )
 
+from .utils import create_whatsapp_group, add_whatsapp_participant, remove_whatsapp_participant
+
 @api_view(['GET', 'POST'])
 def team_list(request):
     if request.method == 'GET':
@@ -46,8 +48,53 @@ def team_list(request):
                 description=data.get('description'),
                 manager=manager
             )
+            
+            # --- WhatsApp Group & Member Addition Logic ---
+            member_ids = data.get('members', [])
+            participants_phones = []
+            
+            # 1. Add Manager's phone
+            if manager and manager.contact:
+                participants_phones.append(manager.contact)
+            
+            # 2. Add Members if provided
+            if member_ids:
+                if isinstance(member_ids, str):
+                    member_ids = [m.strip() for m in member_ids.split(',') if m.strip()]
+                
+                # Filter valid IDs depending on if they are PKs or employee_ids
+                # Assuming input is IDs (PKs) based on typical frontend behavior for multi-select
+                members_to_add = Employees.objects.filter(id__in=member_ids)
+                
+                for member in members_to_add:
+                    member.teams.add(team)
+                    if member.contact:
+                        participants_phones.append(member.contact)
+
+            # 3. Create WhatsApp Group via Periskope
+            if participants_phones:
+                try:
+                    # Remove duplicates and empty strings
+                    unique_phones = list(set([p for p in participants_phones if p]))
+                    success, resp = create_whatsapp_group(team.name, unique_phones)
+                    if success:
+                        chat_id = resp.get('chat_id')
+                        group_url = resp.get('invite_link')
+                        if chat_id:
+                            team.whatsapp_chat_id = chat_id
+                        if group_url:
+                            team.whatsapp_group_url = group_url
+                        if chat_id or group_url:
+                            team.save()
+                    else:
+                        print(f"Warning: Failed to create WhatsApp group for team {team.name}: {resp}")
+                except Exception as wg_err:
+                    print(f"Error creating WhatsApp group: {wg_err}")
+
             return Response({'message': 'Team created successfully', 'id': team.id}, status=status.HTTP_201_CREATED)
         except Exception as e:
+            if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
+                return Response({'error': 'A team with this name already exists.'}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['PUT', 'DELETE'])
@@ -302,6 +349,25 @@ def member_detail(request, pk):
                     try:
                         team_to_add = Teams.objects.get(id=new_team_id)
                         employee.teams.add(team_to_add)
+                        
+                        # --- Periskope Sync: Add to WhatsApp Group ---
+                        print(f"DEBUG: Syncing member {employee.first_name} to team {team_to_add.name}")
+                        print(f"DEBUG: chat_id={team_to_add.whatsapp_chat_id}, contact={employee.contact}")
+                        
+                        if team_to_add.whatsapp_chat_id and employee.contact:
+                            try:
+                                success, resp = add_whatsapp_participant(team_to_add.whatsapp_chat_id, employee.contact)
+                                if not success:
+                                    print(f"Warning: Failed to add {employee.first_name} to WhatsApp group {team_to_add.name}: {resp}")
+                                else:
+                                    print(f"SUCCESS: Added {employee.first_name} to WhatsApp group")
+                            except Exception as sync_err:
+                                print(f"Error syncing member to WhatsApp: {sync_err}")
+                        else:
+                            if not team_to_add.whatsapp_chat_id:
+                                print(f"DEBUG: Skipping sync - Teams '{team_to_add.name}' has no whatsapp_chat_id. Please create a new team to test.")
+                            if not employee.contact:
+                                print(f"DEBUG: Skipping sync - Employee '{employee.first_name}' has no contact number.")
                     except Teams.DoesNotExist:
                         return Response({'error': f'Team with ID {new_team_id} not found'}, status=404)
             
@@ -312,8 +378,20 @@ def member_detail(request, pk):
                     try:
                          team_to_remove = Teams.objects.get(id=remove_id)
                          employee.teams.remove(team_to_remove)
+                         
+                         # --- Periskope Sync: Remove from WhatsApp Group ---
+                         print(f"DEBUG: Removing member {employee.first_name} from team {team_to_remove.name}")
+                         if team_to_remove.whatsapp_chat_id and employee.contact:
+                             try:
+                                 success, resp = remove_whatsapp_participant(team_to_remove.whatsapp_chat_id, employee.contact)
+                                 if not success:
+                                     print(f"Warning: Failed to remove {employee.first_name} from WhatsApp group {team_to_remove.name}: {resp}")
+                                 else:
+                                     print(f"SUCCESS: Removed {employee.first_name} from WhatsApp group")
+                             except Exception as sync_err:
+                                 print(f"Error syncing member removal to WhatsApp: {sync_err}")
                     except Teams.DoesNotExist:
-                        pass # Ignore if team doesn't exist
+                         pass # Ignore if team doesn't exist
 
             employee.save()
             return Response({'message': 'Employee updated successfully'})

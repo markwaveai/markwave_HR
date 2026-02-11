@@ -180,6 +180,7 @@ REST_FRAMEWORK = {
 PERISKOPE_API_KEY = os.getenv('PERISKOPE_API_KEY', '')
 PERISKOPE_SENDER_PHONE = os.getenv('PERISKOPE_SENDER_PHONE', '')
 PERISKOPE_URL = os.getenv('PERISKOPE_URL', 'https://api.periskope.app/v1/message/send')
+PERISKOPE_CREATE_GROUP_URL = os.getenv('PERISKOPE_CREATE_GROUP_URL', 'https://api.periskope.app/v1/chats/create')
 
 # External API URLs
 EMAIL_API_URL = os.getenv('EMAIL_API_URL', 'https://mark-email-server-jn6cma3vvq-el.a.run.app/send_email_by_subject_body_attachment')

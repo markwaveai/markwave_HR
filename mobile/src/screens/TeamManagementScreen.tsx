@@ -9,7 +9,8 @@ import {
     TextInput,
     Alert,
     Platform,
-    ScrollView
+    ScrollView,
+    ActivityIndicator
 } from 'react-native';
 import AsyncStorageLib from '@react-native-async-storage/async-storage';
 import { teamApi } from '../services/api';
@@ -39,6 +40,7 @@ const TeamManagementScreen = () => {
     const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
     const [managerPickerOpen, setManagerPickerOpen] = useState(false);
     const [managerSearchQuery, setManagerSearchQuery] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
 
     // Helper function to format employee ID
@@ -73,6 +75,7 @@ const TeamManagementScreen = () => {
     };
 
     const handleSave = async () => {
+        setIsSubmitting(true);
         try {
             if (editingTeam) {
                 await teamApi.updateTeam(editingTeam.id, formData);
@@ -83,6 +86,8 @@ const TeamManagementScreen = () => {
             fetchTeams();
         } catch (error) {
             Alert.alert("Error", "Failed to save team");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -350,10 +355,13 @@ const TeamManagementScreen = () => {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={handleSave}
-                                style={[styles.modalBtn, styles.saveBtn, !formData.name.trim() && { opacity: 0.5 }]}
-                                disabled={!formData.name.trim()}
+                                style={[styles.modalBtn, styles.saveBtn, (!formData.name.trim() || isSubmitting) && { opacity: 0.5 }]}
+                                disabled={!formData.name.trim() || isSubmitting}
                             >
-                                <Text style={styles.saveText}>{editingTeam ? 'Update Team' : 'Create Team'}</Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    {isSubmitting && <ActivityIndicator size="small" color="white" />}
+                                    <Text style={styles.saveText}>{isSubmitting ? 'Saving...' : (editingTeam ? 'Update Team' : 'Create Team')}</Text>
+                                </View>
                             </TouchableOpacity>
                         </View>
                     </View>

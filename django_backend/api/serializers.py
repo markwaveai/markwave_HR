@@ -7,7 +7,7 @@ class TeamsSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Teams
-        fields = ['id', 'name', 'description', 'manager', 'manager_name', 'member_count']
+        fields = ['id', 'name', 'description', 'manager', 'manager_name', 'member_count', 'whatsapp_chat_id', 'whatsapp_group_url']
 
     def get_member_count(self, obj):
         from django.db.models import Q

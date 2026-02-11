@@ -34,6 +34,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const [teams, setTeams] = useState<any[]>([]);
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingMember, setEditingMember] = useState<any>(null);
+    const [isRemovingMember, setIsRemovingMember] = useState<string | null>(null);
 
     const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
 
@@ -111,6 +112,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                     text: "Remove",
                     style: "destructive",
                     onPress: async () => {
+                        setIsRemovingMember(member.id);
                         try {
                             await teamApi.updateMember(member.id, {
                                 remove_team_id: selectedTeamId,
@@ -120,6 +122,8 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                             fetchTeamData();
                         } catch (error: any) {
                             Alert.alert("Error", error.message || "Failed to remove member");
+                        } finally {
+                            setIsRemovingMember(null);
                         }
                     }
                 }
@@ -258,8 +262,13 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                         <TouchableOpacity
                             style={styles.actionIconBtn}
                             onPress={() => handleDeleteMember(item)}
+                            disabled={isRemovingMember === item.id}
                         >
-                            <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
+                            {isRemovingMember === item.id ? (
+                                <ActivityIndicator size="small" color="#ef4444" />
+                            ) : (
+                                <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
+                            )}
                         </TouchableOpacity>
                     </View>
                 )}
