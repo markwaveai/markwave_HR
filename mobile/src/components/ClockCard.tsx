@@ -1,5 +1,5 @@
-import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { MapPinIcon } from './Icons';
 
 interface ClockCardProps {
     currentTime: Date;
@@ -85,9 +85,12 @@ const ClockCard: React.FC<ClockCardProps> = ({
 
             {/* Location Footer */}
             {locationState && (
-                <Text style={styles.locationText} numberOfLines={3}>
-                    📍 {locationState}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <MapPinIcon size={12} color="white" style={{ marginRight: 4, opacity: 0.8 }} />
+                    <Text style={styles.locationText} numberOfLines={3}>
+                        {locationState}
+                    </Text>
+                </View>
             )}
         </View>
     );

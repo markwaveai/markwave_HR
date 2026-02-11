@@ -50,7 +50,7 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MeScreen from './src/screens/MeScreen';
 import LeaveScreen from './src/screens/LeaveScreen';
-import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon } from './src/components/Icons';
+import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon } from './src/components/Icons';
 
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -294,7 +294,7 @@ function App() {
             <View style={styles.modalOverlay}>
               <View style={styles.modalContent}>
                 <View style={styles.modalIcon}>
-                  <Text style={{ fontSize: 24 }}>👋</Text>
+                  <LogOutIcon color="#48327d" size={32} />
                 </View>
                 <Text style={styles.modalTitle}>Log Out?</Text>
                 <Text style={styles.modalMessage}>Are you sure you want to exit?</Text>

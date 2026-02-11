@@ -500,3 +500,221 @@ export const LogOutIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, 
         <Line x1="21" y1="12" x2="9" y2="12" />
     </Svg>
 );
+
+export const PartyPopperIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M5.8 11.3 2 22l10.7-3.8" />
+        <Path d="M4 20l.1-.1" />
+        <Path d="m15 4 3 1.1" />
+        <Path d="M11 8l1.1-3" />
+        <Path d="M9.4 12.1 4.4 5.6" />
+        <Path d="M12.1 9.4l6.5-5" />
+        <Path d="M18 5.5l3.5 1.5" />
+        <Path d="M20 9.5l1.5 3.5" />
+        <Path d="M15 14l2 3" />
+        <Path d="m18 11 3 2" />
+    </Svg>
+);
+
+export const ZapIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M4 14h6l-1 9 10-12h-6l1-9-10 12z" />
+    </Svg>
+);
+
+export const CoffeeIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M17 8h1a4 4 0 1 1 0 8h-1" />
+        <Path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z" />
+        <Line x1="6" y1="2" x2="6" y2="4" />
+        <Line x1="10" y1="2" x2="10" y2="4" />
+        <Line x1="14" y1="2" x2="14" y2="4" />
+    </Svg>
+);
+
+export const UmbrellaIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M22 12a10 10 0 1 0-20 0Z" />
+        <Path d="M12 12v10" />
+        <Path d="M12 2v1" />
+    </Svg>
+);
+
+export const PlaneIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z" />
+    </Svg>
+);
+
+export const ThermometerIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z" />
+    </Svg>
+);
+
+export const PalmTreeIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M13 8c0-2.76-2.46-5-5.5-5S2 5.24 2 8h2l1-1 1 1h2l1-1 1 1h2l1-1 1 1h1" />
+        <Path d="M13 7.14A5.82 5.82 0 0 1 16.5 6c3.04 0 5.5 2.24 5.5 5h-3l-1-1-1 1h-3l-1-1-1 1h-2" />
+        <Path d="M5.89 9.71c-2.15 2.15-2.3 5.47-.35 7.43l4.24-4.25.71.71-4.25 4.24c1.96 1.96 5.28 1.81 7.43-.35l-7.78-7.78Z" />
+        <Path d="M11 15.5c.5 2.5-.17 4.5-1 6.5" />
+        <Path d="M13 14c2.5-.5 4.5.17 6.5 1" />
+    </Svg>
+);
+
+export const StarIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </Svg>
+);
+
+export const FlameIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.5 4 6.5 2 2 3 5.5 3 8.5a7 7 0 1 1-14 0c0-3 1-6 3-9 0 2 0 3 1.5 4.5Z" />
+    </Svg>
+);
+
+export const BabyIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M9 12h.01" />
+        <Path d="M15 12h.01" />
+        <Path d="M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5" />
+        <Path d="M19 6.3a9 9 0 0 1 1.8 3.9 2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1" />
+    </Svg>
+);
+
+export const HourglassIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M5 22h14" />
+        <Path d="M5 2h14" />
+        <Path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
+        <Path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+    </Svg>
+);
+
+export const BanIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Circle cx="12" cy="12" r="10" />
+        <Path d="m4.9 4.9 14.2 14.2" />
+    </Svg>
+);

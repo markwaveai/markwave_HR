@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock } from 'lucide-react';
+import { Clock, MapPin } from 'lucide-react';
 import LoadingSpinner from '../Common/LoadingSpinner';
 
 const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState, handleClockAction, canClock = true, disabledReason }) => {
@@ -39,7 +39,12 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
                 </div>
             </div>
 
-            {locationState && <div className="text-[10px] mt-2 opacity-80 font-medium">📍 {locationState}</div>}
+            {locationState && (
+                <div className="text-[10px] mt-2 opacity-80 font-medium flex items-center gap-1">
+                    <MapPin size={10} strokeWidth={2.5} />
+                    <span>{locationState}</span>
+                </div>
+            )}
         </div>
     );
 };

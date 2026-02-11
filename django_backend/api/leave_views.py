@@ -23,6 +23,30 @@ def get_leaves(request, employee_id):
     serializer = LeavesSerializer(leaves, many=True)
     return Response(serializer.data)
 
+@api_view(['GET'])
+def get_leave_balance(request, employee_id):
+    """Get leave balance for an employee"""
+    employee = Employees.objects.filter(employee_id=employee_id).first()
+    if not employee and str(employee_id).isdigit():
+        employee = Employees.objects.filter(pk=employee_id).first()
+    
+    if not employee:
+        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    # Return leave balance from employee record
+    balance = {
+        'cl': employee.cl or 0,
+        'sl': employee.sl or 0,
+        'el': employee.el or 0,
+        'scl': employee.scl or 0,
+        'bl': employee.bl or 0,
+        'pl': employee.pl or 0,
+        'll': employee.ll or 0,
+        'co': employee.co or 0,
+    }
+    
+    return Response(balance)
+
 def process_leave_notifications(employee, leave_request, notify_to_str, leave_type, from_date, to_date, days, reason, from_session='Full Day', to_session='Full Day'):
     try:
         from .utils import send_email_via_api
@@ -158,10 +182,26 @@ def apply_leave(request):
         if not employee:
             return Response({'error': f'Employee with ID {employee_id} not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        from core.models import LeaveType, EmployeeLeaveBalance
+        from core.models import LeaveType, EmployeeLeaveBalance, Holidays
         from datetime import datetime
         
         current_year = datetime.now().year
+
+        # Validate that leave dates are not in the past
+        from_date_obj = datetime.strptime(from_date, '%Y-%m-%d')
+        to_date_obj = datetime.strptime(to_date, '%Y-%m-%d')
+        today = datetime.now().date()
+        
+        if from_date_obj.date() < today or to_date_obj.date() < today:
+            return Response({
+                'error': 'Leave requests for past dates are not allowed. Please select today or a future date.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate that leave dates don't fall on Sundays or public holidays
+        
+
+        
+
 
         # Check for overlapping leaves
         existing_overlap = Leaves.objects.filter(

@@ -40,6 +40,8 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     CalendarIcon,
+    PartyPopperIcon,
+    ZapIcon,
 } from '../components/Icons';
 
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
@@ -85,28 +87,65 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const [absenteeSearch, setAbsenteeSearch] = useState('');
     const [absenteeFilter, setAbsenteeFilter] = useState('All Status');
     const [isStatusDropdownVisible, setIsStatusDropdownVisible] = useState(false);
+    const [apiErrors, setApiErrors] = useState<{ [key: string]: string }>({});
 
     const isAdmin = user?.is_admin === true ||
-        ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Intern'].includes(user?.role);
+        ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations'].includes(user?.role);
 
     console.log('Is admin check:', isAdmin, 'Role:', user?.role, 'is_admin flag:', user?.is_admin);
 
     const fetchDashboardData = async () => {
         try {
+            const errors: { [key: string]: string } = {};
             const [statusData, statsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
-                attendanceApi.getStatus(user.id).catch(() => ({ status: 'OUT' })),
-                attendanceApi.getPersonalStats(user.id).catch(() => null),
-                leaveApi.getBalance(user.id).catch(() => null),
-                isAdmin ? adminApi.getDashboardStats().catch(() => null) : Promise.resolve(null),
-                attendanceApi.getHolidays().catch(() => []),
-                !isAdmin ? leaveApi.getLeaves(user.id).catch(() => []) : Promise.resolve([]),
-                attendanceApi.getHistory(user.id).catch(() => [])
+                attendanceApi.getStatus(user.id).catch((err) => {
+                    console.error('❌ Status API Error:', err);
+                    errors.status = err.message || 'Failed to load status';
+                    return { status: 'OUT' };
+                }),
+                attendanceApi.getPersonalStats(user.id).catch((err) => {
+                    console.error('❌ Stats API Error:', err);
+                    errors.stats = err.message || 'Failed to load stats';
+                    return null;
+                }),
+                leaveApi.getBalance(user.id).catch((err) => {
+                    console.error('❌ Balance API Error:', err);
+                    errors.balance = err.message || 'Failed to load leave balance';
+                    Alert.alert('Error Loading Leave Balance', err.message || 'Could not fetch leave balance. Please check your connection.');
+                    return null;
+                }),
+                isAdmin ? adminApi.getDashboardStats().catch((err) => {
+                    console.error('❌ Admin Stats API Error:', err);
+                    errors.adminStats = err.message || 'Failed to load admin stats';
+                    return null;
+                }) : Promise.resolve(null),
+                attendanceApi.getHolidays().catch((err) => {
+                    console.error('❌ Holidays API Error:', err);
+                    errors.holidays = err.message || 'Failed to load holidays';
+                    Alert.alert('Error Loading Holidays', err.message || 'Could not fetch holidays. Please check your connection.');
+                    return [];
+                }),
+                !isAdmin ? leaveApi.getLeaves(user.id).catch((err) => {
+                    console.error('❌ Leaves API Error:', err);
+                    errors.leaves = err.message || 'Failed to load leave history';
+                    return [];
+                }) : Promise.resolve([]),
+                attendanceApi.getHistory(user.id).catch((err) => {
+                    console.error('❌ History API Error:', err);
+                    errors.history = err.message || 'Failed to load attendance history';
+                    return [];
+                })
             ]);
+
+            setApiErrors(errors);
 
 
             setIsClockedIn(statusData.status === 'IN');
             setCanClock(statusData.can_clock !== false);
             setDisabledReason(statusData.disabled_reason || null);
+            console.log('Personal Stats Data:', JSON.stringify(statsData, null, 2));
+            console.log('Leave Balance Data:', JSON.stringify(balanceData, null, 2));
+            console.log('Holidays Data:', holidayData);
             setPersonalStats(statsData);
             setLeaveBalance(balanceData);
             setDashboardStats(adminStatsData);
@@ -307,13 +346,20 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         return 'Good Evening';
     };
 
+
     const upcomingHolidays = holidays.filter(h => {
-        if (!h.raw_date) return false;
-        const hDate = new Date(h.raw_date);
+        if (!h.date) return false;
+        const hDate = new Date(h.date);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return hDate >= today;
     });
+
+    console.log('Is Admin:', isAdmin);
+    console.log('Holidays count:', holidays.length);
+    console.log('Upcoming Holidays count:', upcomingHolidays.length);
+    console.log('Leave Balance:', leaveBalance);
+    console.log('Dashboard Stats:', dashboardStats);
 
     return (
         <View style={{ flex: 1 }}>
@@ -363,23 +409,37 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                 <Text style={styles.cardTitle}>Leave Balance</Text>
                             </View>
                         </View>
-                        <View style={styles.balanceGridContainer}>
-                            {[
-                                { key: 'cl', label: 'Casual', max: 12 },
-                                { key: 'sl', label: 'Sick', max: 12 },
-                                { key: 'el', label: 'Earned', max: 15 },
-                                { key: 'scl', label: 'Special', max: 3 },
-                                { key: 'bl', label: 'Bereavement', max: 5 },
-                                { key: 'pl', label: 'Paternity', max: 3 },
-                                { key: 'll', label: 'Long', max: 21 },
-                                { key: 'co', label: 'Comp Off', max: 2 }
-                            ].map(({ key, label, max }) => (
-                                <View key={key} style={styles.chartItem}>
-                                    <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#48327d" size={40} strokeWidth={3} />
-                                    <Text style={styles.chartLabel}>{label}</Text>
-                                </View>
-                            ))}
-                        </View>
+                        {apiErrors.balance ? (
+                            <View style={{ padding: 20, alignItems: 'center' }}>
+                                <Text style={{ color: '#ef4444', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>❌ {apiErrors.balance}</Text>
+                                <TouchableOpacity onPress={() => fetchDashboardData()} style={{ backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}>
+                                    <Text style={{ color: 'white', fontWeight: '600' }}>Retry</Text>
+                                </TouchableOpacity>
+                            </View>
+                        ) : leaveBalance ? (
+                            <View style={styles.balanceGridContainer}>
+                                {[
+                                    { key: 'cl', label: 'Casual', max: 12 },
+                                    { key: 'sl', label: 'Sick', max: 12 },
+                                    { key: 'el', label: 'Earned', max: 15 },
+                                    { key: 'scl', label: 'Special', max: 3 },
+                                    { key: 'bl', label: 'Bereavement', max: 5 },
+                                    { key: 'pl', label: 'Paternity', max: 3 },
+                                    { key: 'll', label: 'Long', max: 21 },
+                                    { key: 'co', label: 'Comp Off', max: 2 }
+                                ].map(({ key, label, max }) => (
+                                    <View key={key} style={styles.chartItem}>
+                                        <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#48327d" size={40} strokeWidth={3} />
+                                        <Text style={styles.chartLabel}>{label}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        ) : (
+                            <View style={{ padding: 20, alignItems: 'center' }}>
+                                <ActivityIndicator size="small" color="#6366f1" />
+                                <Text style={{ color: '#94a3b8', fontSize: 14, marginTop: 8 }}>Loading leave balance...</Text>
+                            </View>
+                        )}
                     </View>
                 )}
 
@@ -405,8 +465,8 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                             }
                         </Text>
                         {statsDuration === 'week' && (
-                            <Text style={{ fontSize: 14, color: personalStats?.diff_status === 'up' ? '#10b981' : '#ef4444' }}>
-                                {personalStats?.diff_label || '+0h 00m vs last week'}
+                            <Text style={{ fontSize: 14, color: personalStats?.lastWeekDiff?.startsWith('+') ? '#10b981' : '#ef4444' }}>
+                                {personalStats?.lastWeekDiff || '+0h 00m vs last week'}
                             </Text>
                         )}
                         {statsDuration === 'month' && (
@@ -418,25 +478,36 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 </View>
 
                 {/* Holidays Card */}
-                {upcomingHolidays.length > 0 && (
-                    <View style={[styles.card, styles.holidayCard]}>
-                        <View style={styles.holidayDecoration} pointerEvents="none" />
+                <View style={[styles.card, styles.holidayCard]}>
+                    <View style={styles.holidayDecoration} pointerEvents="none" />
 
-                        {/* Make entire header clickable */}
-                        <Pressable
-                            onPress={() => {
+                    {/* Make entire header clickable */}
+                    <Pressable
+                        onPress={() => {
+                            if (upcomingHolidays.length > 0) {
                                 console.log('Holiday header pressed!');
                                 setShowHolidayCalendar(true);
-                            }}
-                            style={({ pressed }) => [
-                                styles.cardHeader,
-                                pressed && { opacity: 0.7 }
-                            ]}
-                        >
-                            <Text style={styles.cardTitle}>Holidays</Text>
+                            }
+                        }}
+                        style={({ pressed }) => [
+                            styles.cardHeader,
+                            pressed && { opacity: 0.7 }
+                        ]}
+                    >
+                        <Text style={styles.cardTitle}>Holidays</Text>
+                        {upcomingHolidays.length > 0 && (
                             <Text style={{ color: '#48327d', fontSize: 12, fontWeight: 'bold' }}>View All</Text>
-                        </Pressable>
+                        )}
+                    </Pressable>
 
+                    {apiErrors.holidays ? (
+                        <View style={{ padding: 20, alignItems: 'center' }}>
+                            <Text style={{ color: '#ef4444', fontSize: 14, textAlign: 'center', marginBottom: 8 }}>❌ {apiErrors.holidays}</Text>
+                            <TouchableOpacity onPress={() => fetchDashboardData()} style={{ backgroundColor: '#6366f1', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}>
+                                <Text style={{ color: 'white', fontWeight: '600' }}>Retry</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : upcomingHolidays.length > 0 ? (
                         <View style={styles.holidayContent}>
                             <View style={{ flex: 1 }}>
                                 <Text style={styles.holidayName} numberOfLines={1} adjustsFontSizeToFit>
@@ -469,11 +540,19 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                 </TouchableOpacity>
                             </View>
                         </View>
-                    </View>
-                )}
+                    ) : (
+                        <View style={{ padding: 20, alignItems: 'center' }}>
+                            <PartyPopperIcon color="#cbd5e1" size={48} style={{ marginBottom: 8 }} />
+                            <Text style={{ color: '#94a3b8', fontSize: 14, textAlign: 'center' }}>No upcoming holidays</Text>
+                        </View>
+                    )}
+                </View>
 
                 <View style={styles.feedHeader}>
-                    <Text style={styles.feedTitle}>Community Wall ⚡</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.feedTitle}>Community Wall</Text>
+                        <ZapIcon color="#48327d" size={20} />
+                    </View>
                 </View>
 
                 {/* Post Input Bar - Admin Only */}
@@ -679,6 +758,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 date={missedCheckoutDate || ''}
                 employeeId={user.id}
                 onSuccess={() => fetchDashboardData()}
+                teamLeadName={user.team_lead_name}
             />
 
             {/* Absentees Modal */}

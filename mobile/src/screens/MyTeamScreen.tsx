@@ -15,7 +15,7 @@ import {
     ScrollView
 } from 'react-native';
 import { teamApi } from '../services/api';
-import { EditIcon, TrashIcon, SearchIcon } from '../components/Icons';
+import { EditIcon, TrashIcon, SearchIcon, MapPinIcon, MailIcon } from '../components/Icons';
 
 interface MyTeamScreenProps {
     user: any;
@@ -39,13 +39,19 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
 
     useEffect(() => {
+        console.log('User data for team:', JSON.stringify({ teams: user?.teams, team_id: user?.team_id }, null, 2));
         if (user?.teams && user.teams.length > 0) {
             setTeams(user.teams);
             // Default to the first team they manage if available, else first team they belong to
             const leadTeam = user.teams.find((t: any) => t.manager_name?.includes(user.first_name));
-            setSelectedTeamId(leadTeam ? leadTeam.id : user.teams[0].id);
+            const teamId = leadTeam ? leadTeam.id : user.teams[0].id;
+            console.log('Setting team ID from teams array:', teamId);
+            setSelectedTeamId(teamId);
         } else if (user?.team_id) {
+            console.log('Setting team ID from user.team_id:', user.team_id);
             setSelectedTeamId(user.team_id);
+        } else {
+            console.warn('⚠️ No team data found for user. User needs to be assigned to a team.');
         }
     }, [user]);
 
@@ -60,12 +66,15 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
 
         setLoading(true);
         try {
+            console.log('Fetching team data for team ID:', selectedTeamId);
             const [membersData, statsData, allEmpsData] = await Promise.all([
-                teamApi.getMembers(selectedTeamId),
-                teamApi.getStats(selectedTeamId),
-                teamApi.getAttendanceRegistry()
+                teamApi.getMembers(selectedTeamId).catch((err) => { console.error('❌ Members API Error:', err); throw err; }),
+                teamApi.getStats(selectedTeamId).catch((err) => { console.error('❌ Stats API Error:', err); throw err; }),
+                teamApi.getAttendanceRegistry().catch((err) => { console.error('❌ Registry API Error:', err); throw err; })
             ]);
 
+            console.log('Team Members:', membersData);
+            console.log('Team Stats:', statsData);
             setTeamMembers(membersData);
             setStats(statsData);
             setAllEmployees(allEmpsData);
@@ -287,7 +296,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                 <View style={[styles.detailItem, { flex: 1.5 }]}>
                     <Text style={styles.detailLabel}>LOCATION</Text>
                     <View style={styles.statusRow}>
-                        <Text style={{ fontSize: 10 }}>📍</Text>
+                        <MapPinIcon size={12} color="#64748b" />
                         <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
                             {item.location || 'Not Specified'}
                         </Text>
@@ -296,9 +305,12 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
             </View>
 
             <View style={styles.cardFooter}>
-                <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
-                    ✉️ {item.email || 'No email provided'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <MailIcon size={14} color="#64748b" style={{ marginRight: 4 }} />
+                    <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
+                        {item.email || 'No email provided'}
+                    </Text>
+                </View>
                 <TouchableOpacity style={styles.viewProfileBtn}>
                     <Text style={styles.viewProfileText}>View Profile</Text>
                 </TouchableOpacity>

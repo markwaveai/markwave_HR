@@ -133,7 +133,11 @@ export const attendanceApi = {
         method: 'POST',
         body: JSON.stringify(data)
     }),
-    getRequests: (employeeId: string) => apiFetch(`/attendance/regularization-requests/${employeeId}/?role=employee&_t=${new Date().getTime()}`),
+    getRequests: (employeeId: string, role: 'employee' | 'manager' = 'employee') => apiFetch(`/attendance/regularization-requests/${employeeId}/?role=${role}&_t=${new Date().getTime()}`),
+    updateRequestStatus: (id: number, action: 'Approved' | 'Rejected') => apiFetch(`/attendance/regularization/${id}/action/`, {
+        method: 'POST',
+        body: JSON.stringify({ action })
+    }),
     resolveLocation: (lat: number, lon: number) => apiFetch(`/attendance/resolve-location/?lat=${lat}&lon=${lon}`),
 };
 

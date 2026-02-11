@@ -5,7 +5,7 @@ import {
     TentTree,
     Plane
 } from 'lucide-react';
-import { leaveApi, authApi } from '../services/api';
+import { leaveApi, authApi, attendanceApi } from '../services/api';
 import LeaveBalanceGrid from './LeaveAttendance/LeaveBalanceGrid';
 import LeaveHistoryTable from './LeaveAttendance/LeaveHistoryTable';
 import ApplyLeaveModal from './LeaveAttendance/ApplyLeaveModal';
@@ -27,6 +27,8 @@ function LeaveAttendance({ user }) {
     const [profile, setProfile] = useState(null);
     const [toast, setToast] = useState(null);
     const [apiBalance, setApiBalance] = useState({});
+    const [holidays, setHolidays] = useState([]);
+
     const EMPLOYEE_ID = user?.id;
     const LEAVE_TYPES = {
         'cl': { name: 'CASUAL LEAVE', code: 'CL', icon: <Plane size={20} />, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -96,6 +98,9 @@ function LeaveAttendance({ user }) {
             }).catch(console.error);
         }
 
+        // Fetch holidays for button validation
+        attendanceApi.getHolidays().then(h => setHolidays(h)).catch(() => setHolidays([]));
+
         // Add Polling for real-time updates (every 5 seconds)
         const pollInterval = setInterval(() => {
             fetchLeaves();
@@ -164,6 +169,23 @@ function LeaveAttendance({ user }) {
             setToast({ message: "To Date cannot be earlier than From Date.", type: 'error' });
             return;
         }
+
+        // Check if dates are in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const startDateOnly = new Date(start);
+        startDateOnly.setHours(0, 0, 0, 0);
+        const endDateOnly = new Date(end);
+        endDateOnly.setHours(0, 0, 0, 0);
+
+        if (startDateOnly < today || endDateOnly < today) {
+            setToast({ message: "Leave requests for past dates are not allowed. Please select today or a future date.", type: 'error' });
+            return;
+        }
+
+
+
+
 
         const diffTime = Math.abs(end - start);
         let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
@@ -271,6 +293,8 @@ function LeaveAttendance({ user }) {
                         isSubmitting={isSubmitting}
                         balances={balances}
                         LEAVE_TYPES={LEAVE_TYPES}
+                        holidays={holidays}
+                        history={history}
                     />
                 )}
             </div>

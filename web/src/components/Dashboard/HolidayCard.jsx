@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 const HolidayCard = ({ holidays, holidayIndex, setHolidayIndex, setShowCalendar }) => {
     return (
@@ -29,16 +30,16 @@ const HolidayCard = ({ holidays, holidayIndex, setHolidayIndex, setShowCalendar 
                         <button
                             onClick={() => setHolidayIndex(prev => Math.max(0, prev - 1))}
                             disabled={holidayIndex === 0}
-                            className={`p-1 rounded-full transition-colors ${holidayIndex === 0 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            className={`p-1 rounded-full transition-colors ${holidayIndex === 0 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-50'}`}
                         >
-                            <span className="text-2xl text-[#48327d]">‹</span>
+                            <ChevronLeft size={24} className="text-[#48327d]" />
                         </button>
                         <button
                             onClick={() => setHolidayIndex(prev => Math.min(holidays.length - 1, prev + 1))}
                             disabled={holidayIndex === holidays.length - 1}
-                            className={`p-1 rounded-full transition-colors ${holidayIndex === holidays.length - 1 ? 'opacity-30 cursor-not-allowed' : ''}`}
+                            className={`p-1 rounded-full transition-colors ${holidayIndex === holidays.length - 1 ? 'opacity-30 cursor-not-allowed' : 'hover:bg-slate-50'}`}
                         >
-                            <span className="text-2xl text-[#48327d]">›</span>
+                            <ChevronRight size={24} className="text-[#48327d]" />
                         </button>
                     </div>
                 </div>

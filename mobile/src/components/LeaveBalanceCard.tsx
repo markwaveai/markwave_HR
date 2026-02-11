@@ -1,15 +1,16 @@
 import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
+import { PlaneIcon, ThermometerIcon, PalmTreeIcon, StarIcon, FlameIcon, BabyIcon, HomeIcon, HourglassIcon } from './Icons';
 
 export const LEAVE_CONFIG: any = {
-    'cl': { name: 'Casual Leave', code: 'cl', icon: '✈️', color: '#3498db', bg: '#e0f2fe' },
-    'sl': { name: 'Sick Leave', code: 'sl', icon: '🌡️', color: '#e74c3c', bg: '#fee2e2' },
-    'el': { name: 'Earned Leave', code: 'el', icon: '🌴', color: '#2ecc71', bg: '#dcfce7' },
-    'scl': { name: 'Special Casual Leave', code: 'scl', icon: '🌟', color: '#9b59b6', bg: '#f3e5f5' },
-    'bl': { name: 'Bereavement Leave', code: 'bl', icon: '🕯️', color: '#e67e22', bg: '#fff3e0' },
-    'pl': { name: 'Paternity Leave', code: 'pl', icon: '👶', color: '#1abc9c', bg: '#e0f2f1' },
-    'll': { name: 'Long Leave', code: 'll', icon: '🏠', color: '#34495e', bg: '#eceff1' },
-    'co': { name: 'Comp Off', code: 'co', icon: '⏳', color: '#f1c40f', bg: '#fffde7' }
+    'cl': { name: 'Casual Leave', code: 'cl', icon: PlaneIcon, color: '#3498db', bg: '#e0f2fe' },
+    'sl': { name: 'Sick Leave', code: 'sl', icon: ThermometerIcon, color: '#e74c3c', bg: '#fee2e2' },
+    'el': { name: 'Earned Leave', code: 'el', icon: PalmTreeIcon, color: '#2ecc71', bg: '#dcfce7' },
+    'scl': { name: 'Special Casual Leave', code: 'scl', icon: StarIcon, color: '#9b59b6', bg: '#f3e5f5' },
+    'bl': { name: 'Bereavement Leave', code: 'bl', icon: FlameIcon, color: '#e67e22', bg: '#fff3e0' },
+    'pl': { name: 'Paternity Leave', code: 'pl', icon: BabyIcon, color: '#1abc9c', bg: '#e0f2f1' },
+    'll': { name: 'Long Leave', code: 'll', icon: HomeIcon, color: '#34495e', bg: '#eceff1' },
+    'co': { name: 'Comp Off', code: 'co', icon: HourglassIcon, color: '#f1c40f', bg: '#fffde7' }
 };
 
 interface LeaveBalanceCardProps {
@@ -58,7 +59,7 @@ const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({ apiBalance, history
                     <View key={index} style={styles.card}>
                         <View style={styles.header}>
                             <View style={[styles.iconBox, { backgroundColor: item.bg }]}>
-                                <Text style={{ fontSize: 16 }}>{item.icon}</Text>
+                                <item.icon size={16} color={item.color} />
                             </View>
                             <Text style={styles.title} numberOfLines={1}>{item.name}</Text>
                         </View>

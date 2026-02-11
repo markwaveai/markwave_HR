@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, TextInput, ActivityIndicator, Alert, Platform } from 'react-native';
 import { attendanceApi } from '../services/api';
-import { ClockIcon, CloseIcon, CheckCircleIcon } from './Icons';
+import { ClockIcon, CloseIcon, CheckCircleIcon, UserIcon } from './Icons';
 
 interface RegularizeModalProps {
     visible: boolean;
@@ -9,9 +9,10 @@ interface RegularizeModalProps {
     date: string; // YYYY-MM-DD
     employeeId: string;
     onSuccess: () => void;
+    teamLeadName?: string;
 }
 
-const RegularizeModal: React.FC<RegularizeModalProps> = ({ visible, onClose, date, employeeId, onSuccess }) => {
+const RegularizeModal: React.FC<RegularizeModalProps> = ({ visible, onClose, date, employeeId, onSuccess, teamLeadName }) => {
     const [hour, setHour] = useState('');
     const [minute, setMinute] = useState('');
     const [amPm, setAmPm] = useState<'AM' | 'PM'>('PM');
@@ -85,11 +86,23 @@ const RegularizeModal: React.FC<RegularizeModalProps> = ({ visible, onClose, dat
                     <View style={styles.body}>
                         <View style={styles.dateCard}>
                             <ClockIcon size={20} color="#2563eb" style={{ marginRight: 12 }} />
-                            <View>
+                            <View style={{ flex: 1 }}>
                                 <Text style={styles.labelSmall}>MISSED CHECK-OUT DATE</Text>
                                 <Text style={styles.dateValue}>{formatDate(date)}</Text>
                             </View>
                         </View>
+
+                        {teamLeadName && (
+                            <View style={[styles.dateCard, { backgroundColor: '#fdf4ff', borderColor: '#f0abfc' }]}>
+                                <View style={{ marginRight: 12, backgroundColor: '#fae8ff', padding: 6, borderRadius: 20 }}>
+                                    <UserIcon size={16} color="#48327d" />
+                                </View>
+                                <View>
+                                    <Text style={[styles.labelSmall, { color: '#86198f' }]}>REQUESTING TO TEAM LEAD</Text>
+                                    <Text style={[styles.dateValue, { color: '#4a044e' }]}>{teamLeadName}</Text>
+                                </View>
+                            </View>
+                        )}
 
                         <View style={styles.section}>
                             <Text style={styles.label}>Correct Check-Out Time</Text>

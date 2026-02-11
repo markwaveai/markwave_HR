@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, PartyPopper } from 'lucide-react';
 
 const AbsenteesModal = ({ absentees, onClose }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -88,10 +88,15 @@ const AbsenteesModal = ({ absentees, onClose }) => {
                             <div className="w-20 h-20 bg-[#f8fafc] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#e2e8f0] border-dashed">
                                 <Search size={28} className="text-[#cbd5e1]" />
                             </div>
-                            <p className="text-[#94a3b8] font-bold text-sm">
-                                {!searchTerm && statusFilter === 'All'
-                                    ? "Everyone is present today! 🎉"
-                                    : `No ${statusFilter !== 'All' ? statusFilter.toLowerCase() : ''} employees found`}
+                            <p className="text-[#94a3b8] font-bold text-sm flex items-center justify-center gap-2">
+                                {!searchTerm && statusFilter === 'All' ? (
+                                    <>
+                                        Everyone is present today!
+                                        <PartyPopper size={16} className="text-[#48327d]" />
+                                    </>
+                                ) : (
+                                    `No ${statusFilter !== 'All' ? statusFilter.toLowerCase() : ''} employees found`
+                                )}
                             </p>
                         </div>
                     )}

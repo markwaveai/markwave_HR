@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { leaveApi, authApi } from '../services/api';
+import { leaveApi, authApi, attendanceApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
+import { CalendarIcon, PlaneIcon, ThermometerIcon, PalmTreeIcon, StarIcon, FlameIcon, BabyIcon, HomeIcon, HourglassIcon, BanIcon } from '../components/Icons';
 
 const LeaveScreen = ({ user }: { user: any }) => {
     const [history, setHistory] = useState<any[]>([]);
@@ -32,18 +33,19 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const [apiBalance, setApiBalance] = useState<any>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+
     const EMPLOYEE_ID = user?.id; // Dynamic ID from prop
 
     const LEAVE_CONFIG: any = {
-        'cl': { name: 'Casual Leave', code: 'cl', icon: '✈️', color: '#3498db', bg: '#e0f2fe' },
-        'sl': { name: 'Sick Leave', code: 'sl', icon: '🌡️', color: '#e74c3c', bg: '#fee2e2' },
-        'el': { name: 'Earned Leave', code: 'el', icon: '🌴', color: '#2ecc71', bg: '#dcfce7' },
-        'scl': { name: 'Special Casual Leave', code: 'scl', icon: '🌟', color: '#9b59b6', bg: '#f3e5f5' },
-        'bl': { name: 'Bereavement Leave', code: 'bl', icon: '🕯️', color: '#e67e22', bg: '#fff3e0' },
-        'pl': { name: 'Paternity Leave', code: 'pl', icon: '👶', color: '#1abc9c', bg: '#e0f2f1' },
-        'll': { name: 'Long Leave', code: 'll', icon: '🏠', color: '#34495e', bg: '#eceff1' },
-        'co': { name: 'Comp Off', code: 'co', icon: '⏳', color: '#f1c40f', bg: '#fffde7' },
-        'lwp': { name: 'Leave Without Pay', code: 'lwp', icon: '🚫', color: '#95a5a6', bg: '#f1f2f6' }
+        'cl': { name: 'Casual Leave', code: 'cl', icon: <PlaneIcon size={18} color="#3498db" />, color: '#3498db', bg: '#e0f2fe' },
+        'sl': { name: 'Sick Leave', code: 'sl', icon: <ThermometerIcon size={18} color="#e74c3c" />, color: '#e74c3c', bg: '#fee2e2' },
+        'el': { name: 'Earned Leave', code: 'el', icon: <PalmTreeIcon size={18} color="#2ecc71" />, color: '#2ecc71', bg: '#dcfce7' },
+        'scl': { name: 'Special Casual Leave', code: 'scl', icon: <StarIcon size={18} color="#9b59b6" />, color: '#9b59b6', bg: '#f3e5f5' },
+        'bl': { name: 'Bereavement Leave', code: 'bl', icon: <FlameIcon size={18} color="#e67e22" />, color: '#e67e22', bg: '#fff3e0' },
+        'pl': { name: 'Paternity Leave', code: 'pl', icon: <BabyIcon size={18} color="#1abc9c" />, color: '#1abc9c', bg: '#e0f2f1' },
+        'll': { name: 'Long Leave', code: 'll', icon: <HomeIcon size={18} color="#34495e" />, color: '#34495e', bg: '#eceff1' },
+        'co': { name: 'Comp Off', code: 'co', icon: <HourglassIcon size={18} color="#f1c40f" />, color: '#f1c40f', bg: '#fffde7' },
+        'lwp': { name: 'Leave Without Pay', code: 'lwp', icon: <BanIcon size={18} color="#95a5a6" />, color: '#95a5a6', bg: '#f1f2f6' }
     };
 
     const fetchLeaves = async () => {
@@ -66,17 +68,132 @@ const LeaveScreen = ({ user }: { user: any }) => {
         }
     };
 
+    // Restored holidays state
+    const [holidays, setHolidays] = useState<any[]>([]);
+
     useEffect(() => {
         fetchLeaves();
         fetchBalance();
         if (EMPLOYEE_ID) {
             authApi.getProfile(EMPLOYEE_ID).then(p => setProfile(p)).catch(console.log);
         }
+        // Fetch holidays for button validation
+        attendanceApi.getHolidays().then(h => setHolidays(h)).catch(() => setHolidays([]));
     }, [EMPLOYEE_ID]);
+
+    // Helper to check if date is Sunday or Holiday
+    const isDateDisabled = (dateStr: string) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        // Check Sunday (0)
+        if (d.getDay() === 0) return true;
+        // Check Holidays (Compare with raw_date from API)
+        return holidays.some(h => h.raw_date === dateStr);
+    };
+
+    const isTimeRestricted = () => {
+        if (!fromDate) return false;
+
+        // Only apply time restrictions for TODAY
+        const now = new Date();
+        const selectedDate = new Date(fromDate);
+        const isToday = selectedDate.getDate() === now.getDate() &&
+            selectedDate.getMonth() === now.getMonth() &&
+            selectedDate.getFullYear() === now.getFullYear();
+
+        if (!isToday) return false;
+
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTime = currentHour + (currentMinute / 60);
+
+        // Rule 1: Enable requests only after 9:30 AM
+        if (currentTime < 9.5) return true; // Before 9:30 AM (9.5)
+
+        // Rule 2: Morning Session (Session 1) - valid between 9:30 AM and 12:30 PM
+        // Also applies to Full Day (since it includes morning)
+        if (fromSession === 'Session 1' || fromSession === 'Full Day') {
+            if (currentTime > 12.5) return true; // After 12:30 PM
+        }
+
+        // Rule 3: Afternoon Session (Session 2) - valid before 2:00 PM
+        if (fromSession === 'Session 2') {
+            if (currentTime >= 14) return true; // After 2:00 PM
+        }
+
+        return false;
+    };
+
+    const isDuplicateLeave = () => {
+        if (!fromDate) return false;
+
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        const end = toDate ? new Date(toDate) : new Date(start);
+        end.setHours(0, 0, 0, 0);
+
+        return history.some(item => {
+            if (item.status === 'Rejected' || item.status === 'Cancelled') return false;
+
+            const hStart = new Date(item.fromDate);
+            hStart.setHours(0, 0, 0, 0);
+            const hEnd = new Date(item.toDate || item.fromDate);
+            hEnd.setHours(0, 0, 0, 0);
+
+            return start <= hEnd && end >= hStart;
+        });
+    };
+
+    const hasRestrictedDaysInRange = () => {
+        if (!fromDate || !toDate || fromDate === toDate) return false;
+
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+
+        let current = new Date(start);
+        while (current <= end) {
+            const yyyy = current.getFullYear();
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dd = String(current.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            if (isDateDisabled(dateStr)) return true;
+            current.setDate(current.getDate() + 1);
+        }
+        return false;
+    };
+
+    const isSubmitDisabled = () => {
+        if (isSubmitting) return true;
+        if (!fromDate || !reason.trim()) return true;
+
+        // Check From Date
+        if (isDateDisabled(fromDate)) return true;
+
+        // Check To Date (if exists)
+        if (toDate && isDateDisabled(toDate)) return true;
+
+        // Check Time Restrictions
+        if (isTimeRestricted()) return true;
+
+        // Check Duplicate Leave
+        if (isDuplicateLeave()) return true;
+
+        // Check restricted days within range (Sundays/Holidays)
+        if (hasRestrictedDaysInRange()) return true;
+
+        return false;
+    };
 
     const handleApply = async () => {
         if (!fromDate || !reason || notifyTo.length === 0) {
             Alert.alert("Validation", "Please fill all required fields (Dates, Reason, Notify To)");
+            return;
+        }
+
+        // Double check validation on submit (just in case)
+        if (isDateDisabled(fromDate) || (toDate && isDateDisabled(toDate))) {
+            Alert.alert("Restricted", "Cannot apply leave on Sundays or Public Holidays.");
             return;
         }
 
@@ -93,6 +210,23 @@ const LeaveScreen = ({ user }: { user: any }) => {
             Alert.alert("Error", "To Date cannot be earlier than From Date.");
             return;
         }
+
+        // Check if dates are in the past
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const fromDateOnly = new Date(start);
+        fromDateOnly.setHours(0, 0, 0, 0);
+        const toDateOnly = new Date(end);
+        toDateOnly.setHours(0, 0, 0, 0);
+
+        if (fromDateOnly < today || toDateOnly < today) {
+            Alert.alert("Notice", "Leave requests for past dates are not allowed. Please select today or a future date.");
+            return;
+        }
+
+
+
+
 
         setIsSubmitting(true);
         try {
@@ -281,7 +415,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                         <Text style={[styles.dateText, !fromDate && { color: '#b2bec3' }]}>
                                             {fromDate || 'Select Date'}
                                         </Text>
-                                        <Text style={{ fontSize: 16 }}>📅</Text>
+                                        <CalendarIcon color="#64748b" size={18} />
                                     </TouchableOpacity>
                                 </View>
                                 <View style={{ flex: 1 }}>
@@ -293,7 +427,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                         <Text style={[styles.dateText, !toDate && { color: '#b2bec3' }]}>
                                             {toDate || 'Select Date'}
                                         </Text>
-                                        <Text style={{ fontSize: 16 }}>📅</Text>
+                                        <CalendarIcon color="#64748b" size={18} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -385,8 +519,11 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                         .map(name => (
                                             <TouchableOpacity
                                                 key={name}
-                                                onPress={() => setNotifyTo([...notifyTo, name])}
+                                                onPress={() => {
+                                                    setNotifyTo([...notifyTo, name]);
+                                                }}
                                                 style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
+                                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                             >
                                                 <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
                                             </TouchableOpacity>
@@ -396,8 +533,8 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
                             <TouchableOpacity
                                 onPress={handleApply}
-                                style={[styles.submitBtn, (!(fromDate && toDate && reason.trim()) || isSubmitting) && { opacity: 0.5 }]}
-                                disabled={!(fromDate && toDate && reason.trim()) || isSubmitting}
+                                style={[styles.submitBtn, isSubmitDisabled() && { opacity: 0.5 }]}
+                                disabled={isSubmitDisabled()}
                             >
                                 <Text style={styles.submitBtnText}>{isSubmitting ? 'Submitting...' : 'Submit Request'}</Text>
                             </TouchableOpacity>

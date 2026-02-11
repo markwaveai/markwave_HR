@@ -6,6 +6,33 @@ from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regulariz
 from datetime import datetime, timedelta
 from django.db.models import Q
 import pytz
+import threading
+from .utils import send_email_via_api
+
+def process_regularization_email(target_email, subject, title, message, color="#48327d", icon="📅"):
+    try:
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="UTF-8">
+            </head>
+            <body style="font-family: 'Inter', sans-serif; background-color: #f8fafc; padding: 20px; margin: 0;">
+                <div style="background: white; padding: 40px; border-radius: 12px; max-width: 500px; margin: 0 auto; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); text-align: center;">
+                    <div style="font-size: 40px; margin-bottom: 20px;">{icon}</div>
+                    <h1 style="color: {color}; font-size: 20px; font-weight: 700; margin-bottom: 16px; margin-top: 0;">{title}</h1>
+                    <p style="color: #475569; font-size: 15px; line-height: 1.5; margin-bottom: 24px;">{message}</p>
+                    <div style="margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;">
+                        MarkwaveHR Automated Notification
+                    </div>
+                </div>
+            </body>
+        </html>
+        """
+        send_email_via_api(target_email, subject, html_response)
+    except Exception as e:
+        print(f"Error sending regularization email: {e}")
+
 
 
 @api_view(['GET'])
@@ -593,12 +620,30 @@ def submit_regularization(request):
     if existing:
         return Response({'error': 'A pending regularization request already exists for this date'}, status=400)
 
-    Regularization.objects.create(
+    reg = Regularization.objects.create(
         employee=employee,
         attendance=attendance,
         requested_checkout=requested_checkout,
         reason=reason
     )
+
+    # Send Email to Team Manager(s)
+    try:
+        subject = f"Regularization Request - {employee.first_name} {employee.last_name} ({employee.employee_id})"
+        title = "New Regularization Request"
+        message = f"{employee.first_name} {employee.last_name} has requested attendance regularization for {date}.<br>Reason: {reason}<br>Requested Checkout: {requested_checkout}"
+        
+        managers = []
+        for team in employee.teams.all():
+            if team.manager and team.manager.email:
+                managers.append(team.manager.email)
+        
+        for manager_email in set(managers):
+            t = threading.Thread(target=process_regularization_email, args=(manager_email, subject, title, message))
+            t.start()
+            
+    except Exception as e:
+        print(f"Error initiating regularization email: {e}")
 
     return Response({'message': 'Regularization request submitted successfully'})
 
@@ -725,7 +770,22 @@ def action_regularization(request, pk):
                 print(f"Error calculating hours: {e}")
         
         att.status = 'Present'
+        att.status = 'Present'
         att.save()
+
+    # Send Email to Employee
+    try:
+        subject = f"Regularization Request {action}"
+        title = f"Request {action}"
+        color = "#166534" if action == 'Approved' else "#b91c1c"
+        icon = "✅" if action == 'Approved' else "❌"
+        message = f"Your regularization request for {reg.attendance.date} has been {action}."
+        
+        if reg.employee.email:
+             t = threading.Thread(target=process_regularization_email, args=(reg.employee.email, subject, title, message, color, icon))
+             t.start()
+    except Exception as e:
+        print(f"Error initiating action email: {e}")
 
     return Response({'message': f'Request {action.lower()} successfully'})
 

@@ -16,7 +16,8 @@ const ApplyLeaveModal = ({
     handleLeaveSubmit,
     isSubmitting,
     balances = [],
-    LEAVE_TYPES = {}
+    holidays = [],
+    history = []
 }) => {
     const [isClosing, setIsClosing] = React.useState(false);
 
@@ -29,6 +30,92 @@ const ApplyLeaveModal = ({
     };
 
     const isSingleDay = !toDate || (fromDate && toDate && fromDate === toDate);
+
+    // Helper to check if date is Restricted
+    const isDateDisabled = (dateStr) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        // Check Sunday (0)
+        if (d.getDay() === 0) return true;
+        // Check Holidays (Compare with raw_date from API)
+        return holidays.some(h => h.raw_date === dateStr);
+    };
+
+    const isTimeRestricted = () => {
+        if (!fromDate) return false;
+
+        // Match specific logic from Mobile (LeaveScreen.tsx)
+        const now = new Date();
+        const selectedDate = new Date(fromDate);
+        const isToday = selectedDate.getDate() === now.getDate() &&
+            selectedDate.getMonth() === now.getMonth() &&
+            selectedDate.getFullYear() === now.getFullYear();
+
+        if (!isToday) return false;
+
+        const currentHour = now.getHours();
+        const currentMinute = now.getMinutes();
+        const currentTime = currentHour + (currentMinute / 60);
+
+        // Rule 1: Enable requests only after 9:30 AM
+        if (currentTime < 9.5) return true; // Before 9:30 AM (9.5)
+
+        // Rule 2: Morning Session (Session 1) - valid between 9:30 AM and 12:30 PM
+        // Also applies to Full Day (since it includes morning)
+        if (fromSession === 'Session 1' || fromSession === 'Full Day') {
+            if (currentTime > 12.5) return true; // After 12:30 PM
+        }
+
+        // Rule 3: Afternoon Session (Session 2) - valid before 2:00 PM
+        if (fromSession === 'Session 2') {
+            if (currentTime >= 14) return true; // After 2:00 PM
+        }
+
+        return false;
+    };
+
+    const isDuplicateLeave = () => {
+        if (!fromDate) return false;
+
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        const end = toDate ? new Date(toDate) : new Date(start);
+        end.setHours(0, 0, 0, 0);
+
+        return history.some(item => {
+            if (item.status === 'Rejected' || item.status === 'Cancelled') return false;
+
+            // Web history might have different date format or keys compared to mobile
+            // Based on LeaveAttendance.jsx, item has fromDate/toDate
+            const hStart = new Date(item.fromDate);
+            hStart.setHours(0, 0, 0, 0);
+            const hEnd = new Date(item.toDate || item.fromDate);
+            hEnd.setHours(0, 0, 0, 0);
+
+            return start <= hEnd && end >= hStart;
+        });
+    };
+
+    const hasRestrictedDaysInRange = () => {
+        if (!fromDate || !toDate || fromDate === toDate) return false;
+
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+
+        let current = new Date(start);
+        while (current <= end) {
+            const yyyy = current.getFullYear();
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dd = String(current.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            if (isDateDisabled(dateStr)) return true;
+            current.setDate(current.getDate() + 1);
+        }
+        return false;
+    };
+
+    const isSubmitButtonDisabled = !fromDate || !reason.trim() || notifyTo.length === 0 || isSubmitting || isDateDisabled(fromDate) || (toDate && isDateDisabled(toDate)) || isTimeRestricted() || isDuplicateLeave() || hasRestrictedDaysInRange();
 
     const SessionSelector = ({ label, value, onChange }) => {
         const sessions = [
@@ -46,7 +133,11 @@ const ApplyLeaveModal = ({
                     {sessions.map((s) => (
                         <button
                             key={s.id}
-                            onClick={() => onChange(s.id)}
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onChange(s.id);
+                            }}
                             className={`flex-1 py-1 text-[10px] font-bold rounded-md border transition-all ${value === s.id
                                 ? 'bg-[#48327d] border-[#48327d] text-white'
                                 : 'bg-white border-[#e2e8f0] text-[#636e72] hover:bg-[#f8fafc]'
@@ -66,7 +157,10 @@ const ApplyLeaveModal = ({
                 className={`fixed inset-0 bg-[#1e293b]/60 backdrop-blur-md ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}
                 onClick={closeModal}
             />
-            <div className={`relative bg-white rounded-2xl shadow-2xl border border-white/20 overflow-hidden w-full max-w-md my-8 ${isClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
+            <div
+                className={`relative bg-white rounded-2xl shadow-2xl border border-white/20 overflow-hidden w-full max-w-md my-8 ${isClosing ? 'animate-modal-out' : 'animate-modal-in'}`}
+                onClick={(e) => e.stopPropagation()}
+            >
                 <div className="p-4 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Plus size={18} className="text-[#48327d]" />
@@ -174,7 +268,13 @@ const ApplyLeaveModal = ({
                             {notifyTo.map(person => (
                                 <span key={person} className="bg-[#48327d] text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                                     {person}
-                                    <button onClick={() => setNotifyTo(notifyTo.filter(p => p !== person))}>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNotifyTo(notifyTo.filter(p => p !== person));
+                                        }}
+                                    >
                                         <XCircle size={12} />
                                     </button>
                                 </span>
@@ -235,7 +335,11 @@ const ApplyLeaveModal = ({
                                 }).map(name => (
                                     <button
                                         key={name}
-                                        onClick={() => setNotifyTo([...notifyTo, name])}
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setNotifyTo([...notifyTo, name]);
+                                        }}
                                         className="text-[10px] font-bold text-[#48327d] bg-[#48327d]/10 px-2 py-0.5 rounded-md hover:bg-[#48327d]/20 transition-colors"
                                     >
                                         + {name}
@@ -247,8 +351,8 @@ const ApplyLeaveModal = ({
 
                     <button
                         onClick={handleLeaveSubmit}
-                        disabled={!fromDate || !reason.trim() || notifyTo.length === 0 || isSubmitting}
-                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 flex justify-center items-center gap-2 ${!fromDate || !reason.trim() || notifyTo.length === 0 || isSubmitting
+                        disabled={isSubmitButtonDisabled}
+                        className={`w-full font-bold py-2 rounded-lg text-sm transition-all transform active:scale-95 mt-2 flex justify-center items-center gap-2 ${isSubmitButtonDisabled
                             ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
                             : 'bg-[#48327d] text-white shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c]'
                             }`}
