@@ -94,8 +94,27 @@ const EmployeeListScreen = () => {
     };
 
     const handleRegister = async () => {
-        if (!formData.firstName || !formData.email || !formData.role) {
-            Alert.alert('Validation', 'Please fill required fields (Name, Email, Role)');
+        // Validate required fields
+        if (!formData.employeeId || !formData.firstName || !formData.email || !formData.role || !formData.contact || !formData.aadhar || !formData.location) {
+            Alert.alert('Validation Error', 'Please fill in all mandatory fields.');
+            return;
+        }
+
+        // Validate contact number (exactly 10 digits)
+        if (formData.contact.length !== 10 || !/^\d+$/.test(formData.contact)) {
+            Alert.alert('Validation Error', 'Contact number must be exactly 10 digits.');
+            return;
+        }
+
+        // Validate email (must contain @)
+        if (!formData.email.includes('@')) {
+            Alert.alert('Validation Error', 'Please enter a valid email address with @.');
+            return;
+        }
+
+        // Validate Aadhar (exactly 12 digits)
+        if (formData.aadhar.length !== 12 || !/^\d+$/.test(formData.aadhar)) {
+            Alert.alert('Validation Error', 'Aadhar number must be exactly 12 digits.');
             return;
         }
 
@@ -478,7 +497,13 @@ const EmployeeListScreen = () => {
                                         placeholder="10-digit phone"
                                         placeholderTextColor="#94a3b8"
                                         value={formData.contact}
-                                        onChangeText={(t) => setFormData({ ...formData, contact: t })}
+                                        maxLength={10}
+                                        onChangeText={(t) => {
+                                            // Only allow digits
+                                            if (t === '' || /^\d+$/.test(t)) {
+                                                setFormData({ ...formData, contact: t });
+                                            }
+                                        }}
                                     />
                                 </View>
                             </View>
@@ -505,7 +530,13 @@ const EmployeeListScreen = () => {
                                         placeholderTextColor="#94a3b8"
                                         keyboardType="number-pad"
                                         value={formData.aadhar}
-                                        onChangeText={(t) => setFormData({ ...formData, aadhar: t })}
+                                        maxLength={12}
+                                        onChangeText={(t) => {
+                                            // Only allow digits
+                                            if (t === '' || /^\d+$/.test(t)) {
+                                                setFormData({ ...formData, aadhar: t });
+                                            }
+                                        }}
                                     />
                                 </View>
                                 <View style={{ flex: 1 }}>

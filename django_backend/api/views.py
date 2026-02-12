@@ -90,6 +90,13 @@ def send_otp(request):
             "message": f"Your MarkwaveHR login OTP is: {otp}"
         }
 
+        # DEBUG MODE: Skip WhatsApp in development
+        if settings.DEBUG:
+            print(f"[OTP DEBUG] ⚠️ DEBUG MODE: Skipping WhatsApp send")
+            print(f"[OTP DEBUG] ✅ OTP for {phone}: {otp}")
+            print(f"[OTP DEBUG] Use this OTP to login in the mobile app")
+            return Response({'success': True, 'message': 'OTP sent successfully (DEBUG MODE - check console)'})
+        
         print(f"[OTP DEBUG] Sending to Periskope: {settings.PERISKOPE_URL}")
         try:
             response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=30)

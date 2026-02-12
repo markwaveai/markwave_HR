@@ -35,6 +35,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const [isEditModalVisible, setIsEditModalVisible] = useState(false);
     const [editingMember, setEditingMember] = useState<any>(null);
     const [isRemovingMember, setIsRemovingMember] = useState<string | null>(null);
+    const [isTeamSelectorVisible, setIsTeamSelectorVisible] = useState(false);
 
     const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
 
@@ -191,23 +192,19 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                     )}
                 </View>
 
-                {/* Team Selector if multiple teams */}
+                {/* Team Selector Dropdown if multiple teams */}
                 {teams.length > 1 && (
                     <View style={styles.selectorContainer}>
-                        <Text style={styles.selectorLabel}>Select Team:</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.teamsScroll}>
-                            {teams.map(t => (
-                                <TouchableOpacity
-                                    key={t.id}
-                                    onPress={() => setSelectedTeamId(t.id)}
-                                    style={[styles.teamTab, selectedTeamId === t.id && styles.activeTeamTab]}
-                                >
-                                    <Text style={[styles.teamTabText, selectedTeamId === t.id && styles.activeTeamTabText]}>
-                                        {t.name}
-                                    </Text>
-                                </TouchableOpacity>
-                            ))}
-                        </ScrollView>
+                        <Text style={styles.selectorLabel}>TEAM</Text>
+                        <TouchableOpacity
+                            style={styles.dropdownButton}
+                            onPress={() => setIsTeamSelectorVisible(true)}
+                        >
+                            <Text style={styles.dropdownButtonText}>
+                                {teams.find(t => t.id === selectedTeamId)?.name || 'Select Team'}
+                            </Text>
+                            <Text style={styles.dropdownArrow}>▼</Text>
+                        </TouchableOpacity>
                     </View>
                 )}
 
@@ -455,6 +452,49 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                         </ScrollView>
                     </View>
                 </View>
+            </Modal>
+
+            {/* Team Selector Modal */}
+            <Modal
+                visible={isTeamSelectorVisible}
+                animationType="fade"
+                transparent={true}
+                onRequestClose={() => setIsTeamSelectorVisible(false)}
+            >
+                <TouchableOpacity
+                    style={styles.teamModalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setIsTeamSelectorVisible(false)}
+                >
+                    <View style={styles.teamDropdownContent} onStartShouldSetResponder={() => true}>
+                        <Text style={styles.teamDropdownTitle}>Select Team</Text>
+                        <ScrollView style={styles.teamListContainer} showsVerticalScrollIndicator={false}>
+                            {teams.map(t => (
+                                <TouchableOpacity
+                                    key={t.id}
+                                    onPress={() => {
+                                        setSelectedTeamId(t.id);
+                                        setIsTeamSelectorVisible(false);
+                                    }}
+                                    style={[
+                                        styles.teamDropdownItem,
+                                        selectedTeamId === t.id && styles.teamDropdownItemActive
+                                    ]}
+                                >
+                                    <Text style={[
+                                        styles.teamDropdownItemText,
+                                        selectedTeamId === t.id && styles.teamDropdownItemTextActive
+                                    ]}>
+                                        {t.name}
+                                    </Text>
+                                    {selectedTeamId === t.id && (
+                                        <Text style={styles.teamCheckIcon}>✓</Text>
+                                    )}
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    </View>
+                </TouchableOpacity>
             </Modal>
         </SafeAreaView>
     );
@@ -856,7 +896,81 @@ const styles = StyleSheet.create({
     },
     actionIconText: {
         fontSize: 18,
-    }
+    },
+    // Dropdown Button Styles
+    dropdownButton: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: 'white',
+        borderRadius: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+    },
+    dropdownButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1e293b',
+        flex: 1,
+    },
+    dropdownArrow: {
+        fontSize: 10,
+        color: '#94a3b8',
+        marginLeft: 8,
+    },
+    // Team Selector Modal Styles
+    teamModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'center',
+        padding: 20,
+    },
+    teamDropdownContent: {
+        backgroundColor: 'white',
+        borderRadius: 16,
+        padding: 20,
+        maxHeight: '60%',
+    },
+    teamDropdownTitle: {
+        fontSize: 16,
+        fontWeight: '800',
+        color: '#1e293b',
+        marginBottom: 16,
+    },
+    teamListContainer: {
+        maxHeight: 400,
+    },
+    teamDropdownItem: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: 16,
+        borderRadius: 12,
+        backgroundColor: '#f8f9fa',
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        marginBottom: 8,
+    },
+    teamDropdownItemActive: {
+        backgroundColor: '#eff6ff',
+        borderColor: '#6366f1',
+    },
+    teamDropdownItemText: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#64748b',
+        flex: 1,
+    },
+    teamDropdownItemTextActive: {
+        color: '#6366f1',
+    },
+    teamCheckIcon: {
+        fontSize: 16,
+        color: '#6366f1',
+        fontWeight: 'bold',
+    },
 });
 
 export default MyTeamScreen;

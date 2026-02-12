@@ -28,7 +28,7 @@ const TeamManagementScreen = () => {
     const [loading, setLoading] = useState(true);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingTeam, setEditingTeam] = useState<any>(null);
-    const [formData, setFormData] = useState({ name: '', description: '', manager_id: '' });
+    const [formData, setFormData] = useState<{ name: string; description: string; manager_id: string; members: any[] }>({ name: '', description: '', manager_id: '', members: [] });
     const [managers, setManagers] = useState<any[]>([]);
 
     // Member Management State
@@ -40,6 +40,7 @@ const TeamManagementScreen = () => {
     const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
     const [managerPickerOpen, setManagerPickerOpen] = useState(false);
     const [managerSearchQuery, setManagerSearchQuery] = useState('');
+    const [memberSearchTerm, setMemberSearchTerm] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
 
@@ -119,11 +120,13 @@ const TeamManagementScreen = () => {
             setFormData({
                 name: team.name,
                 description: team.description || '',
-                manager_id: team.manager_id || ''
+                manager_id: team.manager_id || '',
+                members: []
             });
         } else {
             setEditingTeam(null);
-            setFormData({ name: '', description: '', manager_id: '' });
+            setFormData({ name: '', description: '', manager_id: '', members: [] });
+            setMemberSearchTerm('');
         }
         setModalVisible(true);
     };
@@ -348,6 +351,138 @@ const TeamManagementScreen = () => {
                                 </View>
                             </View>
                         </Modal>
+
+                        {/* Add Initial Members Section - Only for New Teams */}
+                        {!editingTeam && (
+                            <View style={{ marginTop: 10 }}>
+                                <Text style={styles.inputLabel}>Add Initial Members</Text>
+
+                                {/* Search Input */}
+                                <View style={{ marginBottom: 8 }}>
+                                    <TextInput
+                                        style={[styles.input, { paddingLeft: 12 }]}
+                                        placeholder="Search employees..."
+                                        placeholderTextColor="#a0aec0"
+                                        value={memberSearchTerm}
+                                        onChangeText={setMemberSearchTerm}
+                                    />
+                                </View>
+
+                                {/* Member Checkbox List */}
+                                <ScrollView
+                                    style={{
+                                        maxHeight: 200,
+                                        borderWidth: 1,
+                                        borderColor: '#e2e8f0',
+                                        borderRadius: 8,
+                                        backgroundColor: '#f8f9fa'
+                                    }}
+                                    nestedScrollEnabled={true}
+                                >
+                                    {managers
+                                        .filter(emp => {
+                                            if (!emp) return false;
+                                            // Don't show the selected manager in the members list
+                                            if (String(emp.id) === String(formData.manager_id)) return false;
+
+                                            const q = (memberSearchTerm || '').toLowerCase();
+                                            const firstName = (emp.first_name || '').toLowerCase();
+                                            const lastName = (emp.last_name || '').toLowerCase();
+                                            const role = (emp.role || '').toLowerCase();
+                                            const employeeId = (emp.employee_id || '').toLowerCase();
+
+                                            return firstName.includes(q) || lastName.includes(q) || role.includes(q) || employeeId.includes(q);
+                                        })
+                                        .map(emp => (
+                                            <TouchableOpacity
+                                                key={emp.id}
+                                                style={{
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    padding: 12,
+                                                    borderBottomWidth: 1,
+                                                    borderBottomColor: '#f1f2f6',
+                                                    backgroundColor: formData.members.includes(emp.id) ? '#f3e5f5' : 'white'
+                                                }}
+                                                onPress={() => {
+                                                    const isSelected = formData.members.includes(emp.id);
+                                                    if (isSelected) {
+                                                        setFormData({
+                                                            ...formData,
+                                                            members: formData.members.filter(id => id !== emp.id)
+                                                        });
+                                                    } else {
+                                                        setFormData({
+                                                            ...formData,
+                                                            members: [...formData.members, emp.id]
+                                                        });
+                                                    }
+                                                }}
+                                            >
+                                                {/* Checkbox */}
+                                                <View style={{
+                                                    width: 20,
+                                                    height: 20,
+                                                    borderRadius: 4,
+                                                    borderWidth: 2,
+                                                    borderColor: formData.members.includes(emp.id) ? '#48327d' : '#cbd5e1',
+                                                    backgroundColor: formData.members.includes(emp.id) ? '#48327d' : 'white',
+                                                    marginRight: 12,
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    {formData.members.includes(emp.id) && (
+                                                        <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>
+                                                    )}
+                                                </View>
+
+                                                {/* Employee Info */}
+                                                <View style={{ flex: 1 }}>
+                                                    <Text style={{
+                                                        fontSize: 14,
+                                                        fontWeight: '600',
+                                                        color: '#2d3436'
+                                                    }}>
+                                                        {emp.first_name} {emp.last_name}
+                                                    </Text>
+                                                    <Text style={{
+                                                        fontSize: 12,
+                                                        color: '#636e72',
+                                                        marginTop: 2
+                                                    }}>
+                                                        {emp.role}
+                                                    </Text>
+                                                </View>
+                                            </TouchableOpacity>
+                                        ))}
+                                    {managers.filter(emp => {
+                                        if (!emp || String(emp.id) === String(formData.manager_id)) return false;
+                                        const q = (memberSearchTerm || '').toLowerCase();
+                                        const firstName = (emp.first_name || '').toLowerCase();
+                                        const lastName = (emp.last_name || '').toLowerCase();
+                                        const role = (emp.role || '').toLowerCase();
+                                        const employeeId = (emp.employee_id || '').toLowerCase();
+                                        return firstName.includes(q) || lastName.includes(q) || role.includes(q) || employeeId.includes(q);
+                                    }).length === 0 && (
+                                            <View style={{ padding: 20, alignItems: 'center' }}>
+                                                <Text style={{ color: '#a0aec0', fontSize: 12, fontStyle: 'italic' }}>
+                                                    {memberSearchTerm ? 'No matching employees found' : 'No employees available'}
+                                                </Text>
+                                            </View>
+                                        )}
+                                </ScrollView>
+
+                                {/* Helper Text */}
+                                <Text style={{
+                                    fontSize: 10,
+                                    color: '#636e72',
+                                    fontStyle: 'italic',
+                                    marginTop: 6
+                                }}>
+                                    * Selected members will be added to the team and a WhatsApp group will be created automatically.
+                                </Text>
+                            </View>
+                        )}
 
                         <View style={styles.modalButtons}>
                             <TouchableOpacity onPress={() => setModalVisible(false)} style={[styles.modalBtn, styles.cancelBtn]}>

@@ -112,6 +112,12 @@ function EmployeeManagement() {
             return;
         }
 
+        if (!formData.email.includes('@')) {
+            setMessage({ type: 'error', text: 'Please enter a valid email address with @.' });
+            setIsSubmitting(false);
+            return;
+        }
+
         if (formData.aadhar.length !== 12 || !/^\d+$/.test(formData.aadhar)) {
             setMessage({ type: 'error', text: 'Aadhar number must be exactly 12 digits.' });
             setIsSubmitting(false);

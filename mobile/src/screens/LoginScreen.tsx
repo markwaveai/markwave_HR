@@ -41,13 +41,31 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
     const handleSendOTP = async () => {
         const trimmedPhone = phone.trim();
-        if (loginMethod === 'phone' && !trimmedPhone) {
-            setError('Please enter mobile number');
-            return;
+
+        // Validate phone number (must be exactly 10 digits)
+        if (loginMethod === 'phone') {
+            if (!trimmedPhone) {
+                setError('Please enter mobile number');
+                return;
+            }
+            // Remove any non-digit characters for validation
+            const digitsOnly = trimmedPhone.replace(/\D/g, '');
+            if (digitsOnly.length !== 10) {
+                setError('Mobile number must be exactly 10 digits');
+                return;
+            }
         }
-        if (loginMethod === 'email' && !email) {
-            setError('Please enter email address');
-            return;
+
+        // Validate email (must contain @)
+        if (loginMethod === 'email') {
+            if (!email) {
+                setError('Please enter email address');
+                return;
+            }
+            if (!email.includes('@')) {
+                setError('Please enter a valid email address');
+                return;
+            }
         }
 
         setError('');
@@ -112,7 +130,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         resizeMode="contain"
                     />
                     <Text style={styles.title}>
-                        {step === 'phone' ? 'Welcome to Markwave HR v1.1 (Debug)' : 'Verify Identity'}
+                        {step === 'phone' ? 'Welcome to Markwave HR' : 'Verify Identity'}
                     </Text>
                     <Text style={styles.subtitle}>
                         {step === 'phone'
@@ -150,9 +168,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                                 placeholder={loginMethod === 'phone' ? "e.g. 9876543210" : "name@company.com"}
                                 placeholderTextColor="#b2bec3"
                                 value={loginMethod === 'phone' ? phone : email}
-                                onChangeText={loginMethod === 'phone' ? setPhone : setEmail}
+                                onChangeText={(text) => {
+                                    if (loginMethod === 'phone') {
+                                        // Only allow digits and limit to 10 characters
+                                        const digitsOnly = text.replace(/\D/g, '');
+                                        setPhone(digitsOnly.slice(0, 10));
+                                    } else {
+                                        setEmail(text);
+                                    }
+                                }}
                                 keyboardType={loginMethod === 'phone' ? "number-pad" : "email-address"}
                                 autoCapitalize="none"
+                                maxLength={loginMethod === 'phone' ? 10 : undefined}
                             />
                         </View>
                     ) : (

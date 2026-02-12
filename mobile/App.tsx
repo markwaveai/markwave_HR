@@ -215,16 +215,24 @@ function App() {
                     isActive={activeTab === 'Me'}
                     onPress={() => { setActiveTab('Me'); setIsDrawerVisible(false); }}
                   />
+                  {isAdmin && (
+                    <DrawerItem
+                      title="Employees"
+                      icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'Employees'}
+                      onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
+                    />
+                  )}
                   {isAdmin ? (
                     <DrawerItem
-                      title="Team Mgmt"
+                      title="Team"
                       icon={<BuildingIcon color={activeTab === 'Teams' ? '#48327d' : '#64748b'} size={24} />}
                       isActive={activeTab === 'Teams'}
                       onPress={() => { setActiveTab('Teams'); setIsDrawerVisible(false); }}
                     />
                   ) : (
                     <DrawerItem
-                      title="My Team"
+                      title="Team"
                       icon={<UsersIcon color={activeTab === 'Team' ? '#48327d' : '#64748b'} size={24} />}
                       isActive={activeTab === 'Team'}
                       onPress={() => { setActiveTab('Team'); setIsDrawerVisible(false); }}
@@ -236,14 +244,6 @@ function App() {
                     isActive={activeTab === 'Menu' || activeTab === 'AdminLeave'}
                     onPress={() => { setActiveTab(isAdmin ? 'AdminLeave' : 'Menu'); setIsDrawerVisible(false); }}
                   />
-                  {isAdmin && (
-                    <DrawerItem
-                      title="Employees"
-                      icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#64748b'} size={24} />}
-                      isActive={activeTab === 'Employees'}
-                      onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
-                    />
-                  )}
                   <DrawerItem
                     title="Settings"
                     icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#64748b'} size={24} />}
