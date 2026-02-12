@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, Alert, FlatList } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, Alert, FlatList, Platform, PermissionsAndroid } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-// import Geolocation from '@react-native-community/geolocation';
+import Geolocation from 'react-native-geolocation-service';
 import { attendanceApi, teamApi } from '../services/api';
 import { ChevronDownIcon, MoreVerticalIcon, UserIcon, UsersIcon, CoffeeIcon, UmbrellaIcon, PartyPopperIcon, HomeIcon } from '../components/Icons';
 import RegularizeModal from '../components/RegularizeModal';
@@ -132,22 +132,103 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         }
     };
 
+    const requestLocationPermission = async () => {
+        if (Platform.OS === 'android') {
+            try {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+                    {
+                        title: 'Location Permission',
+                        message: 'This app needs access to your location for clock-in/out.',
+                        buttonNeutral: 'Ask Me Later',
+                        buttonNegative: 'Cancel',
+                        buttonPositive: 'OK',
+                    }
+                );
+                return granted === PermissionsAndroid.RESULTS.GRANTED;
+            } catch (err) {
+                console.warn(err);
+                return false;
+            }
+        }
+        return true; // iOS handles permissions differently
+    };
+
     const handleClockAction = async () => {
         setClockLoading(true);
-        const finalLocation = "Cloud Server (Preview)";
         const nextType = clockStatus === 'IN' ? 'OUT' : 'IN';
 
         try {
-            await attendanceApi.clock({
-                employee_id: user.id,
-                location: finalLocation,
-                type: nextType
-            });
-            await fetchData();
+            // Only fetch GPS location for clock-in, not for clock-out
+            if (nextType === 'IN') {
+                // Request location permission
+                const hasPermission = await requestLocationPermission();
+
+                if (!hasPermission) {
+                    Alert.alert('Permission Denied', 'Location permission is required for clock-in.');
+                    setClockLoading(false);
+                    return;
+                }
+
+                // Get current position with high accuracy for clock-in
+                Geolocation.getCurrentPosition(
+                    async (position) => {
+                        const { latitude, longitude } = position.coords;
+                        const finalLocation = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
+
+                        try {
+                            await attendanceApi.clock({
+                                employee_id: user.id,
+                                location: finalLocation,
+                                type: nextType
+                            });
+                            await fetchData();
+                        } catch (err) {
+                            console.log("Clock action failed:", err);
+                            Alert.alert('Error', 'Failed to update attendance');
+                        } finally {
+                            setClockLoading(false);
+                        }
+                    },
+                    (error) => {
+                        console.log('Location error:', error);
+                        // Fallback to a default location if GPS fails
+                        const fallbackLocation = `Location unavailable (Error: ${error.message})`;
+
+                        attendanceApi.clock({
+                            employee_id: user.id,
+                            location: fallbackLocation,
+                            type: nextType
+                        }).then(() => {
+                            fetchData();
+                        }).catch((err) => {
+                            console.log("Clock action failed:", err);
+                            Alert.alert('Error', 'Failed to update attendance');
+                        }).finally(() => {
+                            setClockLoading(false);
+                        });
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 15000,
+                        maximumAge: 10000
+                    }
+                );
+            } else {
+                // For clock-out, use a simple static location
+                const finalLocation = "Office";
+
+                await attendanceApi.clock({
+                    employee_id: user.id,
+                    location: finalLocation,
+                    type: nextType
+                });
+                await fetchData();
+                setClockLoading(false);
+            }
         } catch (err) {
             console.log("Clock action failed:", err);
             Alert.alert('Error', 'Failed to update attendance');
-        } finally {
             setClockLoading(false);
         }
     };
