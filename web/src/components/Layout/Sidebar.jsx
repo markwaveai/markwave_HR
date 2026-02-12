@@ -8,7 +8,8 @@ import {
     Settings,
     LogOut,
     UserPlus,
-    Menu
+    Menu,
+    X
 } from 'lucide-react';
 
 function Sidebar({ user, onLogout, isOpen, onClose }) {
@@ -63,7 +64,7 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
                         onClick={onClose}
                         className="lg:hidden text-white/90 hover:bg-white/10 p-1.5 rounded-lg transition-colors absolute left-3 top-1/2 -translate-y-1/2"
                     >
-                        <Menu size={18} />
+                        <X size={18} />
                     </button>
 
                     <div className="flex items-center">

@@ -109,7 +109,7 @@ function Header({ user, isSidebarOpen, onMenuClick, onLogout }) {
                 {!isSidebarOpen && (
                     <button
                         onClick={onMenuClick}
-                        className="p-1 hover:bg-white/10 rounded-lg transition-colors mm:hidden"
+                        className="p-1 hover:bg-white/10 rounded-lg transition-colors lg:hidden"
                     >
                         <Menu size={18} />
                     </button>
