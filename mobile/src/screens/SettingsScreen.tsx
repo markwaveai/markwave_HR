@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { MailIcon, PhoneIcon, MapPinIcon, IdCardIcon, BriefcaseIcon, UsersIcon, CalendarIcon, UserIcon } from '../components/Icons';
 import { authApi } from '../services/api';
+import { fallbackEmployees } from '../data/fallbackEmployees';
 
 const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () => void }) => {
     const [user, setUser] = useState(initialUser);
@@ -16,15 +17,18 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 console.log('Fetching profile for:', idToFetch);
                 let profileData = await authApi.getProfile(idToFetch);
 
-                // FALLBACK: If API returns missing details for this specific user (MWI005), patch them from local DB findings
-                // This is a temporary fix as requested by user to "fetch details" without changing API
-                if (profileData.employee_id === 'MWI005' || profileData.id === 22) {
-                    if (!profileData.email) profileData.email = 'obulreddypavani90@gmail.com';
-                    if (!profileData.contact) profileData.contact = '9347163592';
-                    if (!profileData.location) profileData.location = 'Prakasam(dist),Giddalur(mndl),Krishnamsettypalle(vill)';
-                    if (!profileData.aadhar) profileData.aadhar = '226171915504';
-                    if (!profileData.joining_date) profileData.joining_date = '2025-12-01';
-                    if (!profileData.qualification) profileData.qualification = 'B.Tech';
+                // FALLBACK: If API returns missing details, patch them from local DB findings
+                // This fetches details for ALL users as requested without changing API
+                const empId = profileData.employee_id;
+
+                if (empId && fallbackEmployees[empId]) {
+                    const fallback = fallbackEmployees[empId];
+                    if (!profileData.email) profileData.email = fallback.email;
+                    if (!profileData.contact) profileData.contact = fallback.contact;
+                    if (!profileData.location) profileData.location = fallback.location;
+                    if (!profileData.aadhar) profileData.aadhar = fallback.aadhar;
+                    if (!profileData.joining_date) profileData.joining_date = fallback.joining_date;
+                    if (!profileData.qualification) profileData.qualification = fallback.qualification;
                 }
 
                 console.log('Profile data processed:', JSON.stringify(profileData, null, 2));
