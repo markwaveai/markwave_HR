@@ -100,11 +100,11 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                         <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
                         <View style={styles.statusDot} />
                     </View>
-                    <View>
-                        <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
+                    <View style={styles.headerNameContainer}>
+                        <Text style={styles.name} numberOfLines={2}>{user.first_name} {user.last_name}</Text>
                         <View style={styles.headerSubInfo}>
                             <BriefcaseIcon size={14} color="#64748b" />
-                            <Text style={styles.role}>{user.role || user.designation}</Text>
+                            <Text style={styles.role} numberOfLines={1}>{user.role || user.designation}</Text>
                             <Text style={styles.dotSeparator}>•</Text>
                             <Text style={styles.idTextSmall}>{user.employee_id || getFormattedID(user.id)}</Text>
                         </View>
@@ -165,7 +165,7 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
             </View>
 
             <View style={styles.rowSection}>
-                <View style={[styles.section, { flex: 1, marginTop: 0 }]}>
+                <View style={[styles.section, { flex: 1, minWidth: 160 }]}>
                     <View style={styles.sectionHeader}>
                         <View style={[styles.sectionIconBg, { backgroundColor: '#e0f2fe' }]}>
                             <BriefcaseIcon color="#0284c7" size={20} />
@@ -186,7 +186,7 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 </View>
 
                 {(user.team_name || (user.teams && user.teams.length > 0)) && (
-                    <View style={[styles.section, { flex: 1, marginTop: 0, paddingLeft: 0 }]}>
+                    <View style={[styles.section, { flex: 1, minWidth: 160, paddingLeft: 0 }]}>
                         <View style={styles.sectionHeader}>
                             <View style={[styles.sectionIconBg, { backgroundColor: '#fff7ed' }]}>
                                 <UsersIcon color="#ea580c" size={20} />
@@ -268,19 +268,23 @@ const styles = StyleSheet.create({
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 20
+        gap: 16
+    },
+    headerNameContainer: {
+        flex: 1,
+        paddingRight: 32, // Space for the back button
     },
     avatarLarge: {
-        width: 80,
-        height: 80,
-        borderRadius: 20,
+        width: 64,
+        height: 64,
+        borderRadius: 16,
         backgroundColor: '#48327d',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
     },
     avatarTextLarge: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: 'bold',
         color: 'white',
     },
@@ -296,10 +300,10 @@ const styles = StyleSheet.create({
         borderColor: 'white',
     },
     name: {
-        fontSize: 22,
+        fontSize: 18,
         fontWeight: '800',
         color: '#0f172a',
-        marginBottom: 6,
+        marginBottom: 4,
     },
     headerSubInfo: {
         flexDirection: 'row',
@@ -327,6 +331,7 @@ const styles = StyleSheet.create({
     },
     rowSection: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         paddingHorizontal: 0,
     },
     sectionHeader: {
@@ -442,6 +447,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#334155',
         fontWeight: '500',
+        flex: 1,
     },
     activeDot: {
         width: 8,

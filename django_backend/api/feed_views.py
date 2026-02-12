@@ -152,6 +152,9 @@ def delete_comment(request, post_id, comment_id):
              
         # Fetch requester for name check and admin check
         requester = Employees.objects.filter(employee_id=requester_id).first()
+        if not requester and str(requester_id).isdigit():
+             requester = Employees.objects.filter(pk=requester_id).first()
+
         if not requester:
              return Response({'error': 'Requester not found'}, status=status.HTTP_404_NOT_FOUND)
 

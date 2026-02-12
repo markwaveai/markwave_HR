@@ -42,9 +42,9 @@ const AllHolidaysModal: React.FC<AllHolidaysModalProps> = ({ visible, onClose, h
                             holidays.map((h, idx) => {
                                 const d = new Date(h.raw_date);
                                 const day = d.getDate();
-                                const month = d.toLocaleString('default', { month: 'short' });
+                                const month = d.toLocaleString('en-US', { month: 'short' });
                                 const year = d.getFullYear();
-                                const fullDate = `${d.toLocaleString('default', { weekday: 'short' })}, ${day} ${month}, ${year}`;
+                                const fullDate = `${d.toLocaleString('en-US', { weekday: 'short' })}, ${day} ${month}, ${year}`;
 
                                 return (
                                     <View key={idx} style={styles.holidayCard}>

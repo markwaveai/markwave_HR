@@ -22,8 +22,9 @@ const ClockCard: React.FC<ClockCardProps> = ({
     canClock = true,
     disabledReason
 }) => {
-    const isOnLeave = disabledReason?.toLowerCase() === 'on leave' || disabledReason?.toLowerCase() === 'leave';
-    const isAbsent = disabledReason?.toLowerCase() === 'absent';
+    const lowerReason = disabledReason?.toLowerCase() || '';
+    const isOnLeave = lowerReason.includes('leave');
+    const isAbsent = lowerReason.includes('absent');
 
     // Format date similar to web: "Mon, 09 Feb, 2026"
     const dateStr = currentTime.toLocaleDateString('en-US', {
@@ -59,9 +60,9 @@ const ClockCard: React.FC<ClockCardProps> = ({
                 <View>
                     <Text style={styles.timeLabel}>{isOnLeave ? 'LEAVE STATUS' : isAbsent ? 'ABSENT STATUS' : 'CURRENT TIME'}</Text>
                     {isOnLeave ? (
-                        <Text style={styles.statusText}>On Approved Leave</Text>
+                        <Text style={styles.statusText}>{disabledReason}</Text>
                     ) : isAbsent ? (
-                        <Text style={styles.statusText}>Marked as Absent</Text>
+                        <Text style={styles.statusText}>{disabledReason}</Text>
                     ) : (
                         <View style={styles.timeContainer}>
                             <Text style={styles.bigTime}>{hourStr}:{minuteStr}</Text>
@@ -92,11 +93,11 @@ const ClockCard: React.FC<ClockCardProps> = ({
                 </View>
             </View>
 
-            {locationState && !isOnLeave && !isAbsent && (
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            {!isOnLeave && !isAbsent && (locationState || isLoadingLocation) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
                     <MapPinIcon size={12} color="white" style={{ marginRight: 4, opacity: 0.8 }} />
                     <Text style={styles.locationText} numberOfLines={3}>
-                        {locationState}
+                        {locationState || "Fetching location..."}
                     </Text>
                 </View>
             )}
@@ -164,8 +165,9 @@ const styles = StyleSheet.create({
     },
     bigTime: {
         color: 'white',
-        fontSize: 32, // Matches text-4xl/5xl roughly
-        fontWeight: '300',
+        fontSize: 32,
+        fontWeight: '600',
+        letterSpacing: -1,
     },
     seconds: {
         color: 'white',
@@ -181,11 +183,15 @@ const styles = StyleSheet.create({
     },
     button: {
         backgroundColor: 'white',
-        paddingVertical: 10,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        elevation: 1,
-        minWidth: 90,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        minWidth: 110,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -194,13 +200,14 @@ const styles = StyleSheet.create({
     },
     buttonText: {
         color: '#8e78b0',
-        fontWeight: '700',
-        fontSize: 13,
+        fontWeight: '800',
+        fontSize: 14,
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
     },
     locationText: {
         color: 'white',
         fontSize: 10,
-        marginTop: 12,
         opacity: 0.8,
         fontWeight: '500',
     },

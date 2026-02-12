@@ -32,7 +32,8 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
             }
 
             // @ts-ignore
-            throw new Error(errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}\n${errorText.substring(0, 100)}`);
+            const msg = errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}\nURL: ${url}\n${errorText.substring(0, 100)}`;
+            throw new Error(msg);
         }
 
         return response.json();
@@ -155,6 +156,10 @@ export const feedApi = {
         method: 'POST',
         body: JSON.stringify({ employee_id: employeeId, content })
     }),
+    deleteComment: (postId: number, commentId: number, employeeId: any) =>
+        apiFetch(`/posts/${postId}/comment/${commentId}/?employee_id=${employeeId}`, {
+            method: 'DELETE'
+        }),
     deletePost: (postId: number) => apiFetch(`/posts/${postId}/`, {
         method: 'DELETE'
     })

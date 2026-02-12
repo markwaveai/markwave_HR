@@ -196,9 +196,9 @@ function App() {
                   <View style={styles.drawerAvatar}>
                     <Text style={styles.drawerAvatarText}>{getInitials()}</Text>
                   </View>
-                  <View>
-                    <Text style={styles.drawerUserName}>{appUser?.first_name} {appUser?.last_name}</Text>
-                    <Text style={styles.drawerUserRole}>{appUser?.role || appUser?.designation}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.drawerUserName} numberOfLines={2}>{appUser?.first_name} {appUser?.last_name}</Text>
+                    <Text style={styles.drawerUserRole} numberOfLines={1}>{appUser?.role || appUser?.designation}</Text>
                   </View>
                 </View>
 

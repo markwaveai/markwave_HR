@@ -41,8 +41,13 @@ urlpatterns = [
     
     # Feed
     path('posts/', feed_views.post_list, name='post-list'),
+    path('posts', feed_views.post_list),
     path('posts/<int:post_id>/', feed_views.post_detail, name='post-detail'),
+    path('posts/<int:post_id>', feed_views.post_detail),
     path('posts/<int:post_id>/like/', feed_views.toggle_like, name='toggle-like'),
+    path('posts/<int:post_id>/like', feed_views.toggle_like),
     path('posts/<int:post_id>/comment/', feed_views.add_comment, name='add-comment'),
+    path('posts/<int:post_id>/comment', feed_views.add_comment),
     path('posts/<int:post_id>/comment/<int:comment_id>/', feed_views.delete_comment, name='delete-comment'),
+    path('posts/<int:post_id>/comment/<int:comment_id>', feed_views.delete_comment),
 ]

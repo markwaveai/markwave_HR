@@ -701,7 +701,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             <RegularizeModal visible={regularizeModalVisible} onClose={() => setRegularizeModalVisible(false)} date={activeRegularizeLog?.date} employeeId={user.id} onSuccess={() => { fetchData(); setRegularizeModalVisible(false); }} teamLeadName={user.team_lead_name} />
             <FlatList
                 data={activeTab === 'Requests' ? requests : []}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={renderHeader}
@@ -712,21 +712,21 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                 <Text style={styles.requestEmpName}>{req.employee_name}</Text>
                                 <View style={styles.requestBadgeRow}>
                                     <View style={styles.requestEmpIdBadge}><Text style={styles.requestEmpIdText}>{req.employee_id}</Text></View>
-                                    <View style={[styles.requestStatusBadge, { borderColor: req.status === 'Approved' ? '#10b98120' : req.status === 'Rejected' ? '#ef444420' : '#f59e0b20' }]}>
-                                        <Text style={[styles.requestStatusText, { color: req.status === 'Approved' ? '#10b981' : req.status === 'Rejected' ? '#ef4444' : '#f59e0b' }]}>{req.status.toUpperCase()}</Text>
+                                    <View style={[styles.requestStatusBadge, { borderColor: (req.status || 'Pending') === 'Approved' ? '#10b98120' : (req.status || 'Pending') === 'Rejected' ? '#ef444420' : '#f59e0b20' }]}>
+                                        <Text style={[styles.requestStatusText, { color: (req.status || 'Pending') === 'Approved' ? '#10b981' : (req.status || 'Pending') === 'Rejected' ? '#ef4444' : '#f59e0b' }]}>{(req.status || 'Pending').toUpperCase()}</Text>
                                     </View>
                                 </View>
                             </View>
                             <View style={{ alignItems: 'flex-end' }}>
-                                <Text style={styles.requestDate}>{req.attendance.date}</Text>
-                                <Text style={styles.requestCreated}>{new Date(req.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</Text>
+                                <Text style={styles.requestDate}>{req.attendance?.date || '-'}</Text>
+                                <Text style={styles.requestCreated}>{req.created_at ? new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</Text>
                             </View>
                         </View>
                         <View style={styles.requestReasonBox}>
-                            <Text style={styles.requestReasonText}><Text style={styles.requestLabel}>Reason: </Text>{req.reason}</Text>
+                            <Text style={styles.requestReasonText}><Text style={styles.requestLabel}>Reason: </Text>{req.reason || '-'}</Text>
                             <View style={styles.requestTimingRow}>
-                                <View><Text style={styles.requestSubLabel}>CHECK IN</Text><Text style={styles.requestTimingValue}>{req.attendance.check_in}</Text></View>
-                                <View><Text style={styles.requestSubLabel}>REQ OUT</Text><Text style={styles.requestTimingValue}>{req.requested_checkout}</Text></View>
+                                <View><Text style={styles.requestSubLabel}>CHECK IN</Text><Text style={styles.requestTimingValue}>{req.attendance?.check_in || '-'}</Text></View>
+                                <View><Text style={styles.requestSubLabel}>REQ OUT</Text><Text style={styles.requestTimingValue}>{req.requested_checkout || '-'}</Text></View>
                             </View>
                         </View>
                         {requestType === 'manager' && req.status === 'Pending' && (
@@ -748,7 +748,7 @@ const styles = StyleSheet.create({
     centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     scrollContent: { padding: 16, paddingBottom: 60 },
     welcomeSection: { marginBottom: 24, paddingHorizontal: 4 },
-    greetingTitle: { fontSize: 28, fontWeight: '900', color: '#1e293b', letterSpacing: -0.8 },
+    greetingTitle: { fontSize: 24, fontWeight: '900', color: '#1e293b', letterSpacing: -0.8 },
     greetingSubtitle: { fontSize: 14, color: '#64748b', marginTop: 4, fontWeight: '500' },
     loadingText: { marginTop: 12, color: '#64748b', fontWeight: '700' },
     card: { backgroundColor: 'white', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#f1f5f9', shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
@@ -763,8 +763,8 @@ const styles = StyleSheet.create({
     statsIconCircle: { width: 36, height: 36, borderRadius: 12, backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#f1f5f9' },
     statsRowLabel: { fontSize: 14, fontWeight: '800', color: '#1e293b' },
     statsRowMetric: { flex: 1, alignItems: 'center', paddingHorizontal: 4 },
-    smallMetricLabel: { fontSize: 8, fontWeight: '900', color: '#94a3b8', letterSpacing: 0.5, marginBottom: 6, textTransform: 'uppercase', textAlign: 'center', lineHeight: 10 },
-    statsRowValue: { fontSize: 22, fontWeight: '900', color: '#48327d', letterSpacing: -0.5 },
+    smallMetricLabel: { fontSize: 8, fontWeight: '900', color: '#94a3b8', letterSpacing: 0.5, marginBottom: 4, textTransform: 'uppercase', textAlign: 'center', lineHeight: 10 },
+    statsRowValue: { fontSize: 20, fontWeight: '900', color: '#48327d', letterSpacing: -0.5 },
     daySelector: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, width: '100%' },
     dayItem: { flex: 1, alignItems: 'center' },
     dayCircle: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
     actionLinksSide: { flex: 1.5, paddingLeft: 24, gap: 14 },
     actionLinkItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     actionLinkIcon: { fontSize: 14, color: '#48327d', width: 20, textAlign: 'center' },
-    actionLabel: { fontSize: 13, fontWeight: '700', color: '#48327d', flex: 1 },
+    actionLabel: { fontSize: 13, fontWeight: '700', color: '#48327d', flex: 1, marginLeft: 8 },
     sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
     tableHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, marginTop: 10, paddingHorizontal: 4 },
     filterTabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4 },

@@ -60,8 +60,14 @@ const RegularizeModal: React.FC<RegularizeModalProps> = ({ visible, onClose, dat
     // Format Date for display
     const formatDate = (dateString: string) => {
         if (!dateString) return '';
-        const options: any = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
+        try {
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            const options: any = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' };
+            return date.toLocaleDateString('en-US', options);
+        } catch (e) {
+            return dateString;
+        }
     };
 
     return (

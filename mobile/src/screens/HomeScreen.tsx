@@ -195,8 +195,57 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         fetchData(true);
     }, [user.id]);
 
+    const updateLocation = async () => {
+        setIsLoadingLocation(true);
+        try {
+            let hasPermission = false;
+            if (Platform.OS === 'android') {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+                );
+                hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+            } else {
+                hasPermission = true; // For iOS, handled via Info.plist usually
+            }
+
+            if (hasPermission) {
+                await new Promise<void>((resolve) => {
+                    Geolocation.getCurrentPosition(
+                        async (position) => {
+                            const { latitude, longitude } = position.coords;
+                            try {
+                                const data = await attendanceApi.resolveLocation(latitude, longitude);
+                                if (data && data.address) {
+                                    setLocationState(`${data.address} (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`);
+                                } else {
+                                    setLocationState(`Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`);
+                                }
+                            } catch (e) {
+                                setLocationState(`Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`);
+                            }
+                            resolve();
+                        },
+                        (error) => {
+                            console.log(error.code, error.message);
+                            setLocationState("Location Error");
+                            resolve();
+                        },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+                    );
+                });
+            } else {
+                setLocationState("Location Permission Denied");
+            }
+        } catch (err) {
+            console.warn(err);
+        } finally {
+            setIsLoadingLocation(false);
+        }
+    };
+
     useEffect(() => {
         fetchData();
+        updateLocation();
         const interval = setInterval(() => fetchData(), 30000);
         return () => clearInterval(interval);
     }, [user.id]);
@@ -207,11 +256,36 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     }, []);
 
     const handleToggleLike = async (postId: number) => {
+        const userId = user.employee_id || user.id;
+        if (!userId) return;
+
+        // Optimistic UI update
+        const previousPosts = [...posts];
+        setPosts(currentPosts => currentPosts.map(p => {
+            if (p.id === postId) {
+                const isLiked = p.likes && Array.isArray(p.likes) &&
+                    p.likes.map((id: any) => String(id)).includes(String(userId));
+
+                const newLikes = isLiked
+                    ? p.likes.filter((id: any) => String(id) !== String(userId))
+                    : [...(p.likes || []), userId];
+
+                return {
+                    ...p,
+                    likes: newLikes,
+                    likes_count: isLiked ? Math.max(0, p.likes_count - 1) : p.likes_count + 1
+                };
+            }
+            return p;
+        }));
+
         try {
-            await feedApi.toggleLike(postId, user.id);
-            fetchFeedData();
+            await feedApi.toggleLike(postId, userId);
+            // Optionally fetch fresh data, but optimistic update handles immediate feedback
+            // fetchFeedData(); 
         } catch (error) {
             console.log("Like failed:", error);
+            setPosts(previousPosts); // Revert on failure
         }
     };
 
@@ -267,75 +341,55 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         );
     };
 
-    const handleClockAction = async () => {
-        setIsLoadingLocation(true);
-        let finalLocation = "Mobile Check-in";
-
-        try {
-            if (Platform.OS === 'android') {
-                const granted = await PermissionsAndroid.request(
-                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-                    {
-                        title: "Location Permission",
-                        message: "Markwave HR needs access to your location to clock in.",
-                        buttonNeutral: "Ask Me Later",
-                        buttonNegative: "Cancel",
-                        buttonPositive: "OK"
+    const handleDeleteComment = async (postId: number, commentId: number) => {
+        const userId = user.employee_id || user.id;
+        Alert.alert(
+            "Delete Comment",
+            "Are you sure you want to delete this comment?",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            await feedApi.deleteComment(postId, commentId, userId);
+                            fetchFeedData();
+                        } catch (error: any) {
+                            Alert.alert("Error", error.message || "Failed to delete comment.");
+                        }
                     }
-                );
-
-                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                    await new Promise<void>((resolve, reject) => {
-                        Geolocation.getCurrentPosition(
-                            async (position) => {
-                                const { latitude, longitude } = position.coords;
-                                try {
-                                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`, {
-                                        headers: { 'User-Agent': 'MarkwaveHR-Mobile/1.0' }
-                                    });
-                                    const data = await response.json();
-                                    if (data.display_name) {
-                                        finalLocation = `${data.display_name} (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
-                                    } else {
-                                        finalLocation = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
-                                    }
-                                } catch (error) {
-                                    finalLocation = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
-                                }
-                                resolve();
-                            },
-                            (error) => {
-                                console.log(error.code, error.message);
-                                finalLocation = "Location Error (GPS)";
-                                resolve();
-                            },
-                            { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-                        );
-                    });
-                } else {
-                    finalLocation = "Location Permission Denied";
                 }
-            }
-        } catch (err: any) {
-            console.warn(err);
-            finalLocation = `Error: ${err.message || 'Unknown'}`;
+            ]
+        );
+    };
+
+    const handleClockAction = async () => {
+        if (!locationState || locationState.includes('Error') || locationState.includes('Denied')) {
+            await updateLocation();
         }
 
+        // Check again after update attempt
+        if (!locationState || locationState.includes('Error') || locationState.includes('Denied')) {
+            Alert.alert('Location Required', 'Please enable GPS and grant permission to clock in/out.');
+            return;
+        }
+
+        setIsLoadingLocation(true);
         const nextType = isClockedIn ? 'OUT' : 'IN';
 
         try {
             await attendanceApi.clock({
                 employee_id: user.id,
-                location: finalLocation,
+                location: locationState,
                 type: nextType
             });
             fetchDashboardData();
-            setLocationState(finalLocation);
+            // Don't clear locationState, let it stay visible on the card
         } catch (error) {
             Alert.alert('Error', 'Failed to update attendance');
         } finally {
             setIsLoadingLocation(false);
-            setTimeout(() => setLocationState(null), 5000);
         }
     };
 
@@ -429,7 +483,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                     { key: 'co', label: 'Comp Off', max: 2 }
                                 ].map(({ key, label, max }) => (
                                     <View key={key} style={styles.chartItem}>
-                                        <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#48327d" size={40} strokeWidth={3} />
+                                        <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#48327d" size={46} strokeWidth={3} />
                                         <Text style={styles.chartLabel}>{label}</Text>
                                     </View>
                                 ))}
@@ -605,7 +659,10 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 ) : (
                     <View style={{ gap: 16, marginBottom: 40 }}>
                         {posts.map(post => {
-                            const isLikedByMe = post.likes.includes(user.id);
+                            // Ensure type consistency for includes (string vs number)
+                            const userIdForLike = user.employee_id || user.id;
+                            const isLikedByMe = post.likes && Array.isArray(post.likes) &&
+                                post.likes.map((id: any) => String(id)).includes(String(userIdForLike));
                             return (
                                 <View key={post.id} style={styles.postCard}>
                                     <View style={styles.postHeader}>
@@ -615,7 +672,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                         <View style={{ flex: 1 }}>
                                             <Text style={styles.postAuthorName}>{post.author}</Text>
                                             <Text style={styles.postMeta}>
-                                                {new Date(post.created_at).toLocaleDateString()} · {post.type}
+                                                {new Date(post.created_at).toLocaleDateString('en-US')} · {post.type}
                                             </Text>
                                         </View>
                                         {isAdmin && (
@@ -648,12 +705,27 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                     </View>
                                     {commentingOn === post.id && (
                                         <View style={styles.commentSection}>
-                                            {post.comments.map((c: any) => (
-                                                <View key={c.id} style={styles.commentRow}>
-                                                    <Text style={styles.commentAuthor}>{c.author}: </Text>
-                                                    <Text style={styles.commentText}>{c.content}</Text>
-                                                </View>
-                                            ))}
+                                            {post.comments.map((c: any) => {
+                                                const userId = user.employee_id || user.id;
+                                                const userName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+                                                const isAuthor = String(c.author_id || c.employee_id) === String(userId) ||
+                                                    c.author === userName;
+                                                const canDelete = isAdmin || isAuthor;
+
+                                                return (
+                                                    <View key={c.id} style={styles.commentRow}>
+                                                        <View style={{ flex: 1, flexDirection: 'row', flexWrap: 'wrap' }}>
+                                                            <Text style={styles.commentAuthor}>{c.author}: </Text>
+                                                            <Text style={styles.commentText}>{c.content}</Text>
+                                                        </View>
+                                                        {canDelete && (
+                                                            <TouchableOpacity onPress={() => handleDeleteComment(post.id, c.id)} style={{ padding: 4 }}>
+                                                                <TrashIcon color="#cbd5e1" size={14} />
+                                                            </TouchableOpacity>
+                                                        )}
+                                                    </View>
+                                                );
+                                            })}
                                             <View style={styles.commentInputRow}>
                                                 <TextInput style={styles.commentInput} placeholder="Add a comment..." value={newComment} onChangeText={setNewComment} />
                                                 <TouchableOpacity onPress={() => handleAddComment(post.id)} disabled={!newComment.trim()}>
@@ -665,7 +737,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                 </View>
                             );
                         })}
-                    </View>
+                    </View >
                 )}
 
                 {/* Create Post Modal */}
@@ -744,7 +816,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                         </View>
                     </View>
                 </Modal>
-            </ScrollView>
+            </ScrollView >
 
             <HolidayModal
                 visible={showHolidayCalendar}
@@ -769,7 +841,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                         <View style={styles.absenteesModalHeader}>
                             <View>
                                 <Text style={styles.absenteesModalTitle}>Today's Absentees</Text>
-                                <Text style={styles.syncStatusText}>SYNC STATUS: {new Date().toLocaleDateString()}</Text>
+                                <Text style={styles.syncStatusText}>SYNC STATUS: {new Date().toLocaleDateString('en-US')}</Text>
                             </View>
                             <TouchableOpacity onPress={() => setIsAbsenteesModalVisible(false)}>
                                 <CloseIcon color="#94a3b8" size={24} />
@@ -861,7 +933,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     </View>
                 </View>
             </Modal>
-        </View>
+        </View >
     );
 };
 
