@@ -51,32 +51,35 @@ def team_list(request):
             
             # --- WhatsApp Group & Member Addition Logic ---
             member_ids = data.get('members', [])
-            participants_phones = []
+            participants_to_sync = []
             
-            # 1. Add Manager's phone
-            if manager and manager.contact:
-                participants_phones.append(manager.contact)
-            
-            # 2. Add Members if provided
+            # 1. Add Members to DB and prepare for sync
             if member_ids:
                 if isinstance(member_ids, str):
                     member_ids = [m.strip() for m in member_ids.split(',') if m.strip()]
                 
-                # Filter valid IDs depending on if they are PKs or employee_ids
-                # Assuming input is IDs (PKs) based on typical frontend behavior for multi-select
+                # Filter valid IDs
                 members_to_add = Employees.objects.filter(id__in=member_ids)
-                
                 for member in members_to_add:
                     member.teams.add(team)
                     if member.contact:
-                        participants_phones.append(member.contact)
+                        participants_to_sync.append(member)
 
-            # 3. Create WhatsApp Group via Periskope
-            if participants_phones:
+            # 2. Create WhatsApp Group via Periskope
+            # Use manager as the initial participant for group creation
+            initial_participants = []
+            if manager and manager.contact:
+                initial_participants.append(manager.contact)
+            
+            # If no manager, use the first member as initial participant to avoid empty group issues
+            elif participants_to_sync:
+                initial_participants.append(participants_to_sync[0].contact)
+                # Remove from sync list as they are already added during creation
+                participants_to_sync = participants_to_sync[1:]
+
+            if initial_participants:
                 try:
-                    # Remove duplicates and empty strings
-                    unique_phones = list(set([p for p in participants_phones if p]))
-                    success, resp = create_whatsapp_group(team.name, unique_phones)
+                    success, resp = create_whatsapp_group(team.name, initial_participants)
                     if success:
                         chat_id = resp.get('chat_id')
                         group_url = resp.get('invite_link')
@@ -84,8 +87,15 @@ def team_list(request):
                             team.whatsapp_chat_id = chat_id
                         if group_url:
                             team.whatsapp_group_url = group_url
-                        if chat_id or group_url:
-                            team.save()
+                        team.save()
+                        
+                        # 3. Add remaining members one-by-one
+                        if chat_id and participants_to_sync:
+                            print(f"DEBUG: Adding {len(participants_to_sync)} members to WhatsApp group {chat_id}")
+                            for member in participants_to_sync:
+                                sync_success, sync_resp = add_whatsapp_participant(chat_id, member.contact)
+                                if not sync_success:
+                                    print(f"Warning: Failed to add {member.first_name} ({member.contact}) to WhatsApp: {sync_resp}")
                     else:
                         print(f"Warning: Failed to create WhatsApp group for team {team.name}: {resp}")
                 except Exception as wg_err:

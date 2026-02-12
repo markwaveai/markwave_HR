@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 1cm;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #48327d;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #48327d;
+            margin: 0;
+        }
+
+        .period {
+            font-size: 14px;
+            color: #666;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background-color: #48327d;
+            color: white;
+            padding: 10px;
+            text-align: left;
+            font-size: 12px;
+        }
+
+        td {
+            border-bottom: 1px solid #eee;
+            padding: 8px;
+            font-size: 11px;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .footer {
+            margin-top: 30px;
+            font-size: 10px;
+            color: #999;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>Monthly Attendance Report</h1>
+        <p class="period">Reporting Period: {{ start_date }} to {{ end_date }}</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Emp ID</th>
+                <th>Name</th>
+                <th>Role</th>
+                <th style="text-align:center;">Working Days</th>
+                <th style="text-align:center;">Present Days</th>
+                <th style="text-align:center;">Paid Leaves</th>
+                <th style="text-align:center;">Unpaid Leaves</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for emp in employees %}
+            <tr>
+                <td>{{ emp.id }}</td>
+                <td>{{ emp.name }}</td>
+                <td>{{ emp.role }}</td>
+                <td style="text-align:center;">{{ emp.working_days }}</td>
+                <td style="text-align:center;">{{ emp.present_days }}</td>
+                <td style="text-align:center;">{{ emp.paid_leaves }}</td>
+                <td style="text-align:center;">{{ emp.unpaid_leaves }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="footer">
+        Generated on: {{ generated_at }}
+    </div>
+</body>
+
+</html>
