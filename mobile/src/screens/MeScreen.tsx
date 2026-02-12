@@ -597,7 +597,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                             <View style={{ width: 24, alignItems: 'center' }}>
                                 {disabledReason === 'On Leave' ? <UmbrellaIcon color="#94a3b8" size={18} /> : disabledReason === 'Holiday' ? <PartyPopperIcon color="#94a3b8" size={18} /> : <Text style={styles.actionLinkIcon}>{clockStatus === 'IN' ? '⇠' : '➔'}</Text>}
                             </View>
-                            <Text style={styles.actionLabel}>{clockStatus === 'IN' ? 'Web Clock-Out' : 'Web Clock-In'}{disabledReason ? ` (${disabledReason})` : ''}</Text>
+                            <Text style={styles.actionLabel}>{clockStatus === 'IN' ? 'Web Check-Out' : 'Web Check-In'}{disabledReason ? ` (${disabledReason})` : ''}</Text>
                             {clockLoading && <ActivityIndicator size="small" color="#48327d" style={{ marginLeft: 8 }} />}
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.actionLinkItem}><HomeIcon color="#48327d" size={14} style={styles.actionLinkIcon} /><Text style={styles.actionLabel}>Work From Home</Text></TouchableOpacity>

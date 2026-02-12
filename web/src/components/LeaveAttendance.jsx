@@ -11,6 +11,7 @@ import LeaveHistoryTable from './LeaveAttendance/LeaveHistoryTable';
 import ApplyLeaveModal from './LeaveAttendance/ApplyLeaveModal';
 import Toast from './Common/Toast';
 import LoadingSpinner from './Common/LoadingSpinner';
+import AttendanceHistoryTable from './LeaveAttendance/AttendanceHistoryTable';
 
 function LeaveAttendance({ user }) {
     const [leaveType, setLeaveType] = useState('cl');
@@ -21,6 +22,8 @@ function LeaveAttendance({ user }) {
     const [toSession, setToSession] = useState('Full Day');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [history, setHistory] = useState([]);
+    const [attendanceHistory, setAttendanceHistory] = useState([]);
+    const [activeTab, setActiveTab] = useState('leaves'); // 'leaves' or 'attendance'
     const [loading, setLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [notifyTo, setNotifyTo] = useState([]);
@@ -74,8 +77,6 @@ function LeaveAttendance({ user }) {
             setHistory(formattedData);
         } catch (error) {
             console.error("Failed to fetch leaves:", error);
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -88,9 +89,26 @@ function LeaveAttendance({ user }) {
         }
     };
 
+    const fetchAttendance = async () => {
+        try {
+            const data = await attendanceApi.getHistory(EMPLOYEE_ID);
+            setAttendanceHistory(data);
+        } catch (error) {
+            console.error("Failed to fetch attendance:", error);
+        }
+    };
+
     useEffect(() => {
-        fetchLeaves();
-        fetchBalance();
+        const loadInitialData = async () => {
+            setLoading(true);
+            await Promise.all([
+                fetchLeaves(),
+                fetchBalance(),
+                fetchAttendance()
+            ]);
+            setLoading(false);
+        };
+        loadInitialData();
 
         if (EMPLOYEE_ID) {
             authApi.getProfile(EMPLOYEE_ID).then(p => {
@@ -98,57 +116,37 @@ function LeaveAttendance({ user }) {
             }).catch(console.error);
         }
 
-        // Fetch holidays for button validation
         attendanceApi.getHolidays().then(h => setHolidays(h)).catch(() => setHolidays([]));
 
-        // Add Polling for real-time updates (every 5 seconds)
         const pollInterval = setInterval(() => {
             fetchLeaves();
             fetchBalance();
+            fetchAttendance();
         }, 5000);
 
         return () => clearInterval(pollInterval);
     }, [EMPLOYEE_ID]);
 
     const calculateBalances = () => {
-        // Show ONLY allocated leave types in Leave & Attendance page
         const balances = [];
-
         Object.keys(LEAVE_TYPES).forEach(code => {
-            // Skip LWP as it's unlimited and not allocated
             if (code === 'lwp') return;
-
             const config = LEAVE_TYPES[code];
-
-            // Calculate consumed leaves from history
             const consumed = history
                 .filter(log => log.typeCode === code && (log.status === 'Approved' || log.status === 'Pending'))
                 .reduce((sum, log) => sum + log.days, 0);
 
-            // Only include if API returned this leave type (meaning it's allocated)
             if (apiBalance.hasOwnProperty(code)) {
-                // Available balance comes directly from API
                 const available = apiBalance[code] || 0;
-
-                // Total allocated = available + consumed
                 const total = available + consumed;
-
-                balances.push({
-                    ...config,
-                    code,
-                    consumed,
-                    available,
-                    total
-                });
+                balances.push({ ...config, code, consumed, available, total });
             }
         });
-
         return balances;
     };
 
     const balances = calculateBalances();
 
-    // Set default leave type to first allocated leave type
     useEffect(() => {
         if (balances.length > 0 && !balances.find(b => b.code === leaveType)) {
             setLeaveType(balances[0].code);
@@ -170,7 +168,6 @@ function LeaveAttendance({ user }) {
             return;
         }
 
-        // Check if dates are in the past
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const startDateOnly = new Date(start);
@@ -183,20 +180,12 @@ function LeaveAttendance({ user }) {
             return;
         }
 
-
-
-
-
         const diffTime = Math.abs(end - start);
         let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
         if (fromDate === effectiveToDate) {
-            // Single day logic
-            if (fromSession !== 'Full Day') {
-                diffDays = 0.5;
-            }
+            if (fromSession !== 'Full Day') diffDays = 0.5;
         } else {
-            // Multi-day logic
             if (fromSession !== 'Full Day') diffDays -= 0.5;
             if (toSession !== 'Full Day') diffDays -= 0.5;
         }
@@ -216,7 +205,6 @@ function LeaveAttendance({ user }) {
             });
 
             await fetchLeaves();
-
             setFromDate('');
             setToDate('');
             setReason('');
@@ -229,14 +217,61 @@ function LeaveAttendance({ user }) {
         } catch (error) {
             console.error("Failed to submit leave:", error);
             const errorMessage = error.response?.data?.error || "Failed to submit leave request.";
-            if (errorMessage === 'Leave already applied for this date range') {
-                setToast({ message: "You have already applied leave for this date. Duplicate leave requests are not allowed.", type: 'error' });
-            } else {
-                setToast({ message: errorMessage, type: 'error' });
-            }
+            setToast({ message: errorMessage, type: 'error' });
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const calculateStats = (log) => {
+        const hasCheckIn = log.checkIn && log.checkIn !== '-';
+        if (!hasCheckIn) {
+            return { gross: '-', effective: '-', arrivalStatus: '-', arrivalColor: '' };
+        }
+
+        const parseTime = (timeStr) => {
+            if (!timeStr || timeStr === '-') return null;
+            const [time, modifier] = timeStr.split(' ');
+            let [hours, minutes] = time.split(':').map(Number);
+            if (hours === 12) hours = 0;
+            if (modifier === 'PM') hours += 12;
+            const d = new Date();
+            d.setHours(hours, minutes, 0, 0);
+            return d;
+        };
+
+        const checkIn = parseTime(log.checkIn);
+        const checkOut = parseTime(log.checkOut);
+
+        let grossStr = '-';
+        let effStr = '-';
+
+        if (checkOut && checkIn) {
+            let grossDiff = (checkOut - checkIn) / (1000 * 60);
+            if (grossDiff < 0) grossDiff += 24 * 60;
+            const grossH = Math.floor(grossDiff / 60);
+            const grossM = Math.floor(grossDiff % 60);
+            grossStr = `${grossH}h ${grossM}m`;
+
+            const effectiveDiff = Math.max(0, grossDiff - (log.breakMinutes || 0));
+            const effH = Math.floor(effectiveDiff / 60);
+            const effM = Math.floor(effectiveDiff % 60);
+            effStr = `${effH}h ${String(effM).padStart(2, '0')}m`;
+        }
+
+        const shiftStart = parseTime('09:30 AM');
+        let arrivalStatus = 'On Time';
+        let arrivalColor = 'text-green-600';
+
+        if (shiftStart && checkIn) {
+            const diffMinutes = (checkIn - shiftStart) / (1000 * 60);
+            if (diffMinutes > 1) {
+                arrivalStatus = 'Late';
+                arrivalColor = 'text-red-600';
+            }
+        }
+
+        return { gross: grossStr, effective: effStr, arrivalStatus, arrivalColor };
     };
 
     if (loading) {
@@ -261,7 +296,35 @@ function LeaveAttendance({ user }) {
 
                 <LeaveBalanceGrid balances={balances} />
 
-                <LeaveHistoryTable history={history} />
+                {/* History Section with Tabs */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4 border-b border-[#e2e8f0]">
+                        <button
+                            onClick={() => setActiveTab('leaves')}
+                            className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'leaves' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
+                        >
+                            Leave Logs
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('attendance')}
+                            className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'attendance' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
+                        >
+                            Attendance Logs
+                        </button>
+                    </div>
+
+                    {activeTab === 'leaves' ? (
+                        <LeaveHistoryTable
+                            history={history}
+                            onViewFullHistory={() => setActiveTab('attendance')}
+                        />
+                    ) : (
+                        <AttendanceHistoryTable
+                            attendanceHistory={attendanceHistory}
+                            calculateStats={calculateStats}
+                        />
+                    )}
+                </div>
 
                 {toast && (
                     <Toast

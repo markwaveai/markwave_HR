@@ -1,6 +1,6 @@
 import { FileText, ChevronRight, CheckCircle2, Clock3, Info, XCircle } from 'lucide-react';
 
-const LeaveHistoryTable = ({ history }) => {
+const LeaveHistoryTable = ({ history, onViewFullHistory }) => {
     return (
         <div className="bg-white rounded-xl shadow-sm border border-[#e2e8f0] overflow-hidden">
             <div className="p-4 border-b border-[#e2e8f0] bg-[#f8fafc] flex items-center justify-between">
@@ -8,7 +8,10 @@ const LeaveHistoryTable = ({ history }) => {
                     <FileText size={18} className="text-[#48327d]" />
                     <h3 className="text-sm font-bold text-[#2d3436] uppercase tracking-wider">Leave Logs</h3>
                 </div>
-                <button className="text-[11px] font-bold text-[#48327d] flex items-center gap-1 hover:underline">
+                <button
+                    onClick={onViewFullHistory}
+                    className="text-[11px] font-bold text-[#48327d] flex items-center gap-1 hover:underline"
+                >
                     View Full History <ChevronRight size={14} />
                 </button>
             </div>

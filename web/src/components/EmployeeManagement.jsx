@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { teamApi } from '../services/api';
-import { UserPlus, Users, MapPin, Mail, Briefcase, Phone, Clock, Calendar, X, ShieldCheck, Trash2, Search } from 'lucide-react';
+import { UserPlus, Users, MapPin, Mail, Briefcase, Phone, Clock, Calendar, X, ShieldCheck, Trash2, Search, Edit2 } from 'lucide-react';
 import ConfirmDialog from './Common/ConfirmDialog';
 import LoadingSpinner from './Common/LoadingSpinner';
 
@@ -11,6 +11,7 @@ function EmployeeManagement() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingEmployee, setEditingEmployee] = useState(null);
 
     const [formData, setFormData] = useState({
         employeeId: '',
@@ -33,6 +34,17 @@ function EmployeeManagement() {
         setIsClosing(true);
         setTimeout(() => {
             setIsModalOpen(false);
+            setEditingEmployee(null);
+            setFormData({
+                employeeId: '',
+                firstName: '',
+                lastName: '',
+                email: '',
+                role: '',
+                contact: '',
+                location: '',
+                aadhar: ''
+            });
             setMessage({ type: '', text: '' });
             setIsClosing(false);
         }, 200);
@@ -85,14 +97,7 @@ function EmployeeManagement() {
         );
     });
 
-    const isFormValid =
-        formData.employeeId &&
-        formData.firstName &&
-        formData.email &&
-        formData.role &&
-        formData.contact && formData.contact.length === 10 &&
-        formData.aadhar && formData.aadhar.length === 12 &&
-        formData.location;
+    const isAllZeros = (str) => /^[0]+$/.test(str);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -101,25 +106,55 @@ function EmployeeManagement() {
 
         // Local Validations
         if (!formData.employeeId || !formData.firstName || !formData.email || !formData.role || !formData.contact || !formData.aadhar || !formData.location) {
-            setMessage({ type: 'error', text: 'Please fill in all mandatory fields.' });
+            const err = 'Please fill in all mandatory fields.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
             setIsSubmitting(false);
             return;
         }
 
         if (formData.contact.length !== 10 || !/^\d+$/.test(formData.contact)) {
-            setMessage({ type: 'error', text: 'Contact number must be exactly 10 digits.' });
+            const err = 'Contact number must be exactly 10 digits.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (isAllZeros(formData.contact)) {
+            const err = 'Contact number cannot be all zeros.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
             setIsSubmitting(false);
             return;
         }
 
         if (!formData.email.includes('@')) {
-            setMessage({ type: 'error', text: 'Please enter a valid email address with @.' });
+            const err = 'Please enter a valid email address with @.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
             setIsSubmitting(false);
             return;
         }
 
         if (formData.aadhar.length !== 12 || !/^\d+$/.test(formData.aadhar)) {
-            setMessage({ type: 'error', text: 'Aadhar number must be exactly 12 digits.' });
+            const err = 'Aadhar number must be exactly 12 digits.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (isAllZeros(formData.aadhar)) {
+            setMessage({ type: 'error', text: 'Aadhar number cannot be all zeros.' });
+            setIsSubmitting(false);
+            return;
+        }
+
+        if (isAllZeros(formData.aadhar)) {
+            const err = 'Aadhar number cannot be all zeros.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
             setIsSubmitting(false);
             return;
         }
@@ -133,11 +168,22 @@ function EmployeeManagement() {
                 role: formData.role,
                 contact: formData.contact,
                 location: formData.location,
-                aadhar: formData.aadhar
+                aadhar: formData.aadhar,
+                acting_user_id: user?.id
             };
 
-            await teamApi.addEmployee(payload);
-            setMessage({ type: 'success', text: 'Employee added successfully!' });
+            if (editingEmployee) {
+                await teamApi.updateMember(editingEmployee.id, payload);
+                const successMsg = 'Employee updated successfully!';
+                alert(successMsg);
+                setMessage({ type: 'success', text: successMsg });
+            } else {
+                await teamApi.addEmployee(payload);
+                const successMsg = 'Employee added successfully!';
+                alert(successMsg);
+                setMessage({ type: 'success', text: successMsg });
+            }
+
             setFormData({
                 employeeId: '',
                 firstName: '',
@@ -148,13 +194,15 @@ function EmployeeManagement() {
                 location: '',
                 aadhar: ''
             });
+            setEditingEmployee(null);
             setTimeout(() => {
                 setIsModalOpen(false);
                 setMessage({ type: '', text: '' });
                 fetchEmployees();
-            }, 1500);
+            }, 500);
         } catch (error) {
             const errorMsg = error.response?.data?.error || 'Failed to add employee.';
+            alert(errorMsg);
             setMessage({ type: 'error', text: errorMsg });
         } finally {
             setIsSubmitting(false);
@@ -229,7 +277,7 @@ function EmployeeManagement() {
                     <div className={`bg-white rounded-[1.5rem] shadow-2xl border border-white/20 w-full max-w-md overflow-hidden ${isClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
                         <div className="p-5 border-b border-[#dfe6e9] flex justify-between items-center bg-[#fbfcff]">
                             <h2 className="text-[#48327d] font-bold flex items-center gap-2">
-                                <UserPlus size={18} /> Register New Employee
+                                <UserPlus size={18} /> {editingEmployee ? 'Edit Employee Details' : 'Register New Employee'}
                             </h2>
                             <button
                                 onClick={closeModal}
@@ -302,13 +350,13 @@ function EmployeeManagement() {
 
                             <button
                                 type="submit"
-                                disabled={isSubmitting || !isFormValid}
-                                className={`w-full py-2.5 rounded-lg font-bold text-sm shadow-md mt-2 flex justify-center items-center gap-2 transition-all ${isSubmitting || !isFormValid
+                                disabled={isSubmitting}
+                                className={`w-full py-2.5 rounded-lg font-bold text-sm shadow-md mt-2 flex justify-center items-center gap-2 transition-all ${isSubmitting
                                     ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                     : 'bg-[#48327d] text-white hover:bg-[#3a2865]'
                                     }`}
                             >
-                                {isSubmitting ? <LoadingSpinner size={16} color="border-white" /> : 'Register Employee'}
+                                {isSubmitting ? <LoadingSpinner size={16} color="border-white" /> : (editingEmployee ? 'Update Employee' : 'Register Employee')}
                             </button>
                         </form>
                     </div>
@@ -382,13 +430,35 @@ function EmployeeManagement() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             {emp.status !== 'Inactive' && (
-                                                <button
-                                                    onClick={() => setDeleteConfirm({ isOpen: true, employee: emp })}
-                                                    className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group-hover:scale-110 active:scale-90"
-                                                    title="Deactivate Employee"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingEmployee(emp);
+                                                            setFormData({
+                                                                employeeId: emp.employee_id || '',
+                                                                firstName: emp.first_name || '',
+                                                                lastName: emp.last_name || '',
+                                                                email: emp.email || '',
+                                                                role: emp.role || '',
+                                                                contact: emp.contact || '',
+                                                                location: emp.location || '',
+                                                                aadhar: emp.aadhar || ''
+                                                            });
+                                                            setIsModalOpen(true);
+                                                        }}
+                                                        className="p-2 text-[#48327d] hover:bg-purple-50 rounded-lg transition-colors"
+                                                        title="Edit Employee"
+                                                    >
+                                                        <Edit2 size={16} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteConfirm({ isOpen: true, employee: emp })}
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group-hover:scale-110 active:scale-90"
+                                                        title="Deactivate Employee"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             )}
                                         </td>
                                     </tr>

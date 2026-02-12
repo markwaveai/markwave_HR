@@ -38,7 +38,10 @@ const LeaveBalanceCard = ({ user }) => {
     return (
         <div className="bg-white rounded-xl p-4 shadow-lg flex flex-col justify-between relative min-h-[140px]">
             <div className="flex justify-between items-start mb-3">
-                <h3 className="text-sm font-semibold text-[#2d3436]">Leave Balance</h3>
+                <div className="flex flex-col">
+                    <h3 className="text-sm font-semibold text-[#2d3436]">Leave Balance</h3>
+                    <span className="text-[10px] text-[#64748b] font-medium leading-none mt-0.5">(Annual)</span>
+                </div>
                 <CalendarIcon size={16} className="text-[#48327d]" />
             </div>
 

@@ -378,8 +378,18 @@ const TeamManagement = ({ user }) => {
 
                             <button
                                 type="submit"
-                                disabled={isSubmitting}
-                                className="w-full py-2.5 bg-[#48327d] text-white rounded-lg font-bold hover:bg-[#3a2865] active:scale-[0.98] transition-all shadow-md shadow-purple-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                disabled={
+                                    isSubmitting ||
+                                    !formData.name?.trim() ||
+                                    !formData.description?.trim() ||
+                                    !formData.manager_id ||
+                                    (editingTeam &&
+                                        formData.name === editingTeam.name &&
+                                        formData.description === (editingTeam.description || '') &&
+                                        String(formData.manager_id) === String(editingTeam.manager_id || '')
+                                    )
+                                }
+                                className="w-full py-2.5 bg-[#48327d] text-white rounded-lg font-bold hover:bg-[#3a2865] active:scale-[0.98] transition-all shadow-md shadow-purple-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale-[0.5] disabled:cursor-not-allowed"
                             >
                                 {isSubmitting ? (
                                     <>

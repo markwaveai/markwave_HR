@@ -101,7 +101,7 @@ def add_comment(request, post_id):
         
         comments = post.comments or []
         new_comment = {
-            "id": len(comments) + 1,
+            "id": max([c.get('id', 0) for c in comments], default=0) + 1,
             "author": f"{employee.first_name} {employee.last_name}",
             "author_id": employee.employee_id,
             "content": content,
@@ -121,5 +121,59 @@ def post_detail(request, post_id):
         post = Posts.objects.get(pk=post_id)
         post.delete()
         return Response({'message': 'Post deleted successfully'})
+    except Posts.DoesNotExist:
+        return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+def delete_comment(request, post_id, comment_id):
+    try:
+        post = Posts.objects.get(pk=post_id)
+        comments = post.comments or []
+        
+        # Find the comment
+        comment_to_delete = next((c for c in comments if c.get('id') == comment_id), None)
+        
+        if not comment_to_delete:
+            return Response({'error': 'Comment not found'}, status=status.HTTP_404_NOT_FOUND)
+            
+        # Check permission: Author of comment OR Admin
+        requester_id = str(request.GET.get('employee_id', '')) # Passed as query param or from token if available
+        # But wait, request.user might be available if using TokenAuth? 
+        # The current app seems to pass employee_id manually in body/query sometimes.
+        # Let's check how other delete ops work. handleDeletePost passes nothing? It uses view protection?
+        # Actually, add_comment uses body. delete_post uses URL.
+        # We need to identify the requester.
+        # For simplicity, let's accept employee_id in query params as a basic check, 
+        # or rely on frontend to only show button to valid users (weak security but consistent with current app state).
+        # Better: Require employee_id in query params.
+        
+        if not requester_id:
+             return Response({'error': 'Requester ID required'}, status=status.HTTP_400_BAD_REQUEST)
+             
+        # Fetch requester for name check and admin check
+        requester = Employees.objects.filter(employee_id=requester_id).first()
+        if not requester:
+             return Response({'error': 'Requester not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        is_author = str(comment_to_delete.get('author_id')) == requester_id
+        
+        # Fallback: Check name match for legacy comments
+        if not is_author:
+             requester_name = f"{requester.first_name} {requester.last_name}"
+             if comment_to_delete.get('author') == requester_name:
+                 is_author = True
+
+        if not is_author:
+             is_admin = requester.role in ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations']
+             
+             if not is_admin:
+                 return Response({'error': 'Permission denied'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Remove comment
+        post.comments = [c for c in comments if c.get('id') != comment_id]
+        post.save()
+        
+        return Response({'message': 'Comment deleted successfully'})
+        
     except Posts.DoesNotExist:
         return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)

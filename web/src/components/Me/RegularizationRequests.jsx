@@ -6,6 +6,18 @@ const RegularizationRequests = ({ user, onAction, role = 'manager' }) => {
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    const formatRaisedTime = (isoString) => {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        }).replace(',', ' at');
+    };
+
     const fetchRequests = async () => {
         setLoading(true);
         try {
@@ -75,6 +87,10 @@ const RegularizationRequests = ({ user, onAction, role = 'manager' }) => {
                             </div>
 
                             <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                                <div className="flex items-center gap-1.5 text-[#48327d] font-bold">
+                                    <FileText size={12} />
+                                    <span>Raised {formatRaisedTime(request.created_at)}</span>
+                                </div>
                                 <div className="flex items-center gap-1.5">
                                     <Calendar size={12} className="text-[#48327d]" />
                                     <span className="font-medium text-gray-700">{request.date}</span>

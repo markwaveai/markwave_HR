@@ -15,12 +15,16 @@ const HolidayCard = ({ holidays, holidayIndex, setHolidayIndex, setShowCalendar 
             </div>
 
             <div className="flex justify-between items-center relative z-10">
-                <div className="flex-1">
-                    <h2 className="text-2xl mm:text-3xl tab:text-4xl font-bold mb-3 tracking-wide text-[#48327d]">{holidays[holidayIndex].name}</h2>
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm font-medium text-[#8e78b0]/80">{holidays[holidayIndex].date}</span>
-                        <span className="bg-[#48327d] text-white text-[8px] font-bold px-1 py-0.5 rounded uppercase tracking-wider">
-                            {holidays[holidayIndex].is_optional ? 'OPTIONAL HOLIDAY' : holidays[holidayIndex].type}
+                <div className="flex-1 min-w-0">
+                    <div className="min-h-[60px] mm:min-h-[80px] flex items-center mb-2">
+                        <h2 className="text-xl mm:text-2xl font-bold tracking-tight text-[#48327d] line-clamp-2 leading-tight">
+                            {holidays[holidayIndex].name}
+                        </h2>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs mm:text-sm font-medium text-[#8e78b0]/80 whitespace-nowrap">{holidays[holidayIndex].date}</span>
+                        <span className="bg-[#48327d] text-white text-[7px] mm:text-[8px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider flex-shrink-0">
+                            {holidays[holidayIndex].is_optional ? 'OPTIONAL' : holidays[holidayIndex].type}
                         </span>
                     </div>
                 </div>

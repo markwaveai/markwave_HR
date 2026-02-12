@@ -75,62 +75,26 @@ const HolidayModal = ({ setShowCalendar, holidays = [] }) => {
                     </button>
                 </div>
 
-                {/* Calendar Grid */}
-                <div className="mb-4">
-                    <div className="grid grid-cols-7 gap-1 mb-1.5">
-                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(day => (
-                            <div key={day} className="text-[9px] font-bold text-slate-400 text-center text-[#8e78b0]">
-                                {day}
-                            </div>
-                        ))}
-                    </div>
-                    <div className="grid grid-cols-7 gap-1">
-                        {[...Array(startDay)].map((_, i) => <div key={`empty-${i}`} />)}
-                        {[...Array(daysInMonth)].map((_, i) => {
-                            const day = i + 1;
-                            const holiday = getHolidayForDay(day);
-                            const isSpecial = !!holiday;
-
-                            const bgColor = isSpecial ? 'bg-[#48327d]' : 'bg-transparent';
-                            const textColor = isSpecial ? 'text-white font-bold' : 'text-[#2d3436] font-medium';
-                            const hover = !isSpecial ? 'hover:bg-slate-50' : '';
-
-                            return (
-                                <div
-                                    key={day}
-                                    className={`h-7 w-7 flex items-center justify-center rounded-lg text-xs transition-all cursor-default
-                                        ${bgColor} ${textColor} ${hover}`}
-                                    title={holiday ? holiday.name : ''}
-                                >
-                                    {day}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                {/* Legend / List */}
-                <div className="flex flex-col gap-2.5 border-t border-slate-100 pt-3">
+                {/* Holiday List Content */}
+                <div className="flex flex-col gap-3 py-1 min-h-[140px]">
                     {currentMonthHolidays.length > 0 ? (
                         currentMonthHolidays.map((h, idx) => {
-                            // Format: "Jan 14 - Bhogi"
-                            // Backend sends formatted raw_date: YYYY-MM-DD
                             const d = new Date(h.raw_date);
                             const monthShort = d.toLocaleString('default', { month: 'short' });
                             const day = d.getDate();
                             const formatted = `${monthShort} ${day}`;
-                            const isOptional = h.is_optional || h.isOptional; // Handle both prop cases if inconsistent
+                            const isOptional = h.is_optional || h.isOptional;
 
                             return (
-                                <div key={idx} className="flex items-center gap-2.5">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#48327d] flex-shrink-0"></div>
-                                    <div className="flex flex-col">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[11px] font-semibold text-[#2d3436]">
+                                <div key={idx} className="flex items-center gap-3 p-2 rounded-xl hover:bg-slate-50 transition-all border border-transparent hover:border-slate-100">
+                                    <div className="w-2 h-2 rounded-full bg-[#48327d] shadow-sm flex-shrink-0"></div>
+                                    <div className="flex flex-col flex-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-xs font-bold text-[#2d3436]">
                                                 {formatted} - {h.name}
                                             </span>
                                             {isOptional && (
-                                                <span className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-1 py-0.5 rounded text-[7px] font-bold uppercase tracking-wider">
+                                                <span className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider">
                                                     Optional
                                                 </span>
                                             )}
@@ -140,8 +104,10 @@ const HolidayModal = ({ setShowCalendar, holidays = [] }) => {
                             );
                         })
                     ) : (
-                        <div className="text-center py-2 text-[10px] text-slate-400 italic">
-                            No holidays in this month
+                        <div className="flex flex-col items-center justify-center flex-1 py-8 opacity-60">
+                            <span className="text-[11px] text-[#64748b] font-medium italic">
+                                No holidays in this month
+                            </span>
                         </div>
                     )}
                 </div>

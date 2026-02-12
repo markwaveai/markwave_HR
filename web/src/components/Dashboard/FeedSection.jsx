@@ -14,11 +14,11 @@ const FeedSection = ({ user }) => {
     const [imagePreviews, setImagePreviews] = useState([]);
     const [commentingOn, setCommentingOn] = useState(null);
     const [newComment, setNewComment] = useState('');
-    const [deleteConfig, setDeleteConfig] = useState({ isOpen: false, postId: null });
+    const [deleteConfig, setDeleteConfig] = useState({ isOpen: false, postId: null, commentId: null });
     const [isDeleting, setIsDeleting] = useState(false);
     const fileInputRef = useRef(null);
 
-    const isAdmin = (user?.first_name === 'Rajesh' || user?.first_name === 'Satyanarayana');
+    const isAdmin = ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations'].includes(user?.role) || (user?.first_name === 'Rajesh' || user?.first_name === 'Satyanarayana');
 
     const fetchPosts = async () => {
         try {
@@ -129,21 +129,34 @@ const FeedSection = ({ user }) => {
     const handleDeletePost = (postId) => {
         setDeleteConfig({
             isOpen: true,
-            postId: postId
+            postId: postId,
+            commentId: null
         });
     };
 
-    const confirmDeletePost = async () => {
+    const handleDeleteComment = (postId, commentId) => {
+        setDeleteConfig({
+            isOpen: true,
+            postId: postId,
+            commentId: commentId
+        });
+    };
+
+    const confirmDelete = async () => {
         setIsDeleting(true);
-        const postIdToDelete = deleteConfig.postId;
+        const { postId, commentId } = deleteConfig;
 
         try {
-            await feedApi.deletePost(postIdToDelete);
+            if (commentId) {
+                await feedApi.deleteComment(postId, commentId, user.employee_id);
+            } else {
+                await feedApi.deletePost(postId);
+            }
             await fetchPosts();
-            setDeleteConfig({ isOpen: false, postId: null });
+            setDeleteConfig({ isOpen: false, postId: null, commentId: null });
         } catch (error) {
             console.error("Delete failed:", error);
-            alert("Failed to delete post.");
+            alert("Failed to delete item.");
         } finally {
             setIsDeleting(false);
         }
@@ -315,17 +328,34 @@ const FeedSection = ({ user }) => {
                             {commentingOn === post.id && (
                                 <div className="mt-4 space-y-3 pt-4 border-t border-[#f1f5f9] animate-in slide-in-from-top-2 duration-200">
                                     <div className="space-y-3">
-                                        {post.comments.map(c => (
-                                            <div key={c.id} className="flex gap-3 group">
-                                                <div className="w-8 h-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#64748b] text-[10px] font-bold shrink-0 border border-[#e2e8f0]">
-                                                    {c.author?.[0]}
+                                        {post.comments.map(c => {
+                                            const isAuthorById = String(user?.employee_id) === String(c.author_id);
+                                            const userName = (user?.first_name + ' ' + (user?.last_name || '')).trim();
+                                            const isAuthorByName = userName === c.author;
+                                            const canDelete = isAuthorById || isAuthorByName || isAdmin;
+
+                                            return (
+                                                <div key={c.id} className="flex gap-3 group">
+                                                    <div className="w-8 h-8 rounded-full bg-[#f1f5f9] flex items-center justify-center text-[#64748b] text-[10px] font-bold shrink-0 border border-[#e2e8f0]">
+                                                        {c.author?.[0]}
+                                                    </div>
+                                                    <div className="flex-1 bg-white rounded-2xl p-3 shadow-sm border border-[#f1f5f9] relative group-hover:border-[#6366f1]/20 transition-colors">
+                                                        <div className="flex justify-between items-start">
+                                                            <p className="text-[12px] font-bold text-[#1e293b] mb-0.5">{c.author}</p>
+                                                            {canDelete && (
+                                                                <button
+                                                                    onClick={() => handleDeleteComment(post.id, c.id)}
+                                                                    className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                                                >
+                                                                    <Trash2 size={12} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[12px] text-[#475569] leading-relaxed">{c.content}</p>
+                                                    </div>
                                                 </div>
-                                                <div className="flex-1 bg-white rounded-2xl p-3 shadow-sm border border-[#f1f5f9] relative group-hover:border-[#6366f1]/20 transition-colors">
-                                                    <p className="text-[12px] font-bold text-[#1e293b] mb-0.5">{c.author}</p>
-                                                    <p className="text-[12px] text-[#475569] leading-relaxed">{c.content}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                     <div className="flex gap-3 items-center bg-white rounded-2xl p-2 pr-4 border border-[#e2e8f0] focus-within:border-[#6366f1] transition-colors shadow-sm">
                                         <div className="w-8 h-8 rounded-full bg-[#6366f1]/10 flex items-center justify-center text-[#6366f1] text-[10px] font-bold shrink-0">
@@ -356,11 +386,11 @@ const FeedSection = ({ user }) => {
             {/* Deletion confirmation dialog */}
             <ConfirmDialog
                 isOpen={deleteConfig.isOpen}
-                title="Delete Post"
-                message="Are you sure you want to delete this post? This action cannot be undone."
-                confirmText="Delete Post"
-                onConfirm={confirmDeletePost}
-                onCancel={() => setDeleteConfig({ isOpen: false, postId: null })}
+                title={deleteConfig.commentId ? "Delete Comment" : "Delete Post"}
+                message={`Are you sure you want to delete this ${deleteConfig.commentId ? 'comment' : 'post'}? This action cannot be undone.`}
+                confirmText={deleteConfig.commentId ? "Delete Comment" : "Delete Post"}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteConfig({ isOpen: false, postId: null, commentId: null })}
                 type="danger"
                 isLoading={isDeleting}
                 closeOnConfirm={false}

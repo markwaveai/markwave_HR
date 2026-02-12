@@ -119,12 +119,8 @@ def member_list(request):
         query = Employees.objects.filter(status__in=['Active', 'Remote'])
         
         if team_id:
-            from django.db.models import Q
-            # Filter members of the team OR the manager of the team
-            query = query.filter(
-                Q(teams__id=team_id) | 
-                Q(managed_teams__id=team_id)
-            ).distinct()
+            # Filter members of the team
+            query = query.filter(teams__id=team_id).distinct()
             
         if search:
             from django.db.models import Q
@@ -146,10 +142,19 @@ def member_list(request):
         member_ids = [m.employee_id for m in members]
         on_leave_ids = set(Leaves.objects.filter(
             employee_id__in=member_ids,
-            status='Approved',
+            status__iexact='Approved',
             from_date__lte=current_date_str,
             to_date__gte=current_date_str
         ).values_list('employee_id', flat=True))
+
+        # Get today's attendance records to determine who is "Present" (Active Now)
+        attendance_map = {
+            a['employee_id']: a['status'] 
+            for a in Attendance.objects.filter(
+                employee_id__in=member_ids, 
+                date=current_date_str
+            ).values('employee_id', 'status')
+        }
             
         # Get team manager ID if team_id is provided
         team_manager_id = None
@@ -165,7 +170,7 @@ def member_list(request):
             'employee_id': m.employee_id,
             'name': f"{m.first_name} {m.last_name}",
             'role': m.role,
-            'status': 'On Leave' if m.employee_id in on_leave_ids else (m.status or 'Active'),
+            'status': 'Leave' if m.employee_id in on_leave_ids else ('Active' if attendance_map.get(m.employee_id) == 'Present' else 'Absent'),
             'location': m.location,
             'email': m.email,
             'is_manager': m.employee_id == team_manager_id
@@ -197,11 +202,24 @@ def member_list(request):
 
         data = request.data
         try:
-            # 1. Mandatory Fields Check
+            # 1. Mandatory Fields & Format Check
             required_fields = ['first_name', 'email', 'employee_id', 'contact', 'aadhar', 'location', 'role']
             for field in required_fields:
                 if not data.get(field):
                     return Response({'error': f"Field '{field}' is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            contact = str(data.get('contact'))
+            aadhar = str(data.get('aadhar'))
+
+            if not contact.isdigit() or len(contact) != 10:
+                return Response({'error': "Contact number must be exactly 10 digits."}, status=status.HTTP_400_BAD_REQUEST)
+            if contact == '0' * 10:
+                return Response({'error': "Contact number cannot be all zeros."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if not aadhar.isdigit() or len(aadhar) != 12:
+                return Response({'error': "Aadhar number must be exactly 12 digits."}, status=status.HTTP_400_BAD_REQUEST)
+            if aadhar == '0' * 12:
+                return Response({'error': "Aadhar number cannot be all zeros."}, status=status.HTTP_400_BAD_REQUEST)
 
             # 2. Duplicate Checks
             if Employees.objects.filter(employee_id=data.get('employee_id')).exists():
@@ -304,6 +322,24 @@ def member_detail(request, pk):
                 pass # Continue if check fails for other reasons for now to avoid blocking
 
         data = request.data
+
+        # Data Validation
+        contact = data.get('contact')
+        if contact:
+            contact_str = str(contact)
+            if not contact_str.isdigit() or len(contact_str) != 10:
+                return Response({'error': "Contact number must be exactly 10 digits."}, status=status.HTTP_400_BAD_REQUEST)
+            if contact_str == '0' * 10:
+                return Response({'error': "Contact number cannot be all zeros."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        aadhar = data.get('aadhar')
+        if aadhar:
+            aadhar_str = str(aadhar)
+            if not aadhar_str.isdigit() or len(aadhar_str) != 12:
+                return Response({'error': "Aadhar number must be exactly 12 digits."}, status=status.HTTP_400_BAD_REQUEST)
+            if aadhar_str == '0' * 12:
+                return Response({'error': "Aadhar number cannot be all zeros."}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             # Update basic fields
             employee.first_name = data.get('first_name', employee.first_name)
@@ -336,7 +372,7 @@ def member_detail(request, pk):
                          team_to_remove = Teams.objects.get(id=remove_id)
                          employee.teams.remove(team_to_remove)
                          
-                     except Teams.DoesNotExist:
+                    except Teams.DoesNotExist:
                           pass # Ignore if team doesn't exist
 
             employee.save()
@@ -376,6 +412,7 @@ def team_stats(request):
             query = query.filter(teams__id__in=team_ids)
             
         members = query.all()
+        member_ids = [m.employee_id for m in members]
         
         total = len(members)
         now = datetime.utcnow() + timedelta(hours=5, minutes=30)
@@ -407,8 +444,12 @@ def team_stats(request):
         
         on_leave = on_leave_ids.count()
         
-        # Active Now = Active Status AND NOT On Leave
-        active = query.filter(status='Active').exclude(employee_id__in=on_leave_ids).count()
+        # Active Now = Members who have clocked in TODAY (status='Present' in Attendance)
+        active = Attendance.objects.filter(
+            employee_id__in=member_ids,
+            date=today_date,
+            status='Present'
+        ).count()
         
         attendance_records = Attendance.objects.filter(
             employee__employee_id__in=list(query.values_list('employee_id', flat=True)),

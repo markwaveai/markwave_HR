@@ -129,6 +129,9 @@ export const feedApi = {
         method: 'POST',
         body: JSON.stringify({ employee_id: employeeId, content })
     }),
+    deleteComment: (postId, commentId, employeeId) => apiFetch(`/posts/${postId}/comment/${commentId}/?employee_id=${employeeId}`, {
+        method: 'DELETE'
+    }),
     deletePost: (postId) => apiFetch(`/posts/${postId}/`, {
         method: 'DELETE'
     })

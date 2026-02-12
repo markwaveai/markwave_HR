@@ -114,16 +114,16 @@ def clock(request):
     current_time_str = india_time.strftime('%I:%M %p')
     print(f"DEBUG: India Time Calculated: {india_time}")
 
-    # Removed: Check for approved leave restriction
-    # is_on_leave = Leaves.objects.filter(
-    #     employee=employee,
-    #     status='Approved',
-    #     from_date__lte=current_date_str,
-    #     to_date__gte=current_date_str
-    # ).exists()
-    # 
-    # if is_on_leave:
-    #     return Response({'error': 'Cannot clock in/out while on approved leave.'}, status=status.HTTP_400_BAD_REQUEST)
+    # Check for approved leave restriction
+    is_on_leave = Leaves.objects.filter(
+        employee=employee,
+        status='Approved',
+        from_date__lte=current_date_str,
+        to_date__gte=current_date_str
+    ).exists()
+    
+    if is_on_leave:
+        return Response({'error': 'Cannot clock in/out while on approved leave.'}, status=status.HTTP_400_BAD_REQUEST)
 
     last_log_today = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str).order_by('-timestamp').first()
     
@@ -221,13 +221,18 @@ def get_status(request, employee_id):
         
         is_holiday = is_holiday_db or (attendance_record and attendance_record.is_holiday)
         
-        # Check for approved leave
+        # Check for approved leave (case-insensitive)
         is_on_leave = Leaves.objects.filter(
             employee=employee,
-            status='Approved',
+            status__iexact='Approved',
             from_date__lte=current_date_str,
             to_date__gte=current_date_str
         ).exists()
+        
+        # Fallback: Check if the attendance record itself is marked as leave
+        if not is_on_leave and attendance_record and attendance_record.status:
+            if attendance_record.status.lower() in ['on leave', 'leave']:
+                is_on_leave = True
 
         is_weekend = now.weekday() >= 5  # 5=Saturday, 6=Sunday
         
@@ -239,6 +244,7 @@ def get_status(request, employee_id):
             disabled_reason = 'Holiday'
         elif is_on_leave:
             disabled_reason = 'On Leave'
+            can_clock = False
         elif is_weekend:
             disabled_reason = 'Week Off'
         else:
@@ -251,7 +257,7 @@ def get_status(request, employee_id):
             current_hour = now.hour
             if not has_activity and current_hour >= 11:
                 disabled_reason = 'Absent'
-                can_clock = True  # Still allow clocking in even if marked absent
+                can_clock = True  # Allow clocking even if initially marked absent (late arrival)
 
         last_log = AttendanceLogs.objects.filter(employee=employee).order_by('-timestamp').first()
         summary = Attendance.objects.filter(employee=employee, date=current_date_str).first()
