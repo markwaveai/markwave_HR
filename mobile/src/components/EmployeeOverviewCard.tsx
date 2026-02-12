@@ -32,7 +32,7 @@ const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onSh
                     <Text style={styles.absentValue}>{absent}</Text>
                 </View>
 
-                <View style={{ flex: 1, alignItems: 'flex-end', justifyContent: 'center' }}>
+                <View style={styles.arrowButtonContainer}>
                     <TouchableOpacity
                         style={styles.arrowButton}
                         onPress={onShowAbsentees}
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: 'white',
         borderRadius: 16,
-        padding: 24,
+        padding: 20,
         marginBottom: 20,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -73,18 +73,19 @@ const styles = StyleSheet.create({
     statsRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
     },
     statBlock: {
-        marginRight: 24,
+        flex: 1.2,
     },
     statDivider: {
         width: 1,
-        height: 40,
+        height: 36,
         backgroundColor: '#f1f2f6',
-        marginRight: 24,
+        marginHorizontal: 12,
     },
     statLabel: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: 'bold',
         color: '#636e72',
         marginBottom: 4,
@@ -92,19 +93,24 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     totalValue: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#2d3436',
     },
     absentValue: {
-        fontSize: 32,
+        fontSize: 28,
         fontWeight: 'bold',
         color: '#ff7675',
     },
+    arrowButtonContainer: {
+        flex: 0.7,
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
     arrowButton: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
+        width: 42,
+        height: 42,
+        borderRadius: 21,
         backgroundColor: '#f8f9fa',
         justifyContent: 'center',
         alignItems: 'center',

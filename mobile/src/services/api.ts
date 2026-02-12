@@ -69,7 +69,11 @@ export const authApi = {
         method: 'POST',
         body: JSON.stringify({ phone, password: pin })
     }),
-    getProfile: (employeeId: string) => apiFetch(`/auth/profile/${employeeId}/`)
+    getProfile: (employeeId: string) => apiFetch(`/auth/profile/${employeeId}/`),
+    updateProfile: (employeeId: string, data: any) => apiFetch(`/team/members/${employeeId}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data)
+    })
 };
 
 export const leaveApi = {

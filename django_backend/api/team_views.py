@@ -302,6 +302,10 @@ def member_detail(request, pk):
                 if is_user_admin(acting_emp):
                     is_authorized = True
                 
+                # Allow self-update
+                if acting_emp.id == employee.id:
+                    is_authorized = True
+                
                 if not is_authorized:
                     # 2. Check if they are the manager of ANY of member's CURRENT teams
                     # In M2M, employee.teams is a queryset
@@ -351,6 +355,7 @@ def member_detail(request, pk):
             if 'aadhar' in data: employee.aadhar = data['aadhar']
             if 'location' in data: employee.location = data['location']
             if 'status' in data: employee.status = data['status']
+            if 'qualification' in data: employee.qualification = data['qualification']
             
             # Update Team if provided
             # Update Team if provided

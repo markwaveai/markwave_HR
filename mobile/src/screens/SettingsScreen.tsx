@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { MailIcon, PhoneIcon, MapPinIcon, IdCardIcon, BriefcaseIcon, UsersIcon, CalendarIcon, UserIcon } from '../components/Icons';
 import { authApi } from '../services/api';
 import { fallbackEmployees } from '../data/fallbackEmployees';
+import EditProfileModal from '../components/EditProfileModal';
 
 const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () => void }) => {
     const [user, setUser] = useState(initialUser);
     const [loading, setLoading] = useState(false);
+    const [editModalVisible, setEditModalVisible] = useState(false);
 
     useEffect(() => {
         const fetchFullProfile = async () => {
@@ -118,6 +120,9 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                         <UserIcon color="#48327d" size={20} />
                     </View>
                     <Text style={styles.sectionTitle}>Personal Profile</Text>
+                    <TouchableOpacity onPress={() => setEditModalVisible(true)} style={styles.editButton}>
+                        <Text style={styles.editButtonText}>Edit</Text>
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.card}>
                     <InfoItem
@@ -238,6 +243,13 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
             </View>
 
             <View style={{ height: 100 }} />
+
+            <EditProfileModal
+                visible={editModalVisible}
+                onClose={() => setEditModalVisible(false)}
+                user={user}
+                onUpdate={(updatedUser) => setUser({ ...user, ...updatedUser })}
+            />
         </ScrollView>
     );
 };
@@ -472,6 +484,18 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#64748b',
         fontWeight: 'bold',
+    },
+    editButton: {
+        marginLeft: 'auto',
+        backgroundColor: '#f3e8ff',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+    },
+    editButtonText: {
+        color: '#48327d',
+        fontWeight: '700',
+        fontSize: 12,
     },
 });
 

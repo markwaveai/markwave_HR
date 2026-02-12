@@ -324,8 +324,23 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     };
 
     const calculateStats = (log: any) => {
+        const isWeekend = [0, 6].includes(new Date(log.date).getDay());
+        const isHoliday = log.isHoliday || log.status === 'Holiday';
+        const isLeave = !!log.leaveType;
+
+        const defaultRange = isHoliday ? 'Holiday' : isWeekend ? 'Week Off' : isLeave ? 'On Leave' : '09:30 AM - 06:30 PM';
+
         if (!log || log.checkIn === '-' || !log.checkIn) {
-            return { gross: '-', effective: '-', status: log?.status || 'Not Marked', effectiveProgress: 0, arrivalStatus: '-', arrivalColor: '#94a3b8', totalBreakMins: 0 };
+            return {
+                gross: '-',
+                effective: '-',
+                status: log?.status || 'Not Marked',
+                effectiveProgress: 0,
+                arrivalStatus: '-',
+                arrivalColor: '#94a3b8',
+                totalBreakMins: 0,
+                range: defaultRange
+            };
         }
         const sIn = parseTimeToMinutes(log.logs?.[0]?.in || log.checkIn);
         let sOut = 0;
@@ -356,7 +371,19 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         let arrivalColor = '#10b981';
         const checkInT = parseTime(log.checkIn);
         if (checkInT && (checkInT.h * 60 + checkInT.m > 9 * 60 + 30)) { arrivalStatus = 'Late'; arrivalColor = '#ef4444'; }
-        return { gross: formatDuration(grossMins), effective: formatDuration(effectiveMins), status: log.status, effectiveProgress: Math.min(100, (effectiveMins / (9 * 60)) * 100), arrivalStatus, arrivalColor, totalBreakMins };
+
+        const range = `${log.checkIn} - ${log.checkOut && log.checkOut !== '-' ? log.checkOut : '--'}`;
+
+        return {
+            gross: formatDuration(grossMins),
+            effective: formatDuration(effectiveMins),
+            status: log.status,
+            effectiveProgress: Math.min(100, (effectiveMins / (9 * 60)) * 100),
+            arrivalStatus,
+            arrivalColor,
+            totalBreakMins,
+            range
+        };
     };
 
     const meStats = useMemo(() => {
@@ -558,10 +585,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                     <View style={styles.timingHeaderRow}>
                         <Text style={styles.timingDayFull}>{new Date(activeDayLog.date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</Text>
                         <View style={styles.shiftBadge}>
-                            <Text style={styles.shiftBadgeText}>{(() => {
-                                const dayOfWeek = new Date(activeDayLog.date).getDay();
-                                return (dayOfWeek === 0 || dayOfWeek === 6) ? "Week Off" : "09:30 AM - 06:30 PM";
-                            })()}</Text>
+                            <Text style={styles.shiftBadgeText}>{activeTiming.range}</Text>
                         </View>
                     </View>
                     {(() => {
@@ -708,8 +732,8 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 renderItem={({ item: req }) => (
                     <View style={styles.requestCard}>
                         <View style={styles.requestCardHeader}>
-                            <View>
-                                <Text style={styles.requestEmpName}>{req.employee_name}</Text>
+                            <View style={{ flex: 1, marginRight: 12 }}>
+                                <Text style={styles.requestEmpName} numberOfLines={1} ellipsizeMode="tail">{req.employee_name}</Text>
                                 <View style={styles.requestBadgeRow}>
                                     <View style={styles.requestEmpIdBadge}><Text style={styles.requestEmpIdText}>{req.employee_id}</Text></View>
                                     <View style={[styles.requestStatusBadge, { borderColor: (req.status || 'Pending') === 'Approved' ? '#10b98120' : (req.status || 'Pending') === 'Rejected' ? '#ef444420' : '#f59e0b20' }]}>
@@ -717,7 +741,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                     </View>
                                 </View>
                             </View>
-                            <View style={{ alignItems: 'flex-end' }}>
+                            <View style={{ alignItems: 'flex-end', minWidth: 60 }}>
                                 <Text style={styles.requestDate}>{req.attendance?.date || '-'}</Text>
                                 <Text style={styles.requestCreated}>{req.created_at ? new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</Text>
                             </View>

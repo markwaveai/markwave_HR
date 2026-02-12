@@ -170,7 +170,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                                 value={loginMethod === 'phone' ? phone : email}
                                 onChangeText={(text) => {
                                     if (loginMethod === 'phone') {
-                                        // Only allow digits and limit to 10 characters
                                         const digitsOnly = text.replace(/\D/g, '');
                                         setPhone(digitsOnly.slice(0, 10));
                                     } else {
@@ -181,6 +180,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                                 autoCapitalize="none"
                                 maxLength={loginMethod === 'phone' ? 10 : undefined}
                             />
+                            {loginMethod === 'phone' && phone.length > 0 && phone.length < 10 && (
+                                <Text style={styles.validationText}>Please enter a valid 10-digit mobile number</Text>
+                            )}
+                            {loginMethod === 'email' && email.length > 0 && !email.includes('@') && (
+                                <Text style={styles.validationText}>Please enter a valid email address</Text>
+                            )}
                         </View>
                     ) : (
                         <View>
@@ -208,19 +213,29 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                         </View>
                     ) : null}
 
-                    <TouchableOpacity
-                        style={[styles.primaryBtn, isLoading && styles.primaryBtnDisabled]}
-                        onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <ActivityIndicator color="#fff" />
-                        ) : (
-                            <Text style={styles.primaryBtnText}>
-                                {step === 'phone' ? 'Get OTP' : 'Verify & Sign In'}
-                            </Text>
-                        )}
-                    </TouchableOpacity>
+                    {(() => {
+                        const isButtonDisabled = isLoading || (
+                            step === 'phone'
+                                ? (loginMethod === 'phone' ? phone.length < 10 : !email || !email.includes('@'))
+                                : otp.length < 6
+                        );
+
+                        return (
+                            <TouchableOpacity
+                                style={[styles.primaryBtn, isButtonDisabled && styles.primaryBtnDisabled]}
+                                onPress={step === 'phone' ? handleSendOTP : handleVerifyOTP}
+                                disabled={isButtonDisabled}
+                            >
+                                {isLoading ? (
+                                    <ActivityIndicator color="#fff" />
+                                ) : (
+                                    <Text style={styles.primaryBtnText}>
+                                        {step === 'phone' ? 'Get OTP' : 'Verify & Sign In'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })()}
                 </View>
             </Animated.View>
 
@@ -390,6 +405,13 @@ const styles = StyleSheet.create({
         color: '#b2bec3',
         fontSize: 11,
         marginTop: 4,
+    },
+    validationText: {
+        color: '#e05260',
+        fontSize: 11,
+        marginTop: 4,
+        fontWeight: '500',
+        marginLeft: 4,
     }
 });
 
