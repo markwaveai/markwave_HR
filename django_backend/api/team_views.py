@@ -65,42 +65,7 @@ def team_list(request):
                     if member.contact:
                         participants_to_sync.append(member)
 
-            # 2. Create WhatsApp Group via Periskope
-            # Use manager as the initial participant for group creation
-            initial_participants = []
-            if manager and manager.contact:
-                initial_participants.append(manager.contact)
-            
-            # If no manager, use the first member as initial participant to avoid empty group issues
-            elif participants_to_sync:
-                initial_participants.append(participants_to_sync[0].contact)
-                # Remove from sync list as they are already added during creation
-                participants_to_sync = participants_to_sync[1:]
-
-            if initial_participants:
-                try:
-                    success, resp = create_whatsapp_group(team.name, initial_participants)
-                    if success:
-                        chat_id = resp.get('chat_id')
-                        group_url = resp.get('invite_link')
-                        if chat_id:
-                            team.whatsapp_chat_id = chat_id
-                        if group_url:
-                            team.whatsapp_group_url = group_url
-                        team.save()
-                        
-                        # 3. Add remaining members one-by-one
-                        if chat_id and participants_to_sync:
-                            print(f"DEBUG: Adding {len(participants_to_sync)} members to WhatsApp group {chat_id}")
-                            for member in participants_to_sync:
-                                sync_success, sync_resp = add_whatsapp_participant(chat_id, member.contact)
-                                if not sync_success:
-                                    print(f"Warning: Failed to add {member.first_name} ({member.contact}) to WhatsApp: {sync_resp}")
-                    else:
-                        print(f"Warning: Failed to create WhatsApp group for team {team.name}: {resp}")
-                except Exception as wg_err:
-                    print(f"Error creating WhatsApp group: {wg_err}")
-
+            # --- WhatsApp Group & Member Addition Logic Removed ---
             return Response({'message': 'Team created successfully', 'id': team.id}, status=status.HTTP_201_CREATED)
         except Exception as e:
             if 'unique constraint' in str(e).lower() or 'duplicate key' in str(e).lower():
@@ -360,24 +325,6 @@ def member_detail(request, pk):
                         team_to_add = Teams.objects.get(id=new_team_id)
                         employee.teams.add(team_to_add)
                         
-                        # --- Periskope Sync: Add to WhatsApp Group ---
-                        print(f"DEBUG: Syncing member {employee.first_name} to team {team_to_add.name}")
-                        print(f"DEBUG: chat_id={team_to_add.whatsapp_chat_id}, contact={employee.contact}")
-                        
-                        if team_to_add.whatsapp_chat_id and employee.contact:
-                            try:
-                                success, resp = add_whatsapp_participant(team_to_add.whatsapp_chat_id, employee.contact)
-                                if not success:
-                                    print(f"Warning: Failed to add {employee.first_name} to WhatsApp group {team_to_add.name}: {resp}")
-                                else:
-                                    print(f"SUCCESS: Added {employee.first_name} to WhatsApp group")
-                            except Exception as sync_err:
-                                print(f"Error syncing member to WhatsApp: {sync_err}")
-                        else:
-                            if not team_to_add.whatsapp_chat_id:
-                                print(f"DEBUG: Skipping sync - Teams '{team_to_add.name}' has no whatsapp_chat_id. Please create a new team to test.")
-                            if not employee.contact:
-                                print(f"DEBUG: Skipping sync - Employee '{employee.first_name}' has no contact number.")
                     except Teams.DoesNotExist:
                         return Response({'error': f'Team with ID {new_team_id} not found'}, status=404)
             
@@ -389,19 +336,8 @@ def member_detail(request, pk):
                          team_to_remove = Teams.objects.get(id=remove_id)
                          employee.teams.remove(team_to_remove)
                          
-                         # --- Periskope Sync: Remove from WhatsApp Group ---
-                         print(f"DEBUG: Removing member {employee.first_name} from team {team_to_remove.name}")
-                         if team_to_remove.whatsapp_chat_id and employee.contact:
-                             try:
-                                 success, resp = remove_whatsapp_participant(team_to_remove.whatsapp_chat_id, employee.contact)
-                                 if not success:
-                                     print(f"Warning: Failed to remove {employee.first_name} from WhatsApp group {team_to_remove.name}: {resp}")
-                                 else:
-                                     print(f"SUCCESS: Removed {employee.first_name} from WhatsApp group")
-                             except Exception as sync_err:
-                                 print(f"Error syncing member removal to WhatsApp: {sync_err}")
-                    except Teams.DoesNotExist:
-                         pass # Ignore if team doesn't exist
+                     except Teams.DoesNotExist:
+                          pass # Ignore if team doesn't exist
 
             employee.save()
             return Response({'message': 'Employee updated successfully'})

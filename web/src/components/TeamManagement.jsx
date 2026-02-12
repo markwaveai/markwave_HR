@@ -373,9 +373,6 @@ const TeamManagement = ({ user }) => {
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-[10px] text-gray-500 mt-1 italic">
-                                        * Selected members will be added to the team and a WhatsApp group will be created automatically.
-                                    </p>
                                 </div>
                             )}
 
