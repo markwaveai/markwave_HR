@@ -9,6 +9,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
+    libcairo2-dev \
+    pkg-config \
+    python3-dev \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/
