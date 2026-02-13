@@ -7,7 +7,7 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
     const isAbsent = disabledReason?.toLowerCase() === 'absent';
 
     return (
-        <div className={`rounded-xl p-3 mm:p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between transition-all duration-300 ${isOnLeave ? 'bg-gradient-to-br from-[#10b981] to-[#059669]' : isAbsent ? 'bg-gradient-to-br from-[#6366f1] to-[#4f46e5]' : 'bg-[#8e78b0]'}`}>
+        <div className={`rounded-xl p-3 mm:p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between transition-all duration-300 ${isAbsent ? 'bg-[#6366f1]' : 'bg-[#6366f1]'}`}>
             <div className="flex justify-between items-center mb-4 opacity-90">
                 <span className="text-xs mm:text-sm font-medium">Time Today - {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 {disabledReason && (

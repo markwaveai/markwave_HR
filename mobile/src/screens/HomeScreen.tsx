@@ -341,7 +341,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         );
     };
 
-    const handleDeleteComment = async (postId: number, commentId: number) => {
+    const handleDeleteComment = async (postId: number, commentId: string | number) => {
         const userId = user.employee_id || user.id;
         Alert.alert(
             "Delete Comment",
@@ -719,7 +719,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                                                             <Text style={styles.commentText}>{c.content}</Text>
                                                         </View>
                                                         {canDelete && (
-                                                            <TouchableOpacity onPress={() => handleDeleteComment(post.id, c.id)} style={{ padding: 4 }}>
+                                                            <TouchableOpacity onPress={() => handleDeleteComment(post.id, String(c.id))} style={{ padding: 4 }}>
                                                                 <TrashIcon color="#cbd5e1" size={14} />
                                                             </TouchableOpacity>
                                                         )}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, Alert, FlatList, Platform, PermissionsAndroid } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, Alert, FlatList, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Geolocation from 'react-native-geolocation-service';
 import { attendanceApi, teamApi } from '../services/api';
@@ -57,7 +57,12 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     const [regularizeModalVisible, setRegularizeModalVisible] = useState(false);
     const [activeRegularizeLog, setActiveRegularizeLog] = useState<any>(null);
     const [activeMenuLogDate, setActiveMenuLogDate] = useState<string | null>(null);
+    const [refreshing, setRefreshing] = useState(false);
+
     const [requestType, setRequestType] = useState<'employee' | 'manager'>(user?.is_manager ? 'manager' : 'employee');
+
+    const [arrivalFilter, setArrivalFilter] = useState('All'); // 'All', 'On Time', 'Late'
+    const [arrivalDropdownVisible, setArrivalDropdownVisible] = useState(false);
 
     const DAYS_ABBR = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -83,7 +88,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         if (user?.id) {
             fetchData();
         }
-    }, [user, statsDuration]);
+    }, [user?.id, statsDuration]);
 
     useEffect(() => {
         if (user?.id && activeTab === 'Requests') {
@@ -93,7 +98,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
 
     const fetchData = async () => {
         try {
-            setLoading(true);
+            if (!refreshing) setLoading(true);
             const [history, status, stats] = await Promise.all([
                 attendanceApi.getHistory(user.id),
                 attendanceApi.getStatus(user.id),
@@ -107,18 +112,26 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             setTeamStats(stats);
 
             // Set today as selected day in timing card
-            const todayStr = toLocalDateString(new Date());
-            const day = new Date().getDay();
-            const diff = (day === 0 ? 6 : day - 1); // 0-indexed Mon-Sun
-            setSelectedDayIndex(diff);
+            if (initialLoad) {
+                const todayStr = toLocalDateString(new Date());
+                const day = new Date().getDay();
+                const diff = (day === 0 ? 6 : day - 1); // 0-indexed Mon-Sun
+                setSelectedDayIndex(diff);
+            }
 
         } catch (error) {
             console.log("Error fetching data:", error);
         } finally {
             setLoading(false);
+            setRefreshing(false);
             setInitialLoad(false);
         }
     };
+
+    const onRefresh = React.useCallback(() => {
+        setRefreshing(true);
+        fetchData();
+    }, [user?.id, statsDuration]);
 
     const fetchRequests = async (silent = false) => {
         try {
@@ -632,10 +645,12 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             <View style={styles.tableHeader}>
                 <Text style={styles.sectionTitle}>Attendance Logs</Text>
                 <View style={styles.filterTabs}>
-                    <TouchableOpacity onPress={() => setFilterType('30Days')} style={[styles.filterTab, filterType === '30Days' && styles.filterTabActive]}><Text style={[styles.filterTabText, filterType === '30Days' && styles.filterTabTextActive]}>30 DAYS</Text></TouchableOpacity>
+                    <TouchableOpacity onPress={() => setFilterType('30Days')} style={[styles.filterTab, filterType === '30Days' && styles.filterTabActive]}><Text style={[styles.filterTabText, filterType === '30Days' && styles.filterTabTextActive]}>LAST 30 DAYS</Text></TouchableOpacity>
                     <TouchableOpacity onPress={() => setFilterType('Month')} style={[styles.filterTab, filterType === 'Month' && styles.filterTabActive]}><Text style={[styles.filterTabText, filterType === 'Month' && styles.filterTabTextActive]}>SELECT MONTH</Text></TouchableOpacity>
                 </View>
             </View>
+
+
 
             <View style={styles.mainTabsContainer}>
                 <TouchableOpacity style={[styles.mainTab, activeTab === 'Log' && styles.mainTabActive]} onPress={() => setActiveTab('Log')}><Text style={[styles.mainTabText, activeTab === 'Log' && styles.mainTabTextActive]}>ATTENDANCE LOG</Text></TouchableOpacity>
@@ -661,11 +676,63 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                     <ScrollView horizontal persistentScrollbar={true}>
                         <View>
                             <View style={styles.tableHead}>
-                                {['DATE', 'ATTENDANCE VISUAL', 'CHECK-IN', 'BREAKS', 'CHECK-OUT', 'GROSS HRS', 'EFFECTIVE HRS', 'ARRIVAL STATUS'].map((h, i) => (
-                                    <Text key={h} style={[styles.headCell, { width: Object.values(COL_WIDTHS)[i > 4 ? 4 : i] || 100 }, i === 6 && { color: '#48327d' }]}>{h}</Text>
-                                ))}
+                                {['DATE', 'ATTENDANCE VISUAL', 'CHECK-IN', 'BREAKS', 'CHECK-OUT', 'GROSS HRS', 'EFFECTIVE HRS', 'ARRIVAL STATUS'].map((h, i) => {
+                                    const w = Object.values(COL_WIDTHS)[i > 4 ? 4 : i] || 100;
+                                    if (i === 7) {
+                                        return (
+                                            <TouchableOpacity
+                                                key={h}
+                                                onPress={() => setArrivalDropdownVisible(!arrivalDropdownVisible)}
+                                                style={[{ width: w, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', zIndex: 10 }]}
+                                            >
+                                                <Text style={{ color: arrivalFilter !== 'All' ? '#48327d' : '#888', fontWeight: 'bold', fontSize: 10 }}>
+                                                    {arrivalFilter === 'All' ? 'ARRIVAL STATUS' : arrivalFilter.toUpperCase()}
+                                                </Text>
+                                                {/* Dropdown Menu */}
+                                                {arrivalDropdownVisible && (
+                                                    <View style={{
+                                                        position: 'absolute',
+                                                        top: 30, // Just below the header
+                                                        right: 0,
+                                                        width: 100,
+                                                        backgroundColor: 'white',
+                                                        borderRadius: 8,
+                                                        shadowColor: "#000",
+                                                        shadowOffset: { width: 0, height: 2 },
+                                                        shadowOpacity: 0.25,
+                                                        shadowRadius: 3.84,
+                                                        elevation: 5,
+                                                        zIndex: 999
+                                                    }}>
+                                                        {['All', 'On Time', 'Late'].map((opt) => (
+                                                            <TouchableOpacity
+                                                                key={opt}
+                                                                onPress={() => {
+                                                                    setArrivalFilter(opt);
+                                                                    setArrivalDropdownVisible(false);
+                                                                }}
+                                                                style={{ padding: 10, borderBottomWidth: opt === 'Late' ? 0 : 1, borderBottomColor: '#f1f5f9' }}
+                                                            >
+                                                                <Text style={{ fontSize: 10, fontWeight: '600', color: arrivalFilter === opt ? '#48327d' : '#2d3436' }}>
+                                                                    {opt === 'All' ? 'All Status' : opt}
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        ))}
+                                                    </View>
+                                                )}
+                                            </TouchableOpacity>
+                                        );
+                                    }
+                                    return (
+                                        <Text key={h} style={[styles.headCell, { width: w }, i === 6 && { color: '#48327d' }]}>{h}</Text>
+                                    );
+                                })}
                             </View>
-                            {displayedLogs.map((log, index) => {
+                            {displayedLogs.filter(log => {
+                                if (arrivalFilter === 'All') return true;
+                                const s = calculateStats(log);
+                                return s.arrivalStatus === arrivalFilter;
+                            }).map((log, index) => {
                                 const s = calculateStats(log);
                                 const isWeekend = new Date(log.date).getDay() === 0 || new Date(log.date).getDay() === 6;
                                 const isTodayVal = log.date === todayStr;
@@ -675,9 +742,9 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                     <View key={index} style={[styles.tableRow, showAsOff && styles.rowOff]}>
                                         <View style={[styles.cell, { width: COL_WIDTHS.date }]}>
                                             <Text style={styles.dateText}>{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</Text>
-                                            {showAsOff && <Text style={styles.offBadge}>{log.isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : !!log.leaveType ? 'LEAVE' : 'ABSENT'}</Text>}
+                                            {showAsOff && <Text style={[styles.offBadge, { maxWidth: 60 }]} numberOfLines={1}>{log.isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : !!log.leaveType ? getLeaveCode(log.leaveType) : 'ABSENT'}</Text>}
                                         </View>
-                                        {showAsOff ? <View style={{ flex: 1, paddingLeft: 12 }}><Text style={styles.offFullText}>{log.isHoliday ? 'Holiday' : isWeekend ? 'Weekly-off' : !!log.leaveType ? 'Leave' : 'Absent'}</Text></View> : (
+                                        {showAsOff ? <View style={{ flex: 1, paddingLeft: 12 }}><Text style={styles.offFullText}>{log.isHoliday ? (log.holidayName || 'Holiday') : isWeekend ? 'Weekly-off' : !!log.leaveType ? getLeaveLabel(log.leaveType) : 'Absent'}</Text></View> : (
                                             <>
                                                 <View style={[styles.cell, { width: COL_WIDTHS.visual }]}><View style={styles.visualBarTable}>{getVisualSegments(log).map((seg, i) => <View key={i} style={[styles.visualSeg, { width: `${seg.width}%`, backgroundColor: seg.type === 'work' ? '#48327d' : 'transparent' }]} />)}</View></View>
                                                 <Text style={[styles.cell, styles.timeText, { width: COL_WIDTHS.inOut }]}>{log.checkIn || '-'}</Text>
@@ -724,6 +791,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             {renderBreakModal()}
             <RegularizeModal visible={regularizeModalVisible} onClose={() => setRegularizeModalVisible(false)} date={activeRegularizeLog?.date} employeeId={user.id} onSuccess={() => { fetchData(); setRegularizeModalVisible(false); }} teamLeadName={user.team_lead_name} />
             <FlatList
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />}
                 data={activeTab === 'Requests' ? requests : []}
                 keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
                 contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}

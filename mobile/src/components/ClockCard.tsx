@@ -44,13 +44,13 @@ const ClockCard: React.FC<ClockCardProps> = ({
     const ampmStr = isPM ? 'PM' : 'AM';
 
     return (
-        <View style={[styles.card, isOnLeave && styles.onLeaveCard, isAbsent && styles.onAbsentCard]}>
+        <View style={[styles.card, isAbsent && styles.onAbsentCard]}>
             {/* Header: Date and Status Badge */}
             <View style={styles.header}>
                 <Text style={styles.dateText}>Time Today - {dateStr}</Text>
                 {disabledReason && (
-                    <View style={[styles.badge, isOnLeave && styles.onLeaveBadge, isAbsent && styles.onAbsentBadge]}>
-                        <Text style={[styles.badgeText, (isOnLeave || isAbsent) && styles.onStatusBadgeText]}>{disabledReason.toUpperCase()}</Text>
+                    <View style={[styles.badge, isAbsent && styles.onAbsentBadge]}>
+                        <Text style={[styles.badgeText, isAbsent && styles.onStatusBadgeText]}>{disabledReason.toUpperCase()}</Text>
                     </View>
                 )}
             </View>
@@ -107,7 +107,7 @@ const ClockCard: React.FC<ClockCardProps> = ({
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#8e78b0',
+        backgroundColor: '#6366f1',
         borderRadius: 16,
         padding: 16,
         minHeight: 140,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
         paddingVertical: 2,
     },
     badgeText: {
-        color: '#8e78b0',
+        color: '#6366f1',
         fontSize: 10,
         fontWeight: 'bold',
     },
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     buttonText: {
-        color: '#8e78b0',
+        color: '#6366f1',
         fontWeight: '800',
         fontSize: 14,
         textTransform: 'uppercase',
