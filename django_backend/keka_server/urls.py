@@ -16,8 +16,17 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
+from api import wfh_views, leave_views
 
 urlpatterns = [
+    path('ping/', lambda r: HttpResponse('pong')),
     path('admin/', admin.site.urls),
+    # Redundant routes to bypass include() issues and catch both prefixed and non-prefixed requests
+    path('api/wfh/email-action/<int:request_id>/<str:action>/', wfh_views.email_wfh_action),
+    path('wfh/email-action/<int:request_id>/<str:action>/', wfh_views.email_wfh_action),
+    path('api/leaves/email-action/<int:request_id>/<str:action>/', leave_views.email_leave_action),
+    path('leaves/email-action/<int:request_id>/<str:action>/', leave_views.email_leave_action),
     path('api/', include('api.urls')),
+    path('ping/', lambda r: HttpResponse('pong')),
 ]

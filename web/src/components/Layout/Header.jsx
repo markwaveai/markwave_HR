@@ -6,12 +6,14 @@ import {
     ChevronRight, Sparkles
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Toast from '../Common/Toast';
 
 function Header({ user, isSidebarOpen, onMenuClick, onLogout }) {
     const [showProfile, setShowProfile] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
+    const [toast, setToast] = useState(null);
     const dropdownRef = useRef(null);
     const searchRef = useRef(null);
     const searchInputRef = useRef(null);
@@ -278,6 +280,14 @@ function Header({ user, isSidebarOpen, onMenuClick, onLogout }) {
                     </div>
                 )}
             </div>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </header>
     );
 }

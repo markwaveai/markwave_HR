@@ -3,9 +3,11 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable, Modal,
 import { leaveApi, authApi, attendanceApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
+import WorkFromHomeScreen from './WorkFromHomeScreen';
 import { CalendarIcon, PlaneIcon, ThermometerIcon, PalmTreeIcon, StarIcon, FlameIcon, BabyIcon, HomeIcon, HourglassIcon, BanIcon } from '../components/Icons';
 
 const LeaveScreen = ({ user }: { user: any }) => {
+    const [activeTab, setActiveTab] = useState<'leave' | 'wfh'>('leave');
     const [history, setHistory] = useState<any[]>([]);
     // balances state removed
     const [loading, setLoading] = useState(true);
@@ -338,253 +340,277 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 </Pressable>
             </View>
 
-            <ScrollView
-                contentContainerStyle={{ paddingBottom: 100 }}
-                style={styles.scrollContainer}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />
-                }
-            >
-                {!user?.is_admin && (
-                    <LeaveBalanceCard apiBalance={apiBalance} history={history} />
-                )}
 
-                <View style={styles.sectionHeader}>
-                    <Text style={styles.sectionTitle}>Leave History</Text>
-                </View>
+            <View style={{ flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+                <TouchableOpacity
+                    onPress={() => setActiveTab('leave')}
+                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'leave' ? '#48327d' : 'transparent' }}
+                >
+                    <Text style={{ color: activeTab === 'leave' ? '#48327d' : '#636e72', fontWeight: 'bold' }}>LEAVES</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setActiveTab('wfh')}
+                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'wfh' ? '#48327d' : 'transparent' }}
+                >
+                    <Text style={{ color: activeTab === 'wfh' ? '#48327d' : '#636e72', fontWeight: 'bold' }}>WFH</Text>
+                </TouchableOpacity>
+            </View>
 
-                {loading ? (
-                    <ActivityIndicator size="large" color="#48327d" />
+            {
+                activeTab === 'wfh' ? (
+                    <WorkFromHomeScreen user={user} />
                 ) : (
-                    <View style={styles.historyList}>
-                        {history.length === 0 ? <Text style={styles.emptyText}>No leave history found.</Text> :
-                            history.map((item, index) => (
-                                <View key={index} style={styles.historyItem}>
-                                    <View style={styles.historyLeft}>
-                                        <Text style={styles.leaveType}>{getLeaveLabel(item.type)}</Text>
-                                        <Text style={styles.leaveDates}>{formatDateWithDay(item.fromDate)} - {formatDateWithDay(item.toDate)}</Text>
-                                    </View>
-                                    <View style={styles.historyRight}>
-                                        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
-                                            <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-                                        </View>
-                                        <Text style={styles.daysCount}>{item.days} Days</Text>
-                                    </View>
-                                </View>
-                            ))}
-                    </View>
-                )}
-            </ScrollView>
-
-            {/* Apply Modal */}
-            <Modal
-                visible={isModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setIsModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Apply for Leave</Text>
-                            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
-                                <Text style={styles.closeText}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView style={styles.formContainer}>
-                            {/* Leave Type Dropdown */}
-                            <Text style={styles.inputLabel}>LEAVE TYPE *</Text>
-                            <TouchableOpacity
-                                style={styles.dropdownButton}
-                                onPress={() => setIsTypePickerVisible(true)}
-                            >
-                                <Text style={styles.dropdownText}>
-                                    {getLeaveDropdownLabel(leaveType)}
-                                </Text>
-                            </TouchableOpacity>
-
-                            {/* Dates */}
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.inputLabel}>FROM DATE *</Text>
-                                    <TouchableOpacity
-                                        style={styles.dateInput}
-                                        onPress={() => openDatePicker('from')}
-                                    >
-                                        <Text style={[styles.dateText, !fromDate && { color: '#b2bec3' }]}>
-                                            {fromDate || 'Select Date'}
-                                        </Text>
-                                        <CalendarIcon color="#64748b" size={18} />
-                                    </TouchableOpacity>
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.inputLabel}>TO DATE *</Text>
-                                    <TouchableOpacity
-                                        style={styles.dateInput}
-                                        onPress={() => openDatePicker('to')}
-                                    >
-                                        <Text style={[styles.dateText, !toDate && { color: '#b2bec3' }]}>
-                                            {toDate || 'Select Date'}
-                                        </Text>
-                                        <CalendarIcon color="#64748b" size={18} />
-                                    </TouchableOpacity>
-                                </View>
-                            </View>
-
-                            {/* Session Buttons */}
-                            {(fromDate && (!toDate || fromDate === toDate)) ? (
-                                <>
-                                    <Text style={styles.inputLabel}>SESSION *</Text>
-                                    <View style={styles.sessionRow}>
-                                        {['Full Day', 'First Half', 'Second Half'].map(s => (
-                                            <TouchableOpacity
-                                                key={s}
-                                                style={[styles.sessionBtn, fromSession === s && styles.sessionBtnActive]}
-                                                onPress={() => { setFromSession(s); setToSession(s); }}
-                                            >
-                                                <Text style={[styles.sessionBtnText, fromSession === s && styles.sessionBtnTextActive]}>{s}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </>
-                            ) : (
-                                <>
-                                    <Text style={styles.inputLabel}>START DATE SESSION *</Text>
-                                    <View style={styles.sessionRow}>
-                                        {['Full Day', 'First Half', 'Second Half'].map(s => (
-                                            <TouchableOpacity
-                                                key={s}
-                                                style={[styles.sessionBtn, fromSession === s && styles.sessionBtnActive]}
-                                                onPress={() => setFromSession(s)}
-                                            >
-                                                <Text style={[styles.sessionBtnText, fromSession === s && styles.sessionBtnTextActive]}>{s}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                    <Text style={styles.inputLabel}>END DATE SESSION *</Text>
-                                    <View style={styles.sessionRow}>
-                                        {['Full Day', 'First Half', 'Second Half'].map(s => (
-                                            <TouchableOpacity
-                                                key={s}
-                                                style={[styles.sessionBtn, toSession === s && styles.sessionBtnActive]}
-                                                onPress={() => setToSession(s)}
-                                            >
-                                                <Text style={[styles.sessionBtnText, toSession === s && styles.sessionBtnTextActive]}>{s}</Text>
-                                            </TouchableOpacity>
-                                        ))}
-                                    </View>
-                                </>
+                    <>
+                        <ScrollView
+                            contentContainerStyle={{ paddingBottom: 100 }}
+                            style={styles.scrollContainer}
+                            refreshControl={
+                                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />
+                            }
+                        >
+                            {!user?.is_admin && (
+                                <LeaveBalanceCard apiBalance={apiBalance} history={history} />
                             )}
 
-                            {/* Reason */}
-                            <Text style={styles.inputLabel}>REASON FOR LEAVE *</Text>
-                            <TextInput
-                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
-                                value={reason}
-                                onChangeText={setReason}
-                                placeholder="Briefly describe the reason..."
-                                multiline
-                            />
-
-                            {/* Notify To */}
-                            <Text style={styles.inputLabel}>NOTIFY TO *</Text>
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8, padding: 8, backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8 }}>
-                                {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: 12 }}>Select notification recipients...</Text>}
-                                {notifyTo.map(p => (
-                                    <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4 }}>
-                                        <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>{p}</Text>
-                                        <Text style={{ color: 'white', fontSize: 10 }}>✕</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                                {(() => {
-                                    // Reverse priority: profile is fresh from getProfile, user might be stale from session
-                                    const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
-                                    const leads = leadStr.split(',').map((s: string) => s.trim()).filter((name: string) => name && name !== 'Team Lead');
-
-                                    const allSuggestions = [
-                                        ...leads,
-                                        profile?.project_manager_name,
-                                        profile?.advisor_name
-                                    ];
-
-                                    // Deduplicate and filter out "Team Lead" specifically
-                                    const uniqueSuggestions = Array.from(new Set(allSuggestions))
-                                        .filter((name: any) => name && name !== 'Team Lead');
-
-                                    return uniqueSuggestions
-                                        .filter(name => !notifyTo.includes(name))
-                                        .map(name => (
-                                            <TouchableOpacity
-                                                key={name}
-                                                onPress={() => {
-                                                    setNotifyTo([...notifyTo, name]);
-                                                }}
-                                                style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
-                                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                            >
-                                                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
-                                            </TouchableOpacity>
-                                        ));
-                                })()}
+                            <View style={styles.sectionHeader}>
+                                <Text style={styles.sectionTitle}>Leave History</Text>
                             </View>
 
-                            <TouchableOpacity
-                                onPress={handleApply}
-                                style={[styles.submitBtn, isSubmitDisabled() && { opacity: 0.5 }]}
-                                disabled={isSubmitDisabled()}
-                            >
-                                <Text style={styles.submitBtnText}>{isSubmitting ? 'Submitting...' : 'Submit Request'}</Text>
-                            </TouchableOpacity>
+                            {loading ? (
+                                <ActivityIndicator size="large" color="#48327d" />
+                            ) : (
+                                <View style={styles.historyList}>
+                                    {history.length === 0 ? <Text style={styles.emptyText}>No leave history found.</Text> :
+                                        history.map((item, index) => (
+                                            <View key={index} style={styles.historyItem}>
+                                                <View style={styles.historyLeft}>
+                                                    <Text style={styles.leaveType}>{getLeaveLabel(item.type)}</Text>
+                                                    <Text style={styles.leaveDates}>{formatDateWithDay(item.fromDate)} - {formatDateWithDay(item.toDate)}</Text>
+                                                </View>
+                                                <View style={styles.historyRight}>
+                                                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '20' }]}>
+                                                        <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+                                                    </View>
+                                                    <Text style={styles.daysCount}>{item.days} Days</Text>
+                                                </View>
+                                            </View>
+                                        ))}
+                                </View>
+                            )}
                         </ScrollView>
-                    </View>
-                </View>
-            </Modal>
 
-            {/* Type Picker Modal */}
-            <Modal
-                visible={isTypePickerVisible}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setIsTypePickerVisible(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setIsTypePickerVisible(false)}
-                >
-                    <View style={styles.pickerContent}>
-                        {Object.values(LEAVE_CONFIG)
-                            .filter((item: any) => apiBalance?.hasOwnProperty(item.code) || ['cl', 'sl', 'lwp'].includes(item.code))
-                            .map((item: any) => {
-                                const isSelected = item.code === leaveType;
-                                return (
-                                    <TouchableOpacity
-                                        key={item.code}
-                                        style={[styles.pickerItem, isSelected && styles.selectedPickerItem]}
-                                        onPress={() => {
-                                            setLeaveType(item.code);
-                                            setIsTypePickerVisible(false);
-                                        }}
-                                    >
-                                        <Text style={[styles.pickerItemText, isSelected && styles.selectedPickerItemText]}>
-                                            {getLeaveDropdownLabel(item.code)}
-                                        </Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
-                    </View>
-                </TouchableOpacity>
-            </Modal>
+                        {/* Apply Modal */}
+                        <Modal
+                            visible={isModalVisible}
+                            animationType="slide"
+                            transparent={true}
+                            onRequestClose={() => setIsModalVisible(false)}
+                        >
+                            <View style={styles.modalOverlay}>
+                                <View style={styles.modalContent}>
+                                    <View style={styles.modalHeader}>
+                                        <Text style={styles.modalTitle}>Apply for Leave</Text>
+                                        <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                                            <Text style={styles.closeText}>✕</Text>
+                                        </TouchableOpacity>
+                                    </View>
 
-            <CustomDatePicker
-                visible={datePickerVisible}
-                onClose={() => setDatePickerVisible(false)}
-                onSelect={handleDateSelect}
-                value={activeDateInput === 'from' ? fromDate : toDate}
-            />
+                                    <ScrollView style={styles.formContainer}>
+                                        {/* Leave Type Dropdown */}
+                                        <Text style={styles.inputLabel}>LEAVE TYPE *</Text>
+                                        <TouchableOpacity
+                                            style={styles.dropdownButton}
+                                            onPress={() => setIsTypePickerVisible(true)}
+                                        >
+                                            <Text style={styles.dropdownText}>
+                                                {getLeaveDropdownLabel(leaveType)}
+                                            </Text>
+                                        </TouchableOpacity>
+
+                                        {/* Dates */}
+                                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.inputLabel}>FROM DATE *</Text>
+                                                <TouchableOpacity
+                                                    style={styles.dateInput}
+                                                    onPress={() => openDatePicker('from')}
+                                                >
+                                                    <Text style={[styles.dateText, !fromDate && { color: '#b2bec3' }]}>
+                                                        {fromDate || 'Select Date'}
+                                                    </Text>
+                                                    <CalendarIcon color="#64748b" size={18} />
+                                                </TouchableOpacity>
+                                            </View>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={styles.inputLabel}>TO DATE *</Text>
+                                                <TouchableOpacity
+                                                    style={styles.dateInput}
+                                                    onPress={() => openDatePicker('to')}
+                                                >
+                                                    <Text style={[styles.dateText, !toDate && { color: '#b2bec3' }]}>
+                                                        {toDate || 'Select Date'}
+                                                    </Text>
+                                                    <CalendarIcon color="#64748b" size={18} />
+                                                </TouchableOpacity>
+                                            </View>
+                                        </View>
+
+                                        {/* Session Buttons */}
+                                        {(fromDate && (!toDate || fromDate === toDate)) ? (
+                                            <>
+                                                <Text style={styles.inputLabel}>SESSION *</Text>
+                                                <View style={styles.sessionRow}>
+                                                    {['Full Day', 'First Half', 'Second Half'].map(s => (
+                                                        <TouchableOpacity
+                                                            key={s}
+                                                            style={[styles.sessionBtn, fromSession === s && styles.sessionBtnActive]}
+                                                            onPress={() => { setFromSession(s); setToSession(s); }}
+                                                        >
+                                                            <Text style={[styles.sessionBtnText, fromSession === s && styles.sessionBtnTextActive]}>{s}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Text style={styles.inputLabel}>START DATE SESSION *</Text>
+                                                <View style={styles.sessionRow}>
+                                                    {['Full Day', 'First Half', 'Second Half'].map(s => (
+                                                        <TouchableOpacity
+                                                            key={s}
+                                                            style={[styles.sessionBtn, fromSession === s && styles.sessionBtnActive]}
+                                                            onPress={() => setFromSession(s)}
+                                                        >
+                                                            <Text style={[styles.sessionBtnText, fromSession === s && styles.sessionBtnTextActive]}>{s}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                                <Text style={styles.inputLabel}>END DATE SESSION *</Text>
+                                                <View style={styles.sessionRow}>
+                                                    {['Full Day', 'First Half', 'Second Half'].map(s => (
+                                                        <TouchableOpacity
+                                                            key={s}
+                                                            style={[styles.sessionBtn, toSession === s && styles.sessionBtnActive]}
+                                                            onPress={() => setToSession(s)}
+                                                        >
+                                                            <Text style={[styles.sessionBtnText, toSession === s && styles.sessionBtnTextActive]}>{s}</Text>
+                                                        </TouchableOpacity>
+                                                    ))}
+                                                </View>
+                                            </>
+                                        )}
+
+                                        {/* Reason */}
+                                        <Text style={styles.inputLabel}>REASON FOR LEAVE *</Text>
+                                        <TextInput
+                                            style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                            value={reason}
+                                            onChangeText={setReason}
+                                            placeholder="Briefly describe the reason..."
+                                            multiline
+                                        />
+
+                                        {/* Notify To */}
+                                        <Text style={styles.inputLabel}>NOTIFY TO *</Text>
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8, padding: 8, backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8 }}>
+                                            {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: 12 }}>Select notification recipients...</Text>}
+                                            {notifyTo.map(p => (
+                                                <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4 }}>
+                                                    <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>{p}</Text>
+                                                    <Text style={{ color: 'white', fontSize: 10 }}>✕</Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                            {(() => {
+                                                // Reverse priority: profile is fresh from getProfile, user might be stale from session
+                                                const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
+                                                const leads = leadStr.split(',').map((s: string) => s.trim()).filter((name: string) => name && name !== 'Team Lead');
+
+                                                const allSuggestions = [
+                                                    ...leads,
+                                                    profile?.project_manager_name,
+                                                    profile?.advisor_name
+                                                ];
+
+                                                // Deduplicate and filter out "Team Lead" specifically
+                                                const uniqueSuggestions = Array.from(new Set(allSuggestions))
+                                                    .filter((name: any) => name && name !== 'Team Lead');
+
+                                                return uniqueSuggestions
+                                                    .filter(name => !notifyTo.includes(name))
+                                                    .map(name => (
+                                                        <TouchableOpacity
+                                                            key={name}
+                                                            onPress={() => {
+                                                                setNotifyTo([...notifyTo, name]);
+                                                            }}
+                                                            style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
+                                                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                                        >
+                                                            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
+                                                        </TouchableOpacity>
+                                                    ));
+                                            })()}
+                                        </View>
+
+                                        <TouchableOpacity
+                                            onPress={handleApply}
+                                            style={[styles.submitBtn, isSubmitDisabled() && { opacity: 0.5 }]}
+                                            disabled={isSubmitDisabled()}
+                                        >
+                                            <Text style={styles.submitBtnText}>{isSubmitting ? 'Submitting...' : 'Submit Request'}</Text>
+                                        </TouchableOpacity>
+                                    </ScrollView>
+                                </View>
+                            </View>
+                        </Modal>
+
+                        {/* Type Picker Modal */}
+                        <Modal
+                            visible={isTypePickerVisible}
+                            transparent={true}
+                            animationType="fade"
+                            onRequestClose={() => setIsTypePickerVisible(false)}
+                        >
+                            <TouchableOpacity
+                                style={styles.modalOverlay}
+                                activeOpacity={1}
+                                onPress={() => setIsTypePickerVisible(false)}
+                            >
+                                <View style={styles.pickerContent}>
+                                    {Object.values(LEAVE_CONFIG)
+                                        .filter((item: any) => apiBalance?.hasOwnProperty(item.code) || ['cl', 'sl', 'lwp'].includes(item.code))
+                                        .map((item: any) => {
+                                            const isSelected = item.code === leaveType;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={item.code}
+                                                    style={[styles.pickerItem, isSelected && styles.selectedPickerItem]}
+                                                    onPress={() => {
+                                                        setLeaveType(item.code);
+                                                        setIsTypePickerVisible(false);
+                                                    }}
+                                                >
+                                                    <Text style={[styles.pickerItemText, isSelected && styles.selectedPickerItemText]}>
+                                                        {getLeaveDropdownLabel(item.code)}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                </View>
+                            </TouchableOpacity>
+                        </Modal>
+
+                        <CustomDatePicker
+                            visible={datePickerVisible}
+                            onClose={() => setDatePickerVisible(false)}
+                            onSelect={handleDateSelect}
+                            value={activeDateInput === 'from' ? fromDate : toDate}
+                        />
+                    </>
+                )
+            }
         </View >
     );
 };

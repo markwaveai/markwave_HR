@@ -149,3 +149,16 @@ class EmployeeLeaveBalance(models.Model):
         managed = True
         db_table = 'core_employeeleavebalance'
         unique_together = (('employee', 'leave_type', 'year'),)
+
+
+class WorkFromHome(models.Model):
+    employee = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id')
+    from_date = models.CharField(max_length=10)
+    to_date = models.CharField(max_length=10)
+    reason = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=20, default='Pending')  # Pending, Approved, Rejected
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'core_wfh'

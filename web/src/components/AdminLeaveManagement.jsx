@@ -4,12 +4,14 @@ import { leaveApi } from '../services/api';
 import { CheckCircle, XCircle, Clock, Calendar, AlertCircle } from 'lucide-react';
 import Toast from './Common/Toast';
 import ConfirmDialog from './Common/ConfirmDialog';
+import AdminWorkFromHome from './AdminLeaveManagement/AdminWorkFromHome';
 
 const AdminLeaveManagement = () => {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null); // ID of request being processed
     const [toast, setToast] = useState(null);
+    const [activeTab, setActiveTab] = useState('leaves');
 
     // Dialog State
     const [dialogConfig, setDialogConfig] = useState({
@@ -71,11 +73,28 @@ const AdminLeaveManagement = () => {
     return (
         <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 bg-[#f5f7fa]">
             <div className="mb-4 mm:mb-6">
-                <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Leave Management</h1>
-                <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Review and manage employee leave requests</p>
+                <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Leave & WFH Management</h1>
+                <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Review and manage employee requests</p>
             </div>
 
-            {loading ? (
+            <div className="flex items-center gap-4 border-b border-[#e2e8f0] mb-6">
+                <button
+                    onClick={() => setActiveTab('leaves')}
+                    className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'leaves' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
+                >
+                    Leave Requests
+                </button>
+                <button
+                    onClick={() => setActiveTab('wfh')}
+                    className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'wfh' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
+                >
+                    WFH Requests
+                </button>
+            </div>
+
+            {activeTab === 'wfh' ? (
+                <AdminWorkFromHome />
+            ) : loading ? (
                 <div className="text-center py-20 text-[#636e72]">Loading requests...</div>
             ) : leaves.length === 0 ? (
                 <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] p-10 text-center">

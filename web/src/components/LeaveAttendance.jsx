@@ -12,6 +12,8 @@ import ApplyLeaveModal from './LeaveAttendance/ApplyLeaveModal';
 import Toast from './Common/Toast';
 import LoadingSpinner from './Common/LoadingSpinner';
 import AttendanceHistoryTable from './LeaveAttendance/AttendanceHistoryTable';
+import WorkFromHome from './LeaveAttendance/WorkFromHome';
+import ApplyWFHModal from './Common/ApplyWFHModal';
 
 function LeaveAttendance({ user }) {
     const [leaveType, setLeaveType] = useState('cl');
@@ -21,6 +23,7 @@ function LeaveAttendance({ user }) {
     const [fromSession, setFromSession] = useState('Full Day');
     const [toSession, setToSession] = useState('Full Day');
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isWFHModalOpen, setIsWFHModalOpen] = useState(false);
     const [history, setHistory] = useState([]);
     const [attendanceHistory, setAttendanceHistory] = useState([]);
     const [activeTab, setActiveTab] = useState('leaves'); // 'leaves' or 'attendance'
@@ -286,12 +289,20 @@ function LeaveAttendance({ user }) {
                         <h1 className="text-2xl mm:text-3xl font-black text-[#1e293b] tracking-tight">Leave & Attendance</h1>
                         <p className="text-[12px] mm:text-sm text-[#64748b] font-medium mt-1 italic">Manage your time off and track attendance records</p>
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-[#48327d] text-white font-bold py-2 px-4 mm:px-6 rounded-lg text-xs mm:text-sm shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c] transition-all flex items-center justify-center gap-2 whitespace-nowrap w-fit"
-                    >
-                        <Plus size={18} /> Request for Leave
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setIsWFHModalOpen(true)}
+                            className="bg-white text-[#48327d] border border-[#48327d] font-bold py-2 px-4 mm:px-6 rounded-lg text-xs mm:text-sm shadow-sm hover:bg-purple-50 transition-all flex items-center justify-center gap-2 whitespace-nowrap w-fit"
+                        >
+                            <Plus size={18} /> Request for WFH
+                        </button>
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-[#48327d] text-white font-bold py-2 px-4 mm:px-6 rounded-lg text-xs mm:text-sm shadow-lg shadow-[#48327d]/20 hover:bg-[#34245c] transition-all flex items-center justify-center gap-2 whitespace-nowrap w-fit"
+                        >
+                            <Plus size={18} /> Request for Leave
+                        </button>
+                    </div>
                 </header>
 
                 <LeaveBalanceGrid balances={balances} />
@@ -311,6 +322,12 @@ function LeaveAttendance({ user }) {
                         >
                             Attendance Logs
                         </button>
+                        <button
+                            onClick={() => setActiveTab('wfh')}
+                            className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'wfh' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
+                        >
+                            Work From Home
+                        </button>
                     </div>
 
                     {activeTab === 'leaves' ? (
@@ -318,11 +335,13 @@ function LeaveAttendance({ user }) {
                             history={history}
                             onViewFullHistory={() => setActiveTab('attendance')}
                         />
-                    ) : (
+                    ) : activeTab === 'attendance' ? (
                         <AttendanceHistoryTable
                             attendanceHistory={attendanceHistory}
                             calculateStats={calculateStats}
                         />
+                    ) : (
+                        <WorkFromHome user={user} setToast={setToast} />
                     )}
                 </div>
 
@@ -360,6 +379,15 @@ function LeaveAttendance({ user }) {
                         history={history}
                     />
                 )}
+                <ApplyWFHModal
+                    isOpen={isWFHModalOpen}
+                    onClose={() => {
+                        setIsWFHModalOpen(false);
+                        fetchLeaves(); // Refresh list if on WFH tab
+                    }}
+                    user={user}
+                    setToast={setToast}
+                />
             </div>
         </div>
     );

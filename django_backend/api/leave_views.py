@@ -89,10 +89,12 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
             
             # Action Links - prioritize environment variable, fallback to auto-detection
             import os
-            base_url = os.getenv('FRONTEND_BASE_URL', 'http://localhost:8000')
+            # Production domain
+            base_url = os.getenv('FRONTEND_BASE_URL', 'https://hr.markwave.ai')
+            api_base = f"{base_url}/api" if not base_url.endswith('/api') else base_url
             
-            approve_url = f"{base_url}/api/leaves/email-action/{leave_request.id}/approve/"
-            reject_url = f"{base_url}/api/leaves/email-action/{leave_request.id}/reject/"
+            approve_url = f"{api_base}/leaves/email-action/{leave_request.id}/approve/"
+            reject_url = f"{api_base}/leaves/email-action/{leave_request.id}/reject/"
 
             # Format dates for display
             formatted_from = datetime.datetime.strptime(from_date, '%Y-%m-%d').strftime('%d-%m-%Y')

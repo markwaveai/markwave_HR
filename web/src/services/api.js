@@ -137,6 +137,19 @@ export const feedApi = {
     })
 };
 
+export const wfhApi = {
+    apply: (data) => apiFetch('/wfh/apply/', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    getRequests: (employeeId) => apiFetch(`/wfh/requests/${employeeId}/`),
+    getPending: () => apiFetch('/wfh/pending/'),
+    action: (id, action) => apiFetch(`/wfh/${id}/action/`, {
+        method: 'POST',
+        body: JSON.stringify({ action })
+    })
+};
+
 export const adminApi = {
     getDashboardStats: () => apiFetch(`/admin/dashboard-stats/?_t=${new Date().getTime()}`)
 };

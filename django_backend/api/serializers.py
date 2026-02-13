@@ -1,5 +1,25 @@
 from rest_framework import serializers
-from core.models import Employees, Teams, Leaves, Attendance, AttendanceLogs, Posts
+from core.models import Employees, Teams, Leaves, Attendance, AttendanceLogs, Posts, WorkFromHome
+
+class WorkFromHomeSerializer(serializers.ModelSerializer):
+    employee_name = serializers.SerializerMethodField()
+    employee_id = serializers.SerializerMethodField()
+    applied_on = serializers.SerializerMethodField()
+
+    class Meta:
+        model = WorkFromHome
+        fields = ['id', 'employee', 'employee_id', 'employee_name', 'from_date', 'to_date', 'reason', 'status', 'applied_on']
+
+    def get_employee_name(self, obj):
+        return f"{obj.employee.first_name} {obj.employee.last_name}"
+
+    def get_employee_id(self, obj):
+        return obj.employee.employee_id
+
+    def get_applied_on(self, obj):
+        if obj.created_at:
+            return obj.created_at.strftime('%Y-%m-%d')
+        return None
 
 class TeamsSerializer(serializers.ModelSerializer):
     member_count = serializers.SerializerMethodField()

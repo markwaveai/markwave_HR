@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { leaveApi } from '../services/api';
+import AdminWorkFromHomeScreen from './AdminWorkFromHomeScreen';
 
 const AdminLeaveScreen = () => {
+    const [activeTab, setActiveTab] = useState<'leave' | 'wfh'>('leave');
     const [leaves, setLeaves] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
@@ -57,61 +59,81 @@ const AdminLeaveScreen = () => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Leave Management</Text>
+                <Text style={styles.headerTitle}>Leave & WFH Management</Text>
                 <Text style={styles.headerSubtitle}>Review pending requests</Text>
             </View>
 
-            <ScrollView contentContainerStyle={styles.listContainer}>
-                {leaves.length === 0 ? (
-                    <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>No pending requests</Text>
-                    </View>
-                ) : (
-                    leaves.map((leave, index) => (
-                        <View key={index} style={styles.card}>
-                            <View style={styles.cardHeader}>
-                                <View>
-                                    <Text style={styles.employeeName}>{leave.employee_name}</Text>
-                                    <Text style={styles.employeeId}>ID: {leave.employee_id}</Text>
-                                </View>
-                                <View style={[styles.typeBadge, { backgroundColor: getStatusColor(leave.type) + '20' }]}>
-                                    <Text style={[styles.typeText, { color: getStatusColor(leave.type) }]}>
-                                        {leave.type.toUpperCase()}
-                                    </Text>
-                                </View>
-                            </View>
+            <View style={{ flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
+                <TouchableOpacity
+                    onPress={() => setActiveTab('leave')}
+                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'leave' ? '#48327d' : 'transparent' }}
+                >
+                    <Text style={{ color: activeTab === 'leave' ? '#48327d' : '#636e72', fontWeight: 'bold' }}>LEAVES</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setActiveTab('wfh')}
+                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'wfh' ? '#48327d' : 'transparent' }}
+                >
+                    <Text style={{ color: activeTab === 'wfh' ? '#48327d' : '#636e72', fontWeight: 'bold' }}>WFH</Text>
+                </TouchableOpacity>
+            </View>
 
-                            <View style={styles.datesRow}>
-                                <Text style={styles.dateText}>
-                                    {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} to ${leave.toDate}`}
-                                </Text>
-                                <Text style={styles.daysText}>{leave.days} Day{leave.days > 1 ? 's' : ''}</Text>
-                            </View>
+            {activeTab === 'wfh' ? (
+                <AdminWorkFromHomeScreen />
+            ) : (
 
-                            <Text style={styles.reasonText} numberOfLines={2}>
-                                {leave.reason}
-                            </Text>
-
-                            <View style={styles.actionsRow}>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.rejectButton]}
-                                    onPress={() => handleAction(leave.id, 'Reject')}
-                                    disabled={actionLoading === leave.id}
-                                >
-                                    <Text style={styles.rejectButtonText}>Reject</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.approveButton]}
-                                    onPress={() => handleAction(leave.id, 'Approve')}
-                                    disabled={actionLoading === leave.id}
-                                >
-                                    <Text style={styles.approveButtonText}>Approve</Text>
-                                </TouchableOpacity>
-                            </View>
+                <ScrollView contentContainerStyle={styles.listContainer}>
+                    {leaves.length === 0 ? (
+                        <View style={styles.emptyContainer}>
+                            <Text style={styles.emptyText}>No pending requests</Text>
                         </View>
-                    ))
-                )}
-            </ScrollView>
+                    ) : (
+                        leaves.map((leave, index) => (
+                            <View key={index} style={styles.card}>
+                                <View style={styles.cardHeader}>
+                                    <View>
+                                        <Text style={styles.employeeName}>{leave.employee_name}</Text>
+                                        <Text style={styles.employeeId}>ID: {leave.employee_id}</Text>
+                                    </View>
+                                    <View style={[styles.typeBadge, { backgroundColor: getStatusColor(leave.type) + '20' }]}>
+                                        <Text style={[styles.typeText, { color: getStatusColor(leave.type) }]}>
+                                            {leave.type.toUpperCase()}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={styles.datesRow}>
+                                    <Text style={styles.dateText}>
+                                        {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} to ${leave.toDate}`}
+                                    </Text>
+                                    <Text style={styles.daysText}>{leave.days} Day{leave.days > 1 ? 's' : ''}</Text>
+                                </View>
+
+                                <Text style={styles.reasonText} numberOfLines={2}>
+                                    {leave.reason}
+                                </Text>
+
+                                <View style={styles.actionsRow}>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.rejectButton]}
+                                        onPress={() => handleAction(leave.id, 'Reject')}
+                                        disabled={actionLoading === leave.id}
+                                    >
+                                        <Text style={styles.rejectButtonText}>Reject</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.approveButton]}
+                                        onPress={() => handleAction(leave.id, 'Approve')}
+                                        disabled={actionLoading === leave.id}
+                                    >
+                                        <Text style={styles.approveButtonText}>Approve</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        ))
+                    )}
+                </ScrollView>
+            )}
         </View>
     );
 };

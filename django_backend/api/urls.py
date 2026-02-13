@@ -1,7 +1,12 @@
 from django.urls import path
-from . import views, team_views, leave_views, attendance_views, feed_views
+from django.http import HttpResponse
+from . import views, team_views, leave_views, attendance_views, feed_views, wfh_views
 
 urlpatterns = [
+    # Critical email actions
+    path('wfh/email-action/<int:request_id>/<str:action>/', wfh_views.email_wfh_action, name='email-wfh-action'),
+    path('leaves/email-action/<int:request_id>/<str:action>/', leave_views.email_leave_action, name='email-leave-action'),
+
     # Auth
     path('auth/login/', views.login, name='login'),
     path('auth/send-otp/', views.send_otp, name='send_otp'),
@@ -50,4 +55,13 @@ urlpatterns = [
     path('posts/<int:post_id>/comment', feed_views.add_comment),
     path('posts/<int:post_id>/comment/<int:comment_id>/', feed_views.delete_comment, name='delete-comment'),
     path('posts/<int:post_id>/comment/<int:comment_id>', feed_views.delete_comment),
+    path('posts/<int:post_id>/comment/<int:comment_id>', feed_views.delete_comment),
+
+    # Work From Home
+    path('wfh/apply/', wfh_views.apply_wfh, name='apply-wfh'),
+    path('wfh/pending/', wfh_views.get_pending_wfh, name='get-pending-wfh'),
+    path('wfh/requests/<str:employee_id>/', wfh_views.get_wfh_requests, name='get-wfh-requests'),
+    path('wfh/<int:request_id>/action/', wfh_views.wfh_action, name='wfh-action'),
+    path('wfh/email-action/<int:request_id>/<str:action>/', wfh_views.email_wfh_action, name='email-wfh-action'),
+    path('api-ping/', lambda r: HttpResponse('api-pong')),
 ]
