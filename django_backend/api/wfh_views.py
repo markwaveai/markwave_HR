@@ -216,14 +216,24 @@ def email_wfh_action(request, request_id, action):
         wfh_request = WorkFromHome.objects.get(pk=request_id)
         
         if wfh_request.status != 'Pending':
-             return HttpResponse(f"<h2>Request already {wfh_request.status}</h2>", content_type="text/html")
+            return HttpResponse(f"""
+                <div style="font-family: sans-serif; text-align: center; padding-top: 100px;">
+                    <div style="font-size: 60px; margin-bottom: 20px;">ℹ️</div>
+                    <h2 style="color: #334155;">Request Already Processed</h2>
+                    <p style="color: #64748b;">This WFH request has already been marked as <strong>{wfh_request.status}</strong>.</p>
+                </div>
+            """, content_type="text/html")
 
         if action == 'approve':
             wfh_request.status = 'Approved'
             status_text = "Approved"
+            color = "#10b981"
+            icon = "✓"
         elif action == 'reject':
             wfh_request.status = 'Rejected'
             status_text = "Rejected"
+            color = "#ef4444"
+            icon = "✕"
         else:
             return HttpResponse("<h2>Invalid action.</h2>", content_type="text/html")
             
@@ -232,7 +242,88 @@ def email_wfh_action(request, request_id, action):
         # Notify Employee
         threading.Thread(target=send_wfh_status_notification_to_employee, args=(wfh_request,)).start()
 
-        return HttpResponse(f"<h2>WFH Request {status_text} Successfully</h2>", content_type="text/html")
+        html_response = f"""
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>WFH {status_text}</title>
+                <style>
+                    body {{
+                        margin: 0;
+                        padding: 0;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        min-height: 100vh;
+                        background-color: #f8fafc;
+                        font-family: 'Inter', -apple-system, system-ui, sans-serif;
+                    }}
+                    .card {{
+                        background: white;
+                        padding: 40px;
+                        border-radius: 20px;
+                        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+                        text-align: center;
+                        max-width: 400px;
+                        width: 90%;
+                        animation: slideUp 0.5s ease-out;
+                    }}
+                    @keyframes slideUp {{
+                        from {{ transform: translateY(20px); opacity: 0; }}
+                        to {{ transform: translateY(0); opacity: 1; }}
+                    }}
+                    .icon-circle {{
+                        width: 80px;
+                        height: 80px;
+                        background-color: {color};
+                        color: white;
+                        border-radius: 50%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        font-size: 40px;
+                        margin: 0 auto 24px;
+                    }}
+                    h1 {{
+                        color: #1e293b;
+                        margin: 0 0 8px;
+                        font-size: 24px;
+                        font-weight: 800;
+                    }}
+                    p {{
+                        color: #64748b;
+                        margin: 0;
+                        font-size: 16px;
+                    }}
+                    .footer {{
+                        margin-top: 32px;
+                        padding-top: 24px;
+                        border-top: 1px solid #f1f5f9;
+                        font-size: 12px;
+                        color: #94a3b8;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <div class="icon-circle">{icon}</div>
+                    <h1>WFH {status_text}</h1>
+                    <p>The WFH request has been successfully updated.</p>
+                    <div class="footer">
+                        You can close this window now.
+                    </div>
+                </div>
+                <script>
+                    setTimeout(function() {{
+                        window.close();
+                    }}, 3000);
+                </script>
+            </body>
+        </html>
+        """
+        return HttpResponse(html_response, content_type="text/html")
     except WorkFromHome.DoesNotExist:
         return HttpResponse("<h2>Request not found.</h2>", content_type="text/html")
     except Exception as e:
