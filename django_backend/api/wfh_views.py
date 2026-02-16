@@ -35,7 +35,20 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
                     if target and target.email:
                         recipient_emails.append(target.email)
 
-        # Fallback to Admin if no recipients found
+        # 1. Automatically add Team Managers
+        if employee.teams.exists():
+            for team in employee.teams.all():
+                if team.manager and team.manager.email and team.manager.email not in recipient_emails:
+                    recipient_emails.append(team.manager.email)
+
+        # 2. Add Project Managers fallback if still empty
+        if not recipient_emails:
+            pms = Employees.objects.filter(Q(role__icontains='Project Manager') | Q(role__icontains='Manager'))
+            for pm in pms:
+                if pm.email and pm.email not in recipient_emails:
+                    recipient_emails.append(pm.email)
+
+        # 3. Fallback to Admin if no recipients found
         if not recipient_emails:
             admin = Employees.objects.filter(role__icontains='Admin').first()
             if admin and admin.email:

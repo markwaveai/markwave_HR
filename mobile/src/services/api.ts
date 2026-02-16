@@ -2,10 +2,8 @@ import { API_BASE_URL } from '../config';
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
     const url = `${API_BASE_URL}${endpoint}`;
-
-
 
     try {
         const response = await fetch(url, {
@@ -19,10 +17,9 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
 
         clearTimeout(timeoutId);
 
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.log(`API Error (${response.status}) body:`, errorText);
+            console.log(`API Error (${response.status}) [${url}]:`, errorText);
 
             let errorData = {};
             try {
@@ -32,7 +29,7 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
             }
 
             // @ts-ignore
-            const msg = errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}\nURL: ${url}\n${errorText.substring(0, 100)}`;
+            const msg = errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}`;
             throw new Error(msg);
         }
 
@@ -40,10 +37,10 @@ const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     } catch (error: any) {
         clearTimeout(timeoutId);
         if (error.name === 'AbortError') {
-            console.log(`Request timed out: ${endpoint}`);
+            console.log(`Request timed out [${url}]`);
             throw new Error('Request timed out. Please check your connection.');
         }
-        console.log(`Fetch error for ${API_BASE_URL}${endpoint}:`, error instanceof Error ? error.message : JSON.stringify(error));
+        console.log(`Fetch error [${url}]:`, error instanceof Error ? error.message : JSON.stringify(error));
         throw error;
     }
 };

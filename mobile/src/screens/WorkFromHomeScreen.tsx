@@ -208,11 +208,13 @@ const WorkFromHomeScreen = ({ user }: { user: any }) => {
                                     const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
                                     const leads = leadStr.split(',').map((s: string) => s.trim()).filter((name: string) => name && name !== 'Team Lead');
 
+                                    const managers = profile?.project_manager_name ?
+                                        profile.project_manager_name.split(',').map((m: string) => m.trim()).filter(Boolean) :
+                                        [];
+
                                     const allSuggestions = [
                                         ...leads,
-                                        profile?.project_manager_name,
-                                        profile?.advisor_name,
-                                        "Admin"
+                                        ...managers
                                     ];
 
                                     const uniqueSuggestions = Array.from(new Set(allSuggestions))

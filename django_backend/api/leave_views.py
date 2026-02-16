@@ -71,6 +71,26 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
                     if target and target.email:
                         recipient_emails.append(target.email)
 
+        # 1. Automatically add Team Managers
+        if employee.teams.exists():
+            for team in employee.teams.all():
+                if team.manager and team.manager.email and team.manager.email not in recipient_emails:
+                    recipient_emails.append(team.manager.email)
+        
+        # 2. Add Project Managers fallback if still empty
+        if not recipient_emails:
+            from django.db.models import Q
+            pms = Employees.objects.filter(Q(role__icontains='Project Manager') | Q(role__icontains='Manager'))
+            for pm in pms:
+                if pm.email and pm.email not in recipient_emails:
+                    recipient_emails.append(pm.email)
+
+        # 3. Final fallback to Admin
+        if not recipient_emails:
+            admin = Employees.objects.filter(role__icontains='Admin').first()
+            if admin and admin.email:
+                recipient_emails.append(admin.email)
+
         # Send HTML Email
         if recipient_emails:
             subject = f"Leave Request - {employee.first_name} {employee.last_name}({employee.employee_id})"

@@ -168,12 +168,9 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                                     }
                                 }
 
-                                if (profile?.project_manager_name) suggestions.push(profile.project_manager_name);
-                                if (profile?.advisor_name) suggestions.push(profile.advisor_name);
-
-                                // Add Admin as a suggestion if not present
-                                if (!suggestions.some(s => s.toLowerCase().includes('admin'))) {
-                                    suggestions.push("Admin");
+                                if (profile?.project_manager_name) {
+                                    const managers = profile.project_manager_name.split(',').map(m => m.trim()).filter(Boolean);
+                                    suggestions.push(...managers);
                                 }
 
                                 return [...new Set(suggestions)]

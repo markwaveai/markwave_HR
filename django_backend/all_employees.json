@@ -1,0 +1,348 @@
+[
+  {
+    "id": "MWI028",
+    "name": "Pothuraju venkata naga srinivas",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "1244",
+    "name": "1244 13457",
+    "role": "Backend Developer",
+    "manages": []
+  },
+  {
+    "id": "MW1019",
+    "name": "Kaveripakam Sai Litesh",
+    "role": "UI/UX Designer",
+    "manages": []
+  },
+  {
+    "id": "MWI013",
+    "name": "Billuri Teja Sri Ram",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI008",
+    "name": "Dasari Sai Teja",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1017",
+    "name": "Sailaja Mandela",
+    "role": "Software Engineer",
+    "manages": []
+  },
+  {
+    "id": "MWI018",
+    "name": "Saladi Anjali",
+    "role": "Intern",
+    "manages": [
+      "Test"
+    ]
+  },
+  {
+    "id": "MWI019",
+    "name": "Gonti Akshitha",
+    "role": "Software Engineer",
+    "manages": []
+  },
+  {
+    "id": "MWI010",
+    "name": "Addanki Murali Mohan",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI025",
+    "name": "Lagadapati Vineela",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI022",
+    "name": "Karnool ArunKrishna",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI029",
+    "name": "Eswarkondababu Atapakula",
+    "role": "Intern",
+    "manages": [
+      "Team Eswarkondababu"
+    ]
+  },
+  {
+    "id": "MWI009",
+    "name": "Thota Naga Lohitha",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1014",
+    "name": "Muddangala Srikrishna",
+    "role": "Team Lead",
+    "manages": [
+      "Team Srikrishna"
+    ]
+  },
+  {
+    "id": "MW1016",
+    "name": "Sreenivasulu Chilakuri",
+    "role": "Software Engineer",
+    "manages": []
+  },
+  {
+    "id": "MWI014",
+    "name": "Buddaraju Baby prathyusha",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI015",
+    "name": "Nooka Ramakrishna Reddy",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI002",
+    "name": "Villa Sai Sudhakar",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI031",
+    "name": "Pasupuleti Bharatwaj Teja",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI030",
+    "name": "Buddaraju Dinesh varma",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1011",
+    "name": "Kunapareddy Satyanarayana",
+    "role": "Advisor-Technology & Operations",
+    "manages": []
+  },
+  {
+    "id": "MWI023",
+    "name": "Madireddy Nikitha",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI026",
+    "name": "Seelam Veda Samhitha",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1020",
+    "name": "Vithanala Satish Kumar",
+    "role": "Software Engineer",
+    "manages": [
+      "Team Satish"
+    ]
+  },
+  {
+    "id": "MWI0006",
+    "name": "pavani Obul Reddy",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI006",
+    "name": "Gunje Lavanya",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI017",
+    "name": "Jalapally Sindhuja",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1013",
+    "name": "Mamidisetti Umasankar",
+    "role": "Team Lead",
+    "manages": [
+      "Team Umasankar"
+    ]
+  },
+  {
+    "id": "MWI0051",
+    "name": "pavani Obul Reddy",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1018",
+    "name": "Athicomsetti N B Gopi Chand",
+    "role": "Software Engineer",
+    "manages": [
+      "Team Gopi Chand"
+    ]
+  },
+  {
+    "id": "MW1053",
+    "name": "Madunala Lavanya",
+    "role": "Maid",
+    "manages": []
+  },
+  {
+    "id": "MWI0055",
+    "name": "Gupta nk",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI005",
+    "name": "Obul Reddy Pavani",
+    "role": "Manager",
+    "manages": []
+  },
+  {
+    "id": "MWI020",
+    "name": "Pamulapati Bhargav",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI016",
+    "name": "Kotha Rashmitha",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI001",
+    "name": "Chinthakuntla Sudheer kumar reddy",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1012",
+    "name": "Bandari Srikanth",
+    "role": "Office Boy",
+    "manages": []
+  },
+  {
+    "id": "MWI011",
+    "name": "Modem Soumya",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1015",
+    "name": "Rajesh balam",
+    "role": "Project Manager",
+    "manages": []
+  },
+  {
+    "id": "MWI004",
+    "name": "Tulava Yamini Vasantha Lakshmi",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI003",
+    "name": "Vanam Meghana",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1023",
+    "name": "Dommati Mahesh",
+    "role": "UI/UX Designer",
+    "manages": [
+      "Team Mahesh"
+    ]
+  },
+  {
+    "id": "MW1052",
+    "name": "Bhuma Harshitha",
+    "role": "Testing Engineer",
+    "manages": []
+  },
+  {
+    "id": "MWI021",
+    "name": "Polakala Siva Jyothi",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI024",
+    "name": "Ravuluru Divya sree",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MWI027",
+    "name": "Chittimenu Lakshman",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "mw1000",
+    "name": "pavani obul Reddy",
+    "role": "Backend Developer",
+    "manages": []
+  },
+  {
+    "id": "MW1021",
+    "name": "Atttuluri Varasaisri",
+    "role": "Graphic Designer",
+    "manages": []
+  },
+  {
+    "id": "MWI032",
+    "name": "Dusanapudi Nandhini Lakshmi",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "mw1009",
+    "name": "pavan p",
+    "role": "Intern",
+    "manages": []
+  },
+  {
+    "id": "MW1024",
+    "name": "Guna Sivaram",
+    "role": "Digital Marketer(Intern)",
+    "manages": []
+  },
+  {
+    "id": null,
+    "name": "Ontipuli Kalyan",
+    "role": "Backend Developer",
+    "manages": []
+  },
+  {
+    "id": null,
+    "name": "Sheikh Asif Ali",
+    "role": "Software Engineer",
+    "manages": []
+  },
+  {
+    "id": "MWI012",
+    "name": "Amudalapalli Bhavani bhoga linga chari",
+    "role": "Administrator",
+    "manages": [
+      "Team Chari"
+    ]
+  },
+  {
+    "id": "MWI007",
+    "name": "Battu Sai Kumar",
+    "role": "Intern",
+    "manages": []
+  }
+]

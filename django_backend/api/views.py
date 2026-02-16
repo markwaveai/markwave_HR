@@ -158,7 +158,9 @@ def verify_otp(request):
                     return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
 
                 # Fetch dynamic managers
-                pm = Employees.objects.filter(role='Project Manager').first()
+                from django.db.models import Q
+                managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager'))
+                manager_names = ", ".join([f"{m.first_name} {m.last_name or ''}".strip() for m in managers])
                 advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
 
                 return Response({
@@ -179,10 +181,10 @@ def verify_otp(request):
                         'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
                         'team_name': ", ".join([t.name for t in emp.teams.all()]) or "No Team",
                         'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-                        'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager]) or "Team Lead",
+                        'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
                         'is_admin': getattr(emp, 'is_admin', False),
-                        'project_manager_name': f"{pm.first_name} {pm.last_name or ''}".strip() if pm else None,
+                        'project_manager_name': manager_names,
                         'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
                     }
                 })
@@ -212,7 +214,9 @@ def get_profile(request, employee_id):
             return Response({'error': 'User not found'}, status=404)
             
         # Fetch dynamic managers
-        pm = Employees.objects.filter(role='Project Manager').first()
+        from django.db.models import Q
+        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager'))
+        manager_names = ", ".join([f"{m.first_name} {m.last_name or ''}".strip() for m in managers])
         advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
         
         return Response({
@@ -231,11 +235,11 @@ def get_profile(request, employee_id):
             'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
             'team_name': ", ".join([t.name for t in emp.teams.all()]) or "No Team",
             'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-            'team_leads': [f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager],
-            'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager]) or "Team Lead",
+            'team_leads': [f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern'],
+            'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': getattr(emp, 'is_admin', False),
-            'project_manager_name': f"{pm.first_name} {pm.last_name or ''}".strip() if pm else None,
+            'project_manager_name': manager_names,
             'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
         })
     except Exception as e:
@@ -329,7 +333,9 @@ def verify_email_otp(request):
             return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
 
         # Fetch dynamic managers
-        pm = Employees.objects.filter(role='Project Manager').first()
+        from django.db.models import Q
+        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager'))
+        manager_names = ", ".join([f"{m.first_name} {m.last_name or ''}".strip() for m in managers])
         advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
 
         return Response({
@@ -350,10 +356,10 @@ def verify_email_otp(request):
                 'team_ids': ",".join([str(t.id) for t in employee.teams.all()]),
                 'team_name': ", ".join([t.name for t in employee.teams.all()]) or "No Team",
                 'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(employee.teams.all()) + list(Teams.objects.filter(manager=employee)))],
-                'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager]) or "Team Lead",
+                'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
                 'is_admin': getattr(employee, 'is_admin', False),
-                'project_manager_name': f"{pm.first_name} {pm.last_name or ''}".strip() if pm else None,
+                'project_manager_name': manager_names,
                 'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
             }
         })
