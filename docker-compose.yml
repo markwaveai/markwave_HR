@@ -4,7 +4,7 @@ services:
     container_name: keka_postgres
     restart: always
     env_file:
-      - ./django_backend/.env
+      - /opt/hr_markwave/.env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -20,7 +20,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - ./django_backend/.env
+      - /opt/hr_markwave/.env
     depends_on:
       - postgres
 
