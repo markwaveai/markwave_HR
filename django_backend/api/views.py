@@ -1,5 +1,6 @@
 import re
 import traceback
+import os
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
@@ -90,9 +91,10 @@ def send_otp(request):
             "message": f"Your MarkwaveHR login OTP is: {otp}"
         }
 
-        # DEBUG MODE: Skip WhatsApp in development
-        if settings.DEBUG:
-            print(f"[OTP DEBUG] ⚠️ DEBUG MODE: Skipping WhatsApp send")
+        # OTP_DEBUG MODE: Skip WhatsApp in development (controlled by OTP_DEBUG env var)
+        otp_debug_mode = os.getenv('OTP_DEBUG', 'False') == 'True'
+        if otp_debug_mode:
+            print(f"[OTP DEBUG] ⚠️ OTP_DEBUG MODE: Skipping WhatsApp send")
             print(f"[OTP DEBUG] ✅ OTP for {phone}: {otp}")
             print(f"[OTP DEBUG] Use this OTP to login in the mobile app")
             return Response({'success': True, 'message': 'OTP sent successfully (DEBUG MODE - check console)'})

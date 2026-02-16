@@ -15,7 +15,7 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
     try:
         from .utils import send_email_via_api
         
-        # Parse notifyTo names and find emails
+        # Parse notifyTo names and find emails - ONLY send to explicitly selected recipients
         recipient_emails = []
         if notify_to_str:
             names = [n.strip() for n in notify_to_str.split(',') if n.strip()]
@@ -35,27 +35,9 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
                     if target and target.email:
                         recipient_emails.append(target.email)
 
-        # 1. Automatically add Team Managers
-        if employee.teams.exists():
-            for team in employee.teams.all():
-                if team.manager and team.manager.email and team.manager.email not in recipient_emails:
-                    recipient_emails.append(team.manager.email)
-
-        # 2. Add Project Managers fallback if still empty
+        # If no recipients were selected, don't send any email
         if not recipient_emails:
-            pms = Employees.objects.filter(Q(role__icontains='Project Manager') | Q(role__icontains='Manager'))
-            for pm in pms:
-                if pm.email and pm.email not in recipient_emails:
-                    recipient_emails.append(pm.email)
-
-        # 3. Fallback to Admin if no recipients found
-        if not recipient_emails:
-            admin = Employees.objects.filter(role__icontains='Admin').first()
-            if admin and admin.email:
-                recipient_emails.append(admin.email)
-
-        if not recipient_emails:
-            print("No recipient emails found for WFH notification")
+            print(f"No recipients selected for WFH notification for {employee.first_name} {employee.last_name}")
             return
 
         subject = f"WFH Request - {employee.first_name} {employee.last_name} ({employee.employee_id})"
@@ -110,7 +92,9 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
                 </table>
                 
                 <p style="font-size: 12px; color: #999999; text-align: center; margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #eeeeee;">
-                    This is an automated notification from MarkwaveHR.<br>
+                    <strong>This email notification regarding the Work From Home request has been sent only to the designated approver.</strong><br>
+                    Only the assigned person is required to review and take action.<br><br>
+                    If you are not the intended recipient, please ignore this email.<br>
                     Clicking Approve or Reject will immediately update the WFH status.
                 </p>
             </td>
