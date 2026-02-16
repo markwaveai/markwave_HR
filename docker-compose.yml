@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:15
     container_name: keka_postgres
+    command: postgres -c max_connections=200
     restart: always
     env_file:
       - /opt/hr_markwave/.env

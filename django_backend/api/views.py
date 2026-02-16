@@ -113,7 +113,11 @@ def send_otp(request):
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return Response({'error': f"Internal Server Error: {str(e)}"}, status=500)
+        # Handle specific DB connection errors
+        error_msg = str(e)
+        if "too many clients" in error_msg or "connection to server" in error_msg:
+            return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'error': f"Internal Server Error: {error_msg}"}, status=500)
 
 @api_view(['POST'])
 def verify_otp(request):
@@ -190,7 +194,10 @@ def verify_otp(request):
                 })
         return Response({'error': 'User not found'}, status=404)
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        error_msg = str(e)
+        if "too many clients" in error_msg or "connection to server" in error_msg:
+            return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'error': error_msg}, status=500)
 
 @api_view(['GET'])
 def get_profile(request, employee_id):
@@ -243,50 +250,59 @@ def get_profile(request, employee_id):
             'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        error_msg = str(e)
+        if "too many clients" in error_msg or "connection to server" in error_msg:
+            return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'error': error_msg}, status=500)
 
 from .utils import send_email_via_api
 from .models import EmailOTPStore
 
 @api_view(['POST'])
 def send_email_otp(request):
-    email = request.data.get('email')
-    if not email:
-        return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Check if user exists with this email
-    user_exists = False
-    if email == 'admin@markwave.com':
-        user_exists = True
-    else:
-        # Case insensitive email check might be better but for now match exact or lowercase
-        for emp in Employees.objects.all():
-            if emp.email and emp.email.lower() == email.lower():
-                user_exists = True
-                break
-    
-    if not user_exists:
-        return Response({'error': 'User not found with this email'}, status=status.HTTP_404_NOT_FOUND)
+        # Check if user exists with this email
+        user_exists = False
+        if email == 'admin@markwave.com':
+            user_exists = True
+        else:
+            # Case insensitive email check might be better but for now match exact or lowercase
+            for emp in Employees.objects.all():
+                if emp.email and emp.email.lower() == email.lower():
+                    user_exists = True
+                    break
+        
+        if not user_exists:
+            return Response({'error': 'User not found with this email'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Check for inactive status
-    if email != 'admin@markwave.com':
-        inactive_check = Employees.objects.filter(email__iexact=email, status='Inactive').exists()
-        if inactive_check:
-            return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+        # Check for inactive status
+        if email != 'admin@markwave.com':
+            inactive_check = Employees.objects.filter(email__iexact=email, status='Inactive').exists()
+            if inactive_check:
+                return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
 
-    otp = str(random.randint(100000, 999999))
-    # Use EmailOTPStore for email OTPs
-    EmailOTPStore.objects.create(email=email, otp=otp, created_at=timezone.now())
+        otp = str(random.randint(100000, 999999))
+        # Use EmailOTPStore for email OTPs
+        EmailOTPStore.objects.create(email=email, otp=otp, created_at=timezone.now())
 
-    subject = "MarkwaveHR Login OTP"
-    body = f"<h1>Your MarkwaveHR login OTP is: {otp}</h1>"
-    
-    success, result = send_email_via_api(email, subject, body)
-    
-    if success:
-        return Response({'success': True, 'message': 'OTP sent successfully to email'})
-    else:
-        return Response({'error': f'Failed to send email: {result}'}, status=500)
+        subject = "MarkwaveHR Login OTP"
+        body = f"<h1>Your MarkwaveHR login OTP is: {otp}</h1>"
+        
+        success, result = send_email_via_api(email, subject, body)
+        
+        if success:
+            return Response({'success': True, 'message': 'OTP sent successfully to email'})
+        else:
+            return Response({'error': f'Failed to send email: {result}'}, status=500)
+    except Exception as e:
+        error_msg = str(e)
+        if "too many clients" in error_msg or "connection to server" in error_msg:
+            return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'error': f'Internal Server Error: {error_msg}'}, status=500)
 
 @api_view(['POST'])
 def verify_email_otp(request):
@@ -364,4 +380,7 @@ def verify_email_otp(request):
             }
         })
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        error_msg = str(e)
+        if "too many clients" in error_msg or "connection to server" in error_msg:
+            return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response({'error': error_msg}, status=500)

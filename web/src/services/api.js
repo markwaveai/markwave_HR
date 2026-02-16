@@ -14,9 +14,17 @@ const apiFetch = async (endpoint, options = {}) => {
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+        let errorData = {};
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            errorData = await response.json().catch(() => ({}));
+        } else {
+            const text = await response.text().catch(() => '');
+            errorData = { error: text || `API Error: ${response.statusText}` };
+        }
+
         const error = new Error(errorData.error || `API Error: ${response.statusText}`);
-        error.response = { data: errorData };
+        error.response = { data: errorData, status: response.status };
         throw error;
     }
 
