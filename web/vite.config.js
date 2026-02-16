@@ -9,9 +9,11 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port: 5173,
-      allowedHosts: env.VITE_ALLOWED_HOSTS
-        ? env.VITE_ALLOWED_HOSTS.split(',')
-        : 'all'
+      allowedHosts: [
+        'hr.markwave.ai',
+        'localhost',
+        '127.0.0.1'
+      ]
     }
   }
 })
