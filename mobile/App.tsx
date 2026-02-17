@@ -50,13 +50,14 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MeScreen from './src/screens/MeScreen';
 import LeaveScreen from './src/screens/LeaveScreen';
-import { HomeIcon, UserIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon } from './src/components/Icons';
+import { LayoutGridIcon, UserIcon, UserPlusIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon } from './src/components/Icons';
 
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import TeamManagementScreen from './src/screens/TeamManagementScreen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import ProfileModal from './src/components/ProfileModal';
+import { authApi } from './src/services/api';
 
 /* ... existing interfaces ... */
 
@@ -89,8 +90,10 @@ const DrawerItem = ({ title, icon, isActive, onPress }: { title: string, icon: a
     style={[styles.drawerItem, isActive && styles.drawerItemActive]}
     onPress={onPress}
   >
-    {icon}
-    <Text style={[styles.drawerItemText, isActive && styles.drawerItemTextActive]}>{title}</Text>
+    <View style={{ flexShrink: 0 }}>
+      {icon}
+    </View>
+    <Text style={[styles.drawerItemText, isActive && styles.drawerItemTextActive]} numberOfLines={1} ellipsizeMode="tail">{title}</Text>
   </TouchableOpacity>
 );
 
@@ -113,6 +116,12 @@ function App() {
           setUser(userData);
           setIsLoggedIn(true);
         }
+
+        // Restore last active tab if user is logged in
+        const savedTab = await storage.getItem('active_tab');
+        if (savedTab && savedUser) {
+          setActiveTab(savedTab);
+        }
       } catch (e) {
         console.error('Failed to load session:', e);
       } finally {
@@ -121,6 +130,15 @@ function App() {
     };
     loadSession();
   }, []);
+
+  // Save activeTab to storage whenever it changes
+  useEffect(() => {
+    if (isLoggedIn) {
+      storage.setItem('active_tab', activeTab).catch(e => {
+        console.error('Failed to save active tab:', e);
+      });
+    }
+  }, [activeTab, isLoggedIn]);
 
   const handleLogin = async (userData: any) => {
     try {
@@ -133,6 +151,37 @@ function App() {
     }
   };
 
+  // Refresh user profile in background when logged in
+  useEffect(() => {
+    if (isLoggedIn && user?.employee_id) {
+      const refreshProfile = async () => {
+        try {
+          // Skip refresh for offline admin or incomplete sessions
+          if (user.employee_id === 'MW-ADMIN') return;
+
+          console.log('Refreshing user profile...', user.employee_id);
+          const profileData = await authApi.getProfile(user.employee_id);
+
+          if (profileData && (profileData.employee_id || profileData.id)) {
+            // profileData is the user object from get_profile view
+            const updatedUser = { ...user, ...profileData };
+
+            // Only update if there are changes to avoid unnecessary re-renders
+            if (JSON.stringify(updatedUser) !== JSON.stringify(user)) {
+              console.log('Profile updated from backend. Role:', updatedUser.role);
+              setUser(updatedUser);
+              await storage.setItem('user_session', JSON.stringify(updatedUser)); // Update cache
+            }
+          }
+        } catch (e) {
+          console.log('Background profile refresh failed:', e);
+        }
+      };
+
+      refreshProfile();
+    }
+  }, [isLoggedIn]); // Run when login status changes
+
   const handleLogoutPress = () => {
     setModalVisible(true);
   };
@@ -140,6 +189,7 @@ function App() {
   const confirmLogout = async () => {
     try {
       await storage.removeItem('user_session');
+      await storage.removeItem('active_tab');
       setIsLoggedIn(false);
       setUser(null);
       setActiveTab('Home');
@@ -204,21 +254,21 @@ function App() {
 
                 <ScrollView style={styles.drawerNav}>
                   <DrawerItem
-                    title="Home"
-                    icon={<HomeIcon color={activeTab === 'Home' ? '#48327d' : '#64748b'} size={24} />}
+                    title="Dashboard"
+                    icon={<LayoutGridIcon color={activeTab === 'Home' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Home'}
                     onPress={() => { setActiveTab('Home'); setIsDrawerVisible(false); }}
                   />
                   <DrawerItem
                     title="Me"
-                    icon={<UserIcon color={activeTab === 'Me' ? '#48327d' : '#64748b'} size={24} />}
+                    icon={<UserIcon color={activeTab === 'Me' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Me'}
                     onPress={() => { setActiveTab('Me'); setIsDrawerVisible(false); }}
                   />
                   {isAdmin && (
                     <DrawerItem
-                      title="Employees"
-                      icon={<UsersIcon color={activeTab === 'Employees' ? '#48327d' : '#64748b'} size={24} />}
+                      title="Employee Management"
+                      icon={<UserPlusIcon color={activeTab === 'Employees' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Employees'}
                       onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
                     />
@@ -226,14 +276,14 @@ function App() {
                   {isAdmin ? (
                     <DrawerItem
                       title="Team Management"
-                      icon={<BuildingIcon color={activeTab === 'Teams' ? '#48327d' : '#64748b'} size={24} />}
+                      icon={<UsersIcon color={activeTab === 'Teams' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Teams'}
                       onPress={() => { setActiveTab('Teams'); setIsDrawerVisible(false); }}
                     />
                   ) : (
                     <DrawerItem
-                      title="Team"
-                      icon={<UsersIcon color={activeTab === 'Team' ? '#48327d' : '#64748b'} size={24} />}
+                      title="My Team"
+                      icon={<UsersIcon color={activeTab === 'Team' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Team'}
                       onPress={() => { setActiveTab('Team'); setIsDrawerVisible(false); }}
                     />
@@ -241,21 +291,21 @@ function App() {
                   {isAdmin ? (
                     <DrawerItem
                       title="Leave Management"
-                      icon={<CalendarIcon color={activeTab === 'AdminLeave' ? '#48327d' : '#64748b'} size={24} />}
+                      icon={<CalendarIcon color={activeTab === 'AdminLeave' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'AdminLeave'}
                       onPress={() => { setActiveTab('AdminLeave'); setIsDrawerVisible(false); }}
                     />
                   ) : (
                     <DrawerItem
-                      title="Leaves"
-                      icon={<CalendarIcon color={activeTab === 'Menu' ? '#48327d' : '#64748b'} size={24} />}
+                      title="Leave & Attendance"
+                      icon={<CalendarIcon color={activeTab === 'Menu' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Menu'}
                       onPress={() => { setActiveTab('Menu'); setIsDrawerVisible(false); }}
                     />
                   )}
                   <DrawerItem
                     title="Settings"
-                    icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#64748b'} size={24} />}
+                    icon={<SettingsIcon color={activeTab === 'Settings' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Settings'}
                     onPress={() => { setActiveTab('Settings'); setIsDrawerVisible(false); }}
                   />
@@ -680,7 +730,7 @@ const styles = StyleSheet.create({
   drawerContent: {
     width: '75%',
     height: '100%',
-    backgroundColor: 'white',
+    backgroundColor: '#48327d',
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingHorizontal: 20,
     shadowColor: '#000',
@@ -696,13 +746,13 @@ const styles = StyleSheet.create({
     marginBottom: 40,
     paddingBottom: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: 'rgba(255,255,255,0.1)',
   },
   drawerAvatar: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#48327d',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -714,11 +764,11 @@ const styles = StyleSheet.create({
   drawerUserName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#0f172a',
+    color: 'white',
   },
   drawerUserRole: {
     fontSize: 14,
-    color: '#64748b',
+    color: '#cbd5e1',
   },
   drawerNav: {
     flex: 1,
@@ -732,26 +782,27 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   drawerItemActive: {
-    backgroundColor: '#f3e8ff',
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
   drawerItemText: {
+    flex: 1,
     fontSize: 16,
-    fontWeight: '600',
-    color: '#64748b',
+    fontWeight: '700',
+    color: '#cbd5e1',
     marginLeft: 15,
   },
   drawerItemTextActive: {
-    color: '#48327d',
+    color: 'white',
   },
   logoutBtn: {
     marginTop: 'auto',
     marginBottom: 40,
     paddingVertical: 15,
     borderTopWidth: 1,
-    borderTopColor: '#f1f5f9',
+    borderTopColor: 'rgba(255,255,255,0.1)',
   },
   logoutText: {
-    color: '#ef4444',
+    color: '#ff9999',
     fontSize: 16,
     fontWeight: 'bold',
     textAlign: 'center',

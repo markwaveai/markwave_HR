@@ -169,8 +169,8 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 </View>
             </View>
 
-            <View style={styles.rowSection}>
-                <View style={[styles.section, { flex: 1, minWidth: 160 }]}>
+            <View style={styles.verticalSection}>
+                <View style={styles.section}>
                     <View style={styles.sectionHeader}>
                         <View style={[styles.sectionIconBg, { backgroundColor: '#e0f2fe' }]}>
                             <BriefcaseIcon color="#0284c7" size={20} />
@@ -191,7 +191,7 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 </View>
 
                 {(user.team_name || (user.teams && user.teams.length > 0)) && (
-                    <View style={[styles.section, { flex: 1, minWidth: 160, paddingLeft: 0 }]}>
+                    <View style={styles.section}>
                         <View style={styles.sectionHeader}>
                             <View style={[styles.sectionIconBg, { backgroundColor: '#fff7ed' }]}>
                                 <UsersIcon color="#ea580c" size={20} />
@@ -341,9 +341,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         marginBottom: 24,
     },
-    rowSection: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
+    verticalSection: {
         paddingHorizontal: 0,
     },
     sectionHeader: {

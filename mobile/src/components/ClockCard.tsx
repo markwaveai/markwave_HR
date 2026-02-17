@@ -44,13 +44,13 @@ const ClockCard: React.FC<ClockCardProps> = ({
     const ampmStr = isPM ? 'PM' : 'AM';
 
     return (
-        <View style={[styles.card, isAbsent && styles.onAbsentCard]}>
+        <View style={styles.card}>
             {/* Header: Date and Status Badge */}
             <View style={styles.header}>
                 <Text style={styles.dateText}>Time Today - {dateStr}</Text>
                 {disabledReason && (
-                    <View style={[styles.badge, isAbsent && styles.onAbsentBadge]}>
-                        <Text style={[styles.badgeText, isAbsent && styles.onStatusBadgeText]}>{disabledReason.toUpperCase()}</Text>
+                    <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{disabledReason.toUpperCase()}</Text>
                     </View>
                 )}
             </View>

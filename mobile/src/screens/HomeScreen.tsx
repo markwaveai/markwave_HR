@@ -245,7 +245,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
     useEffect(() => {
         fetchData();
-        updateLocation();
+        // Location will be fetched only when user clicks check-in button
         const interval = setInterval(() => fetchData(), 30000);
         return () => clearInterval(interval);
     }, [user.id]);
@@ -365,6 +365,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     };
 
     const handleClockAction = async () => {
+        // Fetch location when user presses the button
         if (!locationState || locationState.includes('Error') || locationState.includes('Denied')) {
             await updateLocation();
         }

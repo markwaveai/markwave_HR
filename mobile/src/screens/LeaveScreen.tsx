@@ -13,6 +13,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [wfhModalVisible, setWfhModalVisible] = useState(false);
 
     // Dropdown State
     const [isTypePickerVisible, setIsTypePickerVisible] = useState(false);
@@ -326,18 +327,34 @@ const LeaveScreen = ({ user }: { user: any }) => {
                     <Text style={styles.headerTitle}>Leave & Attendance</Text>
                     <Text style={styles.headerSubtitle}>{!user?.is_admin ? 'View your leave balance' : 'Manage your time off'}</Text>
                 </View>
-                <Pressable
-                    onPress={() => {
-                        console.log('Request Leave button pressed!');
-                        setIsModalVisible(true);
-                    }}
-                    style={({ pressed }) => [
-                        styles.addButton,
-                        pressed && { opacity: 0.7 }
-                    ]}
-                >
-                    <Text style={styles.addButtonText}>+ Request Leave</Text>
-                </Pressable>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <Pressable
+                        onPress={() => {
+                            setActiveTab('leave');
+                            setIsModalVisible(true);
+                        }}
+                        style={({ pressed }) => [
+                            styles.addButton,
+                            pressed && { opacity: 0.7 },
+                            { paddingHorizontal: 12 }
+                        ]}
+                    >
+                        <Text style={styles.addButtonText}>+ LEAVE</Text>
+                    </Pressable>
+                    <Pressable
+                        onPress={() => {
+                            setActiveTab('wfh');
+                            setWfhModalVisible(true);
+                        }}
+                        style={({ pressed }) => [
+                            styles.addButton,
+                            pressed && { opacity: 0.7 },
+                            { paddingHorizontal: 12, backgroundColor: '#636e72' }
+                        ]}
+                    >
+                        <Text style={styles.addButtonText}>+ WFH</Text>
+                    </Pressable>
+                </View>
             </View>
 
 
@@ -358,7 +375,11 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
             {
                 activeTab === 'wfh' ? (
-                    <WorkFromHomeScreen user={user} />
+                    <WorkFromHomeScreen
+                        user={user}
+                        isModalVisible={wfhModalVisible}
+                        setIsModalVisible={setWfhModalVisible}
+                    />
                 ) : (
                     <>
                         <ScrollView
@@ -415,7 +436,10 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                         </TouchableOpacity>
                                     </View>
 
-                                    <ScrollView style={styles.formContainer}>
+                                    <ScrollView
+                                        style={styles.formContainer}
+                                        contentContainerStyle={{ paddingBottom: 40 }}
+                                    >
                                         {/* Leave Type Dropdown */}
                                         <Text style={styles.inputLabel}>LEAVE TYPE *</Text>
                                         <TouchableOpacity
@@ -527,10 +551,18 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                                 const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
                                                 const leads = leadStr.split(',').map((s: string) => s.trim()).filter((name: string) => name && name !== 'Team Lead');
 
+                                                const managers = profile?.project_manager_name ?
+                                                    profile.project_manager_name.split(',').map((m: string) => m.trim()).filter(Boolean) :
+                                                    [];
+
+                                                const advisors = profile?.advisor_name ?
+                                                    profile.advisor_name.split(',').map((a: string) => a.trim()).filter(Boolean) :
+                                                    [];
+
                                                 const allSuggestions = [
                                                     ...leads,
-                                                    profile?.project_manager_name,
-                                                    profile?.advisor_name
+                                                    ...managers,
+                                                    ...advisors
                                                 ];
 
                                                 // Deduplicate and filter out "Team Lead" specifically

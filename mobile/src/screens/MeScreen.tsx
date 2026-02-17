@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, Alert, FlatList, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Geolocation from 'react-native-geolocation-service';
@@ -7,6 +7,15 @@ import { ChevronDownIcon, MoreVerticalIcon, UserIcon, UsersIcon, CoffeeIcon, Umb
 import RegularizeModal from '../components/RegularizeModal';
 
 const { width } = Dimensions.get('window');
+
+const COL_WIDTHS = {
+    date: 120,
+    visual: 150,
+    inOut: 90,
+    breaks: 70,
+    hrs: 90,
+    status: 100
+};
 
 interface MeScreenProps {
     user: any;
@@ -29,9 +38,107 @@ const LiveDateTime: React.FC<{ user: any, clockStatus: any, debugInfo: any }> = 
                 {currentTime.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </Text>
             <View style={styles.debugInfoBox}>
-                <Text style={styles.debugInfoText}>ID: {user.id} | St: {clockStatus || 'UNKNOWN'}</Text>
-                <Text style={styles.debugInfoText}>LastLog: {debugInfo?.last_punch || 'None'}</Text>
+                <View style={styles.statusDotRow}>
+                    <View style={[styles.statusDot, { backgroundColor: clockStatus === 'IN' ? '#10b981' : '#94a3b8' }]} />
+                    <Text style={styles.debugInfoText}>{user.employee_id || user.id}</Text>
+                </View>
+                <Text style={styles.debugInfoSubText}>Last: {debugInfo?.last_punch ? debugInfo.last_punch.split(' ')[0] + ' ' + debugInfo.last_punch.split(' ')[1] : '--:--'}</Text>
             </View>
+        </View>
+    );
+};
+
+const ArrivalFilterDropdown: React.FC<{
+    currentFilter: string;
+    onSelect: (filter: string) => void;
+}> = ({ currentFilter, onSelect }) => {
+    const [visible, setVisible] = useState(false);
+
+    return (
+        <View style={{ width: COL_WIDTHS.status, alignItems: 'center', justifyContent: 'center' }}>
+            <TouchableOpacity
+                onPress={() => setVisible(true)}
+                activeOpacity={0.7}
+                style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 4,
+                    backgroundColor: currentFilter !== 'All' ? '#f3e8ff' : 'transparent',
+                    paddingVertical: 6,
+                    paddingHorizontal: 8,
+                    borderRadius: 6,
+                    borderWidth: 1,
+                    borderColor: currentFilter !== 'All' ? '#48327d20' : 'rgba(0,0,0,0.05)'
+                }}
+            >
+                <Text style={{
+                    color: currentFilter !== 'All' ? '#48327d' : '#334155',
+                    fontWeight: '900',
+                    fontSize: 9,
+                    letterSpacing: 0.5
+                }}>
+                    {currentFilter === 'All' ? 'ARRIVAL' : currentFilter.toUpperCase()}
+                </Text>
+                <ChevronDownIcon size={10} color={currentFilter !== 'All' ? '#48327d' : '#334155'} />
+            </TouchableOpacity>
+
+            <Modal
+                transparent
+                visible={visible}
+                animationType="fade"
+                onRequestClose={() => setVisible(false)}
+            >
+                <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' }}
+                    activeOpacity={1}
+                    onPress={() => setVisible(false)}
+                >
+                    <View style={{
+                        width: 200,
+                        backgroundColor: 'white',
+                        borderRadius: 16,
+                        padding: 12,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 10 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 20,
+                        elevation: 15,
+                        borderWidth: 1,
+                        borderColor: '#f1f5f9'
+                    }}>
+                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#94a3b8', textAlign: 'center', marginBottom: 12, marginTop: 4, textTransform: 'uppercase', letterSpacing: 1 }}>Filter by Arrival</Text>
+                        {['All', 'Early', 'On Time', 'Late'].map((opt) => (
+                            <TouchableOpacity
+                                key={opt}
+                                onPress={() => {
+                                    onSelect(opt);
+                                    setVisible(false);
+                                }}
+                                style={{
+                                    paddingVertical: 14,
+                                    paddingHorizontal: 16,
+                                    borderRadius: 10,
+                                    backgroundColor: currentFilter === opt ? '#f3e8ff' : 'transparent',
+                                    marginBottom: 4,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                }}
+                            >
+                                <Text style={{
+                                    fontSize: 14,
+                                    fontWeight: currentFilter === opt ? '800' : '600',
+                                    color: currentFilter === opt ? '#48327d' : '#475569'
+                                }}>
+                                    {opt === 'All' ? 'All Records' : opt}
+                                </Text>
+                                {currentFilter === opt && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#48327d' }} />}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </View>
     );
 };
@@ -62,20 +169,12 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     const [requestType, setRequestType] = useState<'employee' | 'manager'>(user?.is_manager ? 'manager' : 'employee');
 
     const [arrivalFilter, setArrivalFilter] = useState('All'); // 'All', 'On Time', 'Late'
-    const [arrivalDropdownVisible, setArrivalDropdownVisible] = useState(false);
+    const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+    const tableScrollRef = useRef<ScrollView>(null);
+    const scrollPositionRef = useRef(0);
 
     const DAYS_ABBR = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
     const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-
-    // Column widths for table
-    const COL_WIDTHS = {
-        date: 120,
-        visual: 150,
-        inOut: 90,
-        breaks: 70,
-        hrs: 90,
-        status: 100
-    };
 
     const toLocalDateString = (date: Date) => {
         const y = date.getFullYear();
@@ -383,7 +482,17 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         let arrivalStatus = 'On Time';
         let arrivalColor = '#10b981';
         const checkInT = parseTime(log.checkIn);
-        if (checkInT && (checkInT.h * 60 + checkInT.m > 9 * 60 + 30)) { arrivalStatus = 'Late'; arrivalColor = '#ef4444'; }
+        if (checkInT) {
+            const inMins = checkInT.h * 60 + checkInT.m;
+            const shiftStartMins = 9 * 60 + 30; // 09:30 AM
+            if (inMins > shiftStartMins) {
+                arrivalStatus = 'Late';
+                arrivalColor = '#ef4444';
+            } else if (inMins < shiftStartMins - 15) {
+                arrivalStatus = 'Early';
+                arrivalColor = '#f59e0b';
+            }
+        }
 
         const range = `${log.checkIn} - ${log.checkOut && log.checkOut !== '-' ? log.checkOut : '--'}`;
 
@@ -625,19 +734,39 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 </View>
             </View>
 
-            <View style={[styles.card, { marginBottom: 24 }]}>
-                <Text style={styles.cardHeaderSectionTitle}>Actions</Text>
+            <View style={[styles.card, { marginBottom: 24, paddingVertical: 24 }]}>
+                {/* <Text style={styles.cardHeaderSectionTitle}>Actions</Text> - Removing as per clean UI request */}
                 <View style={styles.actionGrid}>
                     <LiveDateTime user={user} clockStatus={clockStatus} debugInfo={debugInfo} />
+
+                    <View style={styles.verticalDivider} />
+
                     <View style={styles.actionLinksSide}>
-                        <TouchableOpacity style={[styles.actionLinkItem, clockLoading && { opacity: 0.6 }]} onPress={handleClockAction} disabled={clockLoading || !canClock}>
-                            <View style={{ width: 24, alignItems: 'center' }}>
-                                {disabledReason === 'On Leave' ? <UmbrellaIcon color="#94a3b8" size={18} /> : disabledReason === 'Holiday' ? <PartyPopperIcon color="#94a3b8" size={18} /> : <Text style={styles.actionLinkIcon}>{clockStatus === 'IN' ? '⇠' : '➔'}</Text>}
-                            </View>
-                            <Text style={styles.actionLabel}>{clockStatus === 'IN' ? 'Web Check-Out' : 'Web Check-In'}{disabledReason ? ` (${disabledReason})` : ''}</Text>
-                            {clockLoading && <ActivityIndicator size="small" color="#48327d" style={{ marginLeft: 8 }} />}
+                        <TouchableOpacity
+                            style={[
+                                styles.checkInButton,
+                                clockStatus === 'IN' ? styles.checkOutButton : styles.checkInButton,
+                                (clockLoading || !canClock) && { opacity: 0.6 }
+                            ]}
+                            onPress={handleClockAction}
+                            disabled={clockLoading || !canClock}
+                            activeOpacity={0.8}
+                        >
+                            {clockLoading ? (
+                                <ActivityIndicator size="small" color="white" />
+                            ) : (
+                                <>
+                                    <View style={styles.btnIconCircle}>
+                                        {disabledReason === 'On Leave' ? <UmbrellaIcon color={clockStatus === 'IN' ? "#ef4444" : "#48327d"} size={14} /> :
+                                            disabledReason === 'Holiday' ? <PartyPopperIcon color={clockStatus === 'IN' ? "#ef4444" : "#48327d"} size={14} /> :
+                                                <Text style={[styles.btnIconArrow, { color: clockStatus === 'IN' ? "#ef4444" : "#48327d" }]}>{clockStatus === 'IN' ? '✕' : '➜'}</Text>}
+                                    </View>
+                                    <Text style={[styles.checkInButtonText, clockStatus === 'IN' && { color: '#ef4444' }]}>
+                                        {disabledReason ? disabledReason : clockStatus === 'IN' ? 'Web Check-Out' : 'Web Check-In'}
+                                    </Text>
+                                </>
+                            )}
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionLinkItem}><HomeIcon color="#48327d" size={14} style={styles.actionLinkIcon} /><Text style={styles.actionLabel}>Work From Home</Text></TouchableOpacity>
                     </View>
                 </View>
             </View>
@@ -658,100 +787,66 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             </View>
 
             {activeTab === 'Log' && filterType === 'Month' && (
-                <View style={styles.monthScrollerContainer}>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroller} contentContainerStyle={styles.monthScrollerContent}>
-                        {MONTHS.map((m, idx) => {
-                            const currentMonth = new Date().getMonth();
-                            if (idx > currentMonth) return null;
-                            return (
-                                <TouchableOpacity key={m} style={[styles.monthItem, selectedMonth === idx && styles.monthItemActive]} onPress={() => setSelectedMonth(idx)}><Text style={[styles.monthText, selectedMonth === idx && styles.monthTextActive]}>{m}</Text></TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
+                <View style={[styles.monthSelectorContainer, { zIndex: 20 }]}>
+                    <TouchableOpacity
+                        style={styles.monthDropdownButton}
+                        onPress={() => setShowMonthDropdown(!showMonthDropdown)}
+                    >
+                        <Text style={styles.monthDropdownText}>{MONTHS[selectedMonth]}</Text>
+                        <ChevronDownIcon size={16} color="#48327d" />
+                    </TouchableOpacity>
+                    {showMonthDropdown && (
+                        <View style={styles.monthDropdownMenu}>
+                            {MONTHS.map((m, idx) => {
+                                const currentMonth = new Date().getMonth();
+                                if (idx > currentMonth) return null;
+                                return (
+                                    <TouchableOpacity
+                                        key={m}
+                                        style={[styles.monthDropdownItem, selectedMonth === idx && { backgroundColor: '#f8fafc' }]}
+                                        onPress={() => {
+                                            setSelectedMonth(idx);
+                                            setShowMonthDropdown(false);
+                                        }}
+                                    >
+                                        <Text style={[styles.monthDropdownItemText, selectedMonth === idx && { fontWeight: '700', color: '#48327d' }]}>{m}</Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    )}
                 </View>
             )}
 
             {activeTab === 'Log' && (
                 <View style={styles.tableCard}>
-                    <ScrollView horizontal persistentScrollbar={true}>
+                    <ScrollView
+                        ref={tableScrollRef}
+                        horizontal
+                        persistentScrollbar={true}
+                        scrollEventThrottle={16}
+                        keyboardShouldPersistTaps="handled"
+                        nestedScrollEnabled={true}
+                        onScroll={(event) => {
+                            scrollPositionRef.current = event.nativeEvent.contentOffset.x;
+                        }}
+                    >
                         <View>
                             <View style={styles.tableHead}>
                                 {['DATE', 'ATTENDANCE VISUAL', 'CHECK-IN', 'BREAKS', 'CHECK-OUT', 'GROSS HRS', 'EFFECTIVE HRS', 'ARRIVAL STATUS'].map((h, i) => {
-                                    const w = Object.values(COL_WIDTHS)[i > 4 ? 4 : i] || 100;
+                                    const w = i === 0 ? COL_WIDTHS.date :
+                                        i === 1 ? COL_WIDTHS.visual :
+                                            (i === 2 || i === 4) ? COL_WIDTHS.inOut :
+                                                i === 3 ? COL_WIDTHS.breaks :
+                                                    (i === 5 || i === 6) ? COL_WIDTHS.hrs :
+                                                        COL_WIDTHS.status;
                                     if (i === 7) {
                                         return (
-                                            <TouchableOpacity
+                                            <ArrivalFilterDropdown
                                                 key={h}
-                                                onPress={() => setArrivalDropdownVisible(!arrivalDropdownVisible)}
-                                                style={[{
-                                                    width: w,
-                                                    flexDirection: 'row',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    gap: 4,
-                                                    zIndex: 10,
-                                                    backgroundColor: arrivalFilter !== 'All' ? '#f3e8ff' : 'transparent',
-                                                    paddingVertical: 6,
-                                                    paddingHorizontal: 8,
-                                                    borderRadius: 6,
-                                                    borderWidth: 1,
-                                                    borderColor: arrivalFilter !== 'All' ? '#48327d20' : 'transparent'
-                                                }]}
-                                            >
-                                                <Text style={{
-                                                    color: arrivalFilter !== 'All' ? '#48327d' : '#64748b',
-                                                    fontWeight: '900',
-                                                    fontSize: 9,
-                                                    letterSpacing: 0.5
-                                                }}>
-                                                    {arrivalFilter === 'All' ? 'ARRIVAL STATUS' : arrivalFilter.toUpperCase()}
-                                                </Text>
-                                                <ChevronDownIcon size={10} color={arrivalFilter !== 'All' ? '#48327d' : '#64748b'} />
-                                                {/* Dropdown Menu */}
-                                                {arrivalDropdownVisible && (
-                                                    <View style={{
-                                                        position: 'absolute',
-                                                        top: 35,
-                                                        right: 0,
-                                                        width: 110,
-                                                        backgroundColor: 'white',
-                                                        borderRadius: 10,
-                                                        shadowColor: "#000",
-                                                        shadowOffset: { width: 0, height: 4 },
-                                                        shadowOpacity: 0.15,
-                                                        shadowRadius: 8,
-                                                        elevation: 8,
-                                                        zIndex: 999,
-                                                        borderWidth: 1,
-                                                        borderColor: '#f1f5f9',
-                                                        overflow: 'hidden'
-                                                    }}>
-                                                        {['All', 'On Time', 'Late'].map((opt) => (
-                                                            <TouchableOpacity
-                                                                key={opt}
-                                                                onPress={() => {
-                                                                    setArrivalFilter(opt);
-                                                                    setArrivalDropdownVisible(false);
-                                                                }}
-                                                                style={{
-                                                                    padding: 12,
-                                                                    borderBottomWidth: opt === 'Late' ? 0 : 1,
-                                                                    borderBottomColor: '#f1f5f9',
-                                                                    backgroundColor: arrivalFilter === opt ? '#f8fafc' : 'white'
-                                                                }}
-                                                            >
-                                                                <Text style={{
-                                                                    fontSize: 11,
-                                                                    fontWeight: arrivalFilter === opt ? '800' : '600',
-                                                                    color: arrivalFilter === opt ? '#48327d' : '#334155'
-                                                                }}>
-                                                                    {opt === 'All' ? 'All Status' : opt}
-                                                                </Text>
-                                                            </TouchableOpacity>
-                                                        ))}
-                                                    </View>
-                                                )}
-                                            </TouchableOpacity>
+                                                currentFilter={arrivalFilter}
+                                                onSelect={setArrivalFilter}
+                                            />
                                         );
                                     }
                                     return (
@@ -802,6 +897,8 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                     </ScrollView>
                 </View>
             )}
+
+
 
             {activeTab === 'Requests' && user.is_manager && (
                 <View style={styles.requestFilterContainer}>
@@ -912,16 +1009,27 @@ const styles = StyleSheet.create({
     timingFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     timingFooterText: { fontSize: 13, fontWeight: '800', color: '#48327d' },
     timingFooterBreak: { flexDirection: 'row', alignItems: 'center' },
-    actionGrid: { flexDirection: 'row', alignItems: 'center' },
-    actionTimeSide: { flex: 1.2, paddingRight: 20, borderRightWidth: 1, borderRightColor: '#f1f5f9' },
-    actionClockText: { fontSize: 24, fontWeight: '900', color: '#1e293b', letterSpacing: -0.8 },
-    actionDateText: { fontSize: 12, color: '#94a3b8', fontWeight: '700', marginTop: 4 },
-    debugInfoBox: { marginTop: 10, opacity: 0.6 },
-    debugInfoText: { fontSize: 9, color: '#94a3b8', lineHeight: 12, fontWeight: '500' },
-    actionLinksSide: { flex: 1.5, paddingLeft: 24, gap: 14 },
-    actionLinkItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    actionLinkIcon: { fontSize: 14, color: '#48327d', width: 20, textAlign: 'center' },
-    actionLabel: { fontSize: 13, fontWeight: '700', color: '#48327d', flex: 1, marginLeft: 8 },
+    actionGrid: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    actionTimeSide: { flex: 1 },
+    actionClockText: { fontSize: 28, fontWeight: '900', color: '#1e293b', letterSpacing: -1 },
+    actionDateText: { fontSize: 13, color: '#64748b', fontWeight: '600', marginTop: 2, marginBottom: 8 },
+    debugInfoBox: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+    statusDotRow: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 100 },
+    statusDot: { width: 8, height: 8, borderRadius: 4 },
+    debugInfoText: { fontSize: 11, color: '#475569', fontWeight: '700' },
+    debugInfoSubText: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+
+    verticalDivider: { width: 1, height: '80%', backgroundColor: '#f1f5f9', marginHorizontal: 16 },
+
+    actionLinksSide: { flex: 0.8 },
+    checkInButton: { backgroundColor: '#f3e8ff', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+    checkOutButton: { backgroundColor: '#fef2f2', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderWidth: 1, borderColor: '#ef444420' },
+    checkInButtonText: { color: '#48327d', fontWeight: '800', fontSize: 13 },
+
+    // Updated button text for check-out state to be red
+    // We can conditionally style the text in the component, but here we define base
+    btnIconCircle: { width: 20, height: 20, borderRadius: 10, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center' },
+    btnIconArrow: { fontSize: 10, fontWeight: '900', lineHeight: 14 },
     sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 4 },
     tableHeader: { flexDirection: 'column', gap: 12, marginBottom: 20, marginTop: 10, paddingHorizontal: 20 },
     filterTabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, alignSelf: 'flex-start' },
@@ -934,16 +1042,50 @@ const styles = StyleSheet.create({
     mainTabActive: { backgroundColor: 'white', elevation: 1 },
     mainTabText: { fontSize: 13, fontWeight: '800', color: '#64748b' },
     mainTabTextActive: { color: '#48327d', fontWeight: '900' },
-    monthScrollerContainer: { marginBottom: 16, marginHorizontal: 20 },
-    monthScroller: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4 },
-    monthScrollerContent: { paddingRight: 4 },
-    monthItem: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10, marginRight: 4 },
-    monthItemActive: { backgroundColor: 'white', elevation: 1 },
-    monthText: { fontSize: 11, fontWeight: '900', color: '#94a3b8' },
-    monthTextActive: { color: '#48327d' },
-    tableCard: { backgroundColor: 'white', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', overflow: 'hidden', elevation: 1 },
-    tableHead: { flexDirection: 'row', backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 16 },
-    headCell: { fontSize: 9, fontWeight: '900', color: '#64748b', textAlign: 'center', letterSpacing: 0.8 },
+    monthSelectorContainer: { marginBottom: 16, marginHorizontal: 20, position: 'relative' },
+    monthDropdownButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: '#f1f5f9',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+        gap: 8
+    },
+    monthDropdownText: { fontSize: 13, fontWeight: '900', color: '#48327d' },
+    monthDropdownMenu: {
+        position: 'absolute',
+        top: 48,
+        left: 0,
+        right: 0,
+        backgroundColor: 'white',
+        borderRadius: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 8,
+        zIndex: 999,
+        borderWidth: 1,
+        borderColor: '#f1f5f9',
+        overflow: 'hidden',
+        maxHeight: 250
+    },
+    monthDropdownItem: {
+        padding: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f1f5f9'
+    },
+    monthDropdownItemText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#334155',
+        textAlign: 'center'
+    },
+    tableCard: { backgroundColor: 'white', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', elevation: 1, overflow: 'visible' },
+    tableHead: { flexDirection: 'row', backgroundColor: '#e2e8f0', borderBottomWidth: 1, borderBottomColor: '#cbd5e1', paddingVertical: 16, zIndex: 1000, elevation: 2, overflow: 'visible' },
+    headCell: { fontSize: 10, fontWeight: '900', color: '#334155', textAlign: 'center', letterSpacing: 0.8 },
     tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 16, alignItems: 'center' },
     rowOff: { backgroundColor: '#fcfcfd' },
     cell: { paddingHorizontal: 16, justifyContent: 'center' },

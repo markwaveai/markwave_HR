@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import LoginPage from './components/LoginPage';
@@ -27,6 +27,14 @@ const ProtectedRoute = ({ isAuthenticated, children }) => {
 // Main Layout Component
 const Layout = ({ user, handleLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Persist current route to localStorage whenever it changes
+  useEffect(() => {
+    if (location.pathname !== '/login') {
+      localStorage.setItem('lastRoute', location.pathname);
+    }
+  }, [location.pathname]);
 
   return (
     <div className="fixed inset-0 flex overflow-hidden bg-[#F5F7FA]">
@@ -54,6 +62,8 @@ const Layout = ({ user, handleLogout }) => {
 };
 
 function App() {
+  const navigate = useNavigate();
+
   // Initialize state from localStorage
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('isAuthenticated') === 'true';
@@ -67,6 +77,16 @@ function App() {
       return null;
     }
   });
+
+  // Restore last route on mount if user is authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      const lastRoute = localStorage.getItem('lastRoute');
+      if (lastRoute && lastRoute !== '/login' && window.location.pathname === '/') {
+        navigate(lastRoute, { replace: true });
+      }
+    }
+  }, [isAuthenticated, navigate]);
 
   const handleLogin = (userData) => {
     setIsAuthenticated(true);
@@ -106,6 +126,7 @@ function App() {
     setUser(null);
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('user');
+    localStorage.removeItem('lastRoute');
   };
 
   return (

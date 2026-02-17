@@ -302,6 +302,25 @@ export const HomeIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20, st
     </Svg>
 );
 
+export const LayoutGridIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Rect width="7" height="7" x="3" y="3" rx="1" />
+        <Rect width="7" height="7" x="14" y="3" rx="1" />
+        <Rect width="7" height="7" x="14" y="14" rx="1" />
+        <Rect width="7" height="7" x="3" y="14" rx="1" />
+    </Svg>
+);
+
 export const UserIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20, strokeWidth = 2, style }) => (
     <Svg
         width={size}
@@ -316,6 +335,25 @@ export const UserIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20, st
     >
         <Path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <Circle cx="12" cy="7" r="4" />
+    </Svg>
+);
+
+export const UserPlusIcon: React.FC<IconProps> = ({ color = '#64748b', size = 20, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+        <Circle cx="9" cy="7" r="4" />
+        <Line x1="19" y1="8" x2="19" y2="14" />
+        <Line x1="22" y1="11" x2="16" y2="11" />
     </Svg>
 );
 

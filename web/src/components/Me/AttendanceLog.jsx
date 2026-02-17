@@ -243,7 +243,6 @@ const AttendanceLog = ({
                                     <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Check-Out</th>
                                     <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Gross Hrs</th>
                                     <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Effective Hrs</th>
-                                    <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider">Arrival Time</th>
                                     <th className="p-4 text-center text-xs font-bold text-[#636e72] uppercase tracking-wider relative group">
                                         <div className={`flex items-center justify-center gap-1 cursor-pointer transition-colors ${arrivalFilter !== 'All' ? 'text-[#48327d]' : 'group-hover:text-[#48327d]'}`}>
                                             <span>{arrivalFilter === 'All' ? 'ARRIVAL STATUS' : arrivalFilter.toUpperCase()}</span>
@@ -256,6 +255,7 @@ const AttendanceLog = ({
                                             title="Filter by arrival status"
                                         >
                                             <option value="All">All Status</option>
+                                            <option value="Early">Early</option>
                                             <option value="On Time">On Time</option>
                                             <option value="Late">Late</option>
                                         </select>
@@ -420,7 +420,6 @@ const AttendanceLog = ({
                                                     </td>
                                                     <td className="p-4 text-center text-xs text-[#2d3436] font-medium">{gross}</td>
                                                     <td className="p-4 text-center text-sm text-[#48327d] font-bold">{effective}</td>
-                                                    <td className="p-4 text-center text-xs text-[#2d3436]">{log.checkIn}</td>
                                                     <td className="p-4 text-center text-xs font-medium">
                                                         {arrivalStatus !== '-' && (
                                                             <div className={`flex items-center justify-center gap-1.5 ${arrivalColor}`}>

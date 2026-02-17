@@ -42,10 +42,19 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose, u
         setFormData(prev => ({ ...prev, [key]: value }));
     };
 
+    const validateEmail = (email: string): boolean => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    };
+
     const handleSave = async () => {
         // Validation
         if (!formData.first_name || !formData.email || !formData.contact) {
             Alert.alert('Error', 'Name, Email and Contact are required.');
+            return;
+        }
+        if (!validateEmail(formData.email)) {
+            Alert.alert('Error', 'Please enter a valid email address.');
             return;
         }
         if (formData.contact.length !== 10) {

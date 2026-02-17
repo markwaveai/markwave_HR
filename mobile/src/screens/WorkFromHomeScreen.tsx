@@ -4,11 +4,10 @@ import { wfhApi, authApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 import { CalendarIcon, PlaneIcon } from '../components/Icons';
 
-const WorkFromHomeScreen = ({ user }: { user: any }) => {
+const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user: any, isModalVisible: boolean, setIsModalVisible: (v: boolean) => void }) => {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [profile, setProfile] = useState<any>(null);
 
@@ -64,6 +63,25 @@ const WorkFromHomeScreen = ({ user }: { user: any }) => {
             return;
         }
 
+        // Client-side validation: Check for Sundays in the date range
+        const startDate = new Date(fromDate);
+        const endDate = new Date(toDate);
+        let currentDate = new Date(startDate);
+
+        while (currentDate <= endDate) {
+            // Check if it's a Sunday (getDay() returns 0 for Sunday)
+            if (currentDate.getDay() === 0) {
+                const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = currentDate.toLocaleDateString('en-US', options);
+                Alert.alert(
+                    "Invalid Date",
+                    `WFH requests are not allowed on Sundays. ${formattedDate} is a Sunday.`
+                );
+                return;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
         setIsSubmitting(true);
         try {
             await wfhApi.apply({
@@ -113,14 +131,6 @@ const WorkFromHomeScreen = ({ user }: { user: any }) => {
 
     return (
         <View style={styles.container}>
-            <View style={styles.actionHeader}>
-                <TouchableOpacity
-                    onPress={() => setIsModalVisible(true)}
-                    style={styles.addButton}
-                >
-                    <Text style={styles.addButtonText}>+ Request WFH</Text>
-                </TouchableOpacity>
-            </View>
 
             {loading ? (
                 <ActivityIndicator size="large" color="#48327d" style={{ marginTop: 20 }} />
@@ -165,7 +175,11 @@ const WorkFromHomeScreen = ({ user }: { user: any }) => {
                             </TouchableOpacity>
                         </View>
 
-                        <ScrollView style={styles.formContainer} showsVerticalScrollIndicator={false}>
+                        <ScrollView
+                            style={styles.formContainer}
+                            showsVerticalScrollIndicator={false}
+                            contentContainerStyle={{ paddingBottom: 40 }}
+                        >
                             <View style={{ flexDirection: 'row', gap: 10 }}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.inputLabel}>FROM DATE *</Text>
@@ -212,9 +226,14 @@ const WorkFromHomeScreen = ({ user }: { user: any }) => {
                                         profile.project_manager_name.split(',').map((m: string) => m.trim()).filter(Boolean) :
                                         [];
 
+                                    const advisors = profile?.advisor_name ?
+                                        profile.advisor_name.split(',').map((a: string) => a.trim()).filter(Boolean) :
+                                        [];
+
                                     const allSuggestions = [
                                         ...leads,
-                                        ...managers
+                                        ...managers,
+                                        ...advisors
                                     ];
 
                                     const uniqueSuggestions = Array.from(new Set(allSuggestions))
