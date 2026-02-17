@@ -12,6 +12,7 @@ import {
     Platform
 } from 'react-native';
 import { teamApi } from '../services/api';
+import { normalize, wp, hp } from '../utils/responsive';
 import { SearchIcon, UserIcon, PlusIcon, TrashIcon } from '../components/Icons';
 
 interface Employee {
@@ -27,7 +28,7 @@ interface Employee {
     aadhar: string;
 }
 
-const EmployeeListScreen = () => {
+const EmployeeListScreen = ({ user }: { user: any }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -50,13 +51,13 @@ const EmployeeListScreen = () => {
     });
 
     const COL_WIDTHS = {
-        id: 90,
-        name: 130,
-        role: 180,
-        contact: 130,
-        email: 220,
-        aadhar: 140,
-        loc: 140
+        id: wp(22),
+        name: wp(32),
+        role: wp(45),
+        contact: wp(32),
+        email: wp(55),
+        aadhar: wp(35),
+        loc: wp(35)
     };
 
     const [designations, setDesignations] = useState<string[]>([]);
@@ -128,17 +129,30 @@ const EmployeeListScreen = () => {
                 role: formData.role,
                 contact: formData.contact,
                 aadhar: formData.aadhar,
-                location: formData.location
+                location: formData.location,
+                acting_user_id: user?.employee_id || user?.id
             };
+
 
             await teamApi.addEmployee(payload);
             Alert.alert('Success', 'Employee added successfully!');
             setIsModalVisible(false);
             setFormData({ employeeId: '', firstName: '', lastName: '', email: '', role: '', contact: '', aadhar: '', location: '' });
             fetchEmployees();
-        } catch (error) {
+        } catch (error: any) {
             console.log('Add employee error:', error);
-            Alert.alert('Error', 'Failed to add employee');
+            console.log('Error response:', error.response);
+            console.log('Error data:', error.response?.data);
+
+            // Extract error message from backend response
+            let errorMessage = 'Failed to add employee';
+            if (error.response?.data?.error) {
+                errorMessage = error.response.data.error;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+
+            Alert.alert('Error', errorMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -180,7 +194,7 @@ const EmployeeListScreen = () => {
             <Text style={[styles.headerCell, { width: COL_WIDTHS.email }]}>EMAIL</Text>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.aadhar }]}>AADHAR</Text>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.loc }]}>LOCATION</Text>
-            <Text style={[styles.headerCell, { width: 50, textAlign: 'center' }]}>ACT</Text>
+            <Text style={[styles.headerCell, { width: wp(12), textAlign: 'center' }]}>ACT</Text>
         </View>
     );
 
@@ -196,9 +210,9 @@ const EmployeeListScreen = () => {
             <Text style={[styles.cell, { width: COL_WIDTHS.email, color: '#636e72' }]}>{item.email}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.aadhar, color: '#636e72' }]}>{item.aadhar || '-'}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.loc, color: '#636e72' }]}>{item.location || '-'}</Text>
-            <View style={[styles.cell, { width: 50, alignItems: 'center', justifyContent: 'center' }]}>
+            <View style={[styles.cell, { width: wp(12), alignItems: 'center', justifyContent: 'center' }]}>
                 <TouchableOpacity onPress={() => handleDelete(item.id, item.first_name)}>
-                    <TrashIcon color="#ef4444" size={18} />
+                    <TrashIcon color="#ef4444" size={normalize(18)} />
                 </TouchableOpacity>
             </View>
         </View>
@@ -231,7 +245,7 @@ const EmployeeListScreen = () => {
             {/* Search Bar and Register Button Row */}
             <View style={styles.searchRow}>
                 <View style={styles.searchContainer}>
-                    <SearchIcon color="#94a3b8" size={18} style={{ marginRight: 8 }} />
+                    <SearchIcon color="#94a3b8" size={normalize(18)} style={{ marginRight: wp(2) }} />
                     <TextInput
                         style={styles.searchInput}
                         placeholder="Search employees..."
@@ -245,8 +259,8 @@ const EmployeeListScreen = () => {
                     onPress={() => setIsModalVisible(true)}
                 >
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                        <UserIcon color="white" size={18} />
-                        <PlusIcon color="white" size={12} style={{ marginLeft: -4, marginTop: -6 }} />
+                        <UserIcon color="white" size={normalize(18)} />
+                        <PlusIcon color="white" size={normalize(12)} style={{ marginLeft: -4, marginTop: -6 }} />
                     </View>
                     <Text style={styles.registerButtonText}>Register Employee</Text>
                 </TouchableOpacity>
@@ -290,10 +304,10 @@ const EmployeeListScreen = () => {
                 <View style={styles.registerModalOverlay}>
                     <View style={styles.registerModalContent}>
                         <View style={styles.modalHeader}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(2) }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <UserIcon color="#48327d" size={24} />
-                                    <PlusIcon color="#48327d" size={16} style={{ marginLeft: -6, marginTop: -8 }} />
+                                    <UserIcon color="#48327d" size={normalize(24)} />
+                                    <PlusIcon color="#48327d" size={normalize(16)} style={{ marginLeft: -6, marginTop: -8 }} />
                                 </View>
                                 <Text style={styles.modalTitle}>Register New Employee</Text>
                             </View>
@@ -314,7 +328,7 @@ const EmployeeListScreen = () => {
                             />
 
                             {/* First Name and Last Name Row */}
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ flexDirection: 'row', gap: wp(2.5) }}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.inputLabel}>FIRST NAME <Text style={{ color: '#ef4444' }}>*</Text></Text>
                                     <TextInput
@@ -338,7 +352,7 @@ const EmployeeListScreen = () => {
                             </View>
 
                             {/* Designation and Contact Row */}
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ flexDirection: 'row', gap: wp(2.5) }}>
                                 <View style={{ flex: 1, zIndex: 1000 }}>
                                     <Text style={styles.inputLabel}>DESIGNATION</Text>
                                     <TouchableOpacity
@@ -354,14 +368,14 @@ const EmployeeListScreen = () => {
                                     {isRolePickerVisible && (
                                         <View style={{
                                             position: 'absolute',
-                                            top: 75,
+                                            top: hp(9.5),
                                             left: 0,
                                             right: 0,
                                             backgroundColor: 'white',
-                                            borderRadius: 8,
+                                            borderRadius: normalize(8),
                                             elevation: 10,
                                             zIndex: 2000,
-                                            maxHeight: 250,
+                                            maxHeight: hp(30),
                                             borderColor: '#dfe6e9',
                                             borderWidth: 1,
                                             shadowColor: '#000',
@@ -372,13 +386,13 @@ const EmployeeListScreen = () => {
                                             <View style={{
                                                 flexDirection: 'row',
                                                 justifyContent: 'space-between',
-                                                padding: 10,
+                                                padding: wp(2.5),
                                                 backgroundColor: '#636e72',
-                                                borderTopLeftRadius: 8,
-                                                borderTopRightRadius: 8,
+                                                borderTopLeftRadius: normalize(8),
+                                                borderTopRightRadius: normalize(8),
                                                 alignItems: 'center'
                                             }}>
-                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>SELECT ROLE</Text>
+                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: normalize(12) }}>SELECT ROLE</Text>
                                                 <TouchableOpacity onPress={() => setIsRolePickerVisible(false)}>
                                                     <Text style={{ color: 'white', fontWeight: 'bold' }}>✕</Text>
                                                 </TouchableOpacity>
@@ -388,7 +402,7 @@ const EmployeeListScreen = () => {
                                                     <TouchableOpacity
                                                         key={role}
                                                         style={{
-                                                            padding: 12,
+                                                            padding: wp(3),
                                                             borderBottomWidth: 1,
                                                             borderBottomColor: '#f1f2f6',
                                                             backgroundColor: formData.role === role ? '#f0edfa' : 'white'
@@ -398,7 +412,7 @@ const EmployeeListScreen = () => {
                                                             setIsRolePickerVisible(false);
                                                         }}
                                                     >
-                                                        <Text style={{ color: '#2d3436', fontSize: 13, fontWeight: formData.role === role ? 'bold' : 'normal' }}>
+                                                        <Text style={{ color: '#2d3436', fontSize: normalize(13), fontWeight: formData.role === role ? 'bold' : 'normal' }}>
                                                             {role}
                                                         </Text>
                                                     </TouchableOpacity>
@@ -407,12 +421,12 @@ const EmployeeListScreen = () => {
                                                 {/* Add New Designation Option */}
                                                 {isAddingDesignation ? (
                                                     <View style={{
-                                                        padding: 12,
+                                                        padding: wp(3),
                                                         borderTopWidth: 2,
                                                         borderTopColor: '#48327d',
                                                         backgroundColor: '#f8fafc'
                                                     }}>
-                                                        <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 8, fontWeight: 'bold' }}>ADD NEW DESIGNATION</Text>
+                                                        <Text style={{ fontSize: normalize(11), color: '#64748b', marginBottom: hp(1), fontWeight: 'bold' }}>ADD NEW DESIGNATION</Text>
                                                         <View style={{ flexDirection: 'row', gap: 8 }}>
                                                             <TextInput
                                                                 style={{
@@ -420,9 +434,9 @@ const EmployeeListScreen = () => {
                                                                     borderWidth: 1,
                                                                     borderColor: '#e2e8f0',
                                                                     borderRadius: 6,
-                                                                    paddingHorizontal: 10,
-                                                                    paddingVertical: 8,
-                                                                    fontSize: 13,
+                                                                    paddingHorizontal: wp(2.5),
+                                                                    paddingVertical: hp(1),
+                                                                    fontSize: normalize(13),
                                                                     backgroundColor: 'white'
                                                                 }}
                                                                 placeholder="Enter designation..."
@@ -434,8 +448,8 @@ const EmployeeListScreen = () => {
                                                             <TouchableOpacity
                                                                 style={{
                                                                     backgroundColor: '#48327d',
-                                                                    paddingHorizontal: 12,
-                                                                    paddingVertical: 8,
+                                                                    paddingHorizontal: wp(3),
+                                                                    paddingVertical: hp(1),
                                                                     borderRadius: 6,
                                                                     justifyContent: 'center'
                                                                 }}
@@ -449,7 +463,7 @@ const EmployeeListScreen = () => {
                                                                     }
                                                                 }}
                                                             >
-                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 12 }}>Add</Text>
+                                                                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: normalize(12) }}>Add</Text>
                                                             </TouchableOpacity>
                                                             <TouchableOpacity
                                                                 style={{
@@ -464,25 +478,25 @@ const EmployeeListScreen = () => {
                                                                     setIsAddingDesignation(false);
                                                                 }}
                                                             >
-                                                                <Text style={{ color: '#64748b', fontWeight: 'bold', fontSize: 12 }}>✕</Text>
+                                                                <Text style={{ color: '#64748b', fontWeight: 'bold', fontSize: normalize(12) }}>✕</Text>
                                                             </TouchableOpacity>
                                                         </View>
                                                     </View>
                                                 ) : (
                                                     <TouchableOpacity
                                                         style={{
-                                                            padding: 12,
+                                                            padding: wp(3),
                                                             borderTopWidth: 2,
                                                             borderTopColor: '#48327d',
                                                             backgroundColor: '#f8fafc',
                                                             flexDirection: 'row',
                                                             alignItems: 'center',
-                                                            gap: 6
+                                                            gap: wp(1.5)
                                                         }}
                                                         onPress={() => setIsAddingDesignation(true)}
                                                     >
-                                                        <Text style={{ color: '#48327d', fontSize: 16, fontWeight: 'bold' }}>+</Text>
-                                                        <Text style={{ color: '#48327d', fontSize: 13, fontWeight: 'bold' }}>Add New Designation</Text>
+                                                        <Text style={{ color: '#48327d', fontSize: normalize(16), fontWeight: 'bold' }}>+</Text>
+                                                        <Text style={{ color: '#48327d', fontSize: normalize(13), fontWeight: 'bold' }}>Add New Designation</Text>
                                                     </TouchableOpacity>
                                                 )}
                                             </ScrollView>
@@ -521,7 +535,7 @@ const EmployeeListScreen = () => {
                             />
 
                             {/* Aadhar and Location Row */}
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ flexDirection: 'row', gap: wp(2.5) }}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.inputLabel}>AADHAR NUMBER <Text style={{ color: '#ef4444' }}>*</Text></Text>
                                     <TextInput
@@ -617,8 +631,8 @@ const styles = StyleSheet.create({
         backgroundColor: '#F5F7FA',
     },
     header: {
-        padding: 20,
-        paddingTop: Platform.OS === 'android' ? 40 : 20,
+        padding: wp(5),
+        paddingTop: Platform.OS === 'android' ? hp(5) : hp(2.5),
         backgroundColor: 'white',
         flexDirection: 'row',
         justifyContent: 'space-between',
@@ -628,21 +642,21 @@ const styles = StyleSheet.create({
         borderBottomColor: '#e2e8f0',
     },
     headerTitle: {
-        fontSize: 24,
+        fontSize: normalize(24),
         fontWeight: 'bold',
         color: '#2d3436',
     },
     headerSubtitle: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#64748b',
-        marginTop: 4,
+        marginTop: hp(0.5),
     },
     searchRow: {
         flexDirection: 'row',
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: wp(5),
+        paddingVertical: hp(2),
         backgroundColor: 'white',
-        gap: 12,
+        gap: wp(3),
         alignItems: 'center',
         borderBottomWidth: 1,
         borderBottomColor: '#e2e8f0',
@@ -652,15 +666,15 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#f8fafc',
-        borderRadius: 8,
+        borderRadius: normalize(8),
         borderWidth: 1,
         borderColor: '#e2e8f0',
-        paddingHorizontal: 12,
-        height: 44,
+        paddingHorizontal: wp(3),
+        height: hp(5.5),
     },
     searchInput: {
         flex: 1,
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#2d3436',
         padding: 0,
     },
@@ -668,15 +682,15 @@ const styles = StyleSheet.create({
         backgroundColor: '#48327d',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 8,
-        gap: 6,
+        paddingHorizontal: wp(4),
+        paddingVertical: hp(1.2),
+        borderRadius: normalize(8),
+        gap: wp(1.5),
     },
     registerButtonText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: normalize(14),
     },
     addButton: {
         backgroundColor: '#48327d',
@@ -695,8 +709,8 @@ const styles = StyleSheet.create({
     // Card Container
     tableCard: {
         backgroundColor: 'white',
-        borderRadius: 12,
-        marginHorizontal: 16,
+        borderRadius: normalize(12),
+        marginHorizontal: wp(4),
         borderWidth: 1,
         borderColor: '#eaecf0',
         overflow: 'hidden',
@@ -713,23 +727,23 @@ const styles = StyleSheet.create({
         backgroundColor: '#f8f9fa',
         borderBottomWidth: 1,
         borderBottomColor: '#eaecf0',
-        paddingVertical: 14,
-        paddingHorizontal: 10,
+        paddingVertical: hp(1.8),
+        paddingHorizontal: wp(2.5),
     },
     headerCell: {
-        fontSize: 12,
+        fontSize: normalize(12),
         fontWeight: 'bold',
         color: '#636e72',
         textTransform: 'uppercase',
-        paddingHorizontal: 8,
+        paddingHorizontal: wp(2),
         textAlign: 'center',
     },
     tableRow: {
         flexDirection: 'row',
         borderBottomWidth: 1,
         borderBottomColor: '#f1f2f6',
-        paddingVertical: 14,
-        paddingHorizontal: 10,
+        paddingVertical: hp(1.8),
+        paddingHorizontal: wp(2.5),
         backgroundColor: 'white',
         alignItems: 'center',
     },
@@ -737,9 +751,9 @@ const styles = StyleSheet.create({
         backgroundColor: '#fbfbfb',
     },
     cell: {
-        fontSize: 13,
+        fontSize: normalize(13),
         color: '#2d3436',
-        paddingHorizontal: 8,
+        paddingHorizontal: wp(2),
         textAlign: 'center',
     },
     emptyText: {
@@ -779,11 +793,11 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
-        padding: 20,
+        padding: wp(5),
     },
     registerModalContent: {
         backgroundColor: 'white',
-        borderRadius: 16,
+        borderRadius: normalize(16),
         maxHeight: '90%',
         width: '100%',
         elevation: 10,
@@ -796,44 +810,44 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        padding: 20,
+        padding: wp(5),
         borderBottomWidth: 1,
         borderBottomColor: '#f1f2f6',
     },
     modalTitle: {
-        fontSize: 18,
+        fontSize: normalize(18),
         fontWeight: 'bold',
         color: '#48327d',
     },
     closeText: {
-        fontSize: 20,
+        fontSize: normalize(20),
         color: '#636e72',
-        padding: 5,
+        padding: wp(1),
     },
     formContainer: {
-        padding: 20,
+        padding: wp(5),
     },
     inputLabel: {
-        fontSize: 11,
+        fontSize: normalize(11),
         fontWeight: 'bold',
         color: '#636e72',
-        marginBottom: 6,
-        marginTop: 12,
+        marginBottom: hp(0.8),
+        marginTop: hp(1.5),
     },
     input: {
         borderWidth: 1,
         borderColor: '#dfe6e9',
-        borderRadius: 8,
-        padding: 10,
-        fontSize: 14,
+        borderRadius: normalize(8),
+        padding: wp(2.5),
+        fontSize: normalize(14),
         color: '#2d3436',
         backgroundColor: '#fdfdfd',
     },
     submitButton: {
         backgroundColor: '#48327d',
-        paddingVertical: 14,
-        borderRadius: 10,
-        marginTop: 24,
+        paddingVertical: hp(1.8),
+        borderRadius: normalize(10),
+        marginTop: hp(3),
         alignItems: 'center',
         shadowColor: '#48327d',
         shadowOpacity: 0.3,
@@ -845,20 +859,20 @@ const styles = StyleSheet.create({
     submitButtonText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: normalize(16),
     },
     dropdownButton: {
         borderWidth: 1,
         borderColor: '#dfe6e9',
-        borderRadius: 8,
-        padding: 12,
+        borderRadius: normalize(8),
+        padding: wp(3),
         backgroundColor: '#fdfdfd',
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center'
     },
     dropdownText: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#2d3436',
     },
     pickerOverlay: {
@@ -866,11 +880,11 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20
+        padding: wp(5)
     },
     pickerContent: {
         backgroundColor: 'white',
-        borderRadius: 8,
+        borderRadius: normalize(8),
         maxHeight: '60%',
         width: '85%',
         elevation: 10,
@@ -878,7 +892,7 @@ const styles = StyleSheet.create({
         paddingBottom: 0
     },
     pickerHeader: {
-        padding: 15,
+        padding: wp(4),
         borderBottomWidth: 1,
         borderBottomColor: '#636e72',
         flexDirection: 'row',
@@ -887,13 +901,13 @@ const styles = StyleSheet.create({
         backgroundColor: '#636e72'
     },
     pickerTitle: {
-        fontSize: 16,
+        fontSize: normalize(16),
         fontWeight: 'bold',
         color: 'white'
     },
     pickerItem: {
-        paddingVertical: 15,
-        paddingHorizontal: 20,
+        paddingVertical: hp(2),
+        paddingHorizontal: wp(5),
         borderBottomWidth: 1,
         borderBottomColor: '#f8f9fa',
         flexDirection: 'row',
@@ -901,7 +915,7 @@ const styles = StyleSheet.create({
         backgroundColor: 'white'
     },
     pickerItemText: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#2d3436',
     },
 });

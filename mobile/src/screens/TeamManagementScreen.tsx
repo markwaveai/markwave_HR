@@ -12,6 +12,7 @@ import {
     ScrollView,
     ActivityIndicator
 } from 'react-native';
+import { normalize, wp, hp } from '../utils/responsive';
 import AsyncStorageLib from '@react-native-async-storage/async-storage';
 import { teamApi } from '../services/api';
 import {
@@ -682,31 +683,31 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingHorizontal: 20,
-        paddingTop: Platform.OS === 'ios' ? 60 : 40,
-        paddingBottom: 20,
+        paddingHorizontal: wp(5),
+        paddingTop: Platform.OS === 'ios' ? hp(7) : hp(5),
+        paddingBottom: hp(2.5),
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#f1f2f6'
     },
     pageTitle: {
-        fontSize: 22,
+        fontSize: normalize(22),
         fontWeight: '900',
         color: '#1e293b'
     },
     pageSubtitle: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#64748b',
-        marginTop: 4,
+        marginTop: hp(0.5),
     },
     addBtn: {
         backgroundColor: '#48327d',
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        borderRadius: 12,
+        paddingHorizontal: wp(4),
+        paddingVertical: hp(1.2),
+        borderRadius: normalize(12),
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: wp(1.5),
         shadowColor: '#48327d',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
@@ -716,13 +717,13 @@ const styles = StyleSheet.create({
     addBtnText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: normalize(14),
     },
     card: {
         backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 20,
-        marginBottom: 16,
+        borderRadius: normalize(16),
+        padding: wp(5),
+        marginBottom: hp(2),
         borderWidth: 1,
         borderColor: '#e2e8f0',
         shadowColor: '#000',
@@ -735,50 +736,50 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 8,
+        marginBottom: hp(1),
     },
     cardTitle: {
-        fontSize: 18,
+        fontSize: normalize(18),
         fontWeight: '800',
         color: '#1e293b',
-        marginBottom: 2,
+        marginBottom: hp(0.2),
     },
     memberCountText: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#64748b',
         fontWeight: '500',
     },
     actionButtons: {
         flexDirection: 'row',
-        gap: 12,
+        gap: wp(3),
     },
     iconBtn: {
-        padding: 4,
+        padding: wp(1),
     },
     descriptionText: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#475569',
-        lineHeight: 20,
-        marginBottom: 20,
+        lineHeight: normalize(20),
+        marginBottom: hp(2.5),
     },
     cardFooter: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        paddingTop: 16,
+        paddingTop: hp(2),
         borderTopWidth: 1,
         borderTopColor: '#f1f5f9',
     },
     footerInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: wp(2),
         flex: 1,
-        marginRight: 12,
+        marginRight: wp(3),
         minWidth: 0,
     },
     managerName: {
-        fontSize: 13,
+        fontSize: normalize(13),
         color: '#64748b',
         fontWeight: '600',
         flexShrink: 1,
@@ -786,11 +787,11 @@ const styles = StyleSheet.create({
     manageBtn: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: wp(1.5),
         flexShrink: 0,
     },
     manageBtnText: {
-        fontSize: 13,
+        fontSize: normalize(13),
         fontWeight: '700',
         color: '#48327d',
     },
@@ -799,46 +800,46 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'center',
         alignItems: 'center',
-        padding: 20
+        padding: wp(5)
     },
     modalContent: {
         backgroundColor: 'white',
         width: '100%',
-        borderRadius: 16,
-        padding: 20,
+        borderRadius: normalize(16),
+        padding: wp(5),
         elevation: 5
     },
     modalTitle: {
-        fontSize: 20,
+        fontSize: normalize(20),
         fontWeight: 'bold',
-        marginBottom: 20,
+        marginBottom: hp(2.5),
         color: '#2d3436'
     },
     inputLabel: {
-        fontSize: 12,
+        fontSize: normalize(12),
         fontWeight: 'bold',
         color: '#636e72',
-        marginBottom: 6,
-        marginTop: 10
+        marginBottom: hp(0.8),
+        marginTop: hp(1.2)
     },
     input: {
         borderWidth: 1,
         borderColor: '#e2e8f0',
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
+        borderRadius: normalize(8),
+        padding: wp(3),
+        fontSize: normalize(16),
         color: '#2d3436',
         backgroundColor: '#f8f9fa'
     },
     modalButtons: {
         flexDirection: 'row',
-        gap: 12,
-        marginTop: 24
+        gap: wp(3),
+        marginTop: hp(3)
     },
     modalBtn: {
         flex: 1,
-        padding: 14,
-        borderRadius: 10,
+        padding: hp(1.8),
+        borderRadius: normalize(10),
         alignItems: 'center'
     },
     cancelBtn: {
@@ -857,34 +858,34 @@ const styles = StyleSheet.create({
     },
     addMemberSection: {
         backgroundColor: '#f8f9fa',
-        padding: 16,
-        borderRadius: 12,
+        padding: wp(4),
+        borderRadius: normalize(12),
         borderWidth: 1,
         borderColor: '#e2e8f0'
     },
     addMemberBtn: {
         backgroundColor: '#48327d',
-        paddingHorizontal: 20,
-        paddingVertical: 12,
-        borderRadius: 8,
+        paddingHorizontal: wp(5),
+        paddingVertical: hp(1.5),
+        borderRadius: normalize(8),
         justifyContent: 'center',
         alignItems: 'center'
     },
     addMemberBtnText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 14
+        fontSize: normalize(14)
     },
     memberItem: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 16,
+        padding: wp(4),
         backgroundColor: 'white',
-        borderRadius: 12,
+        borderRadius: normalize(12),
         borderWidth: 1,
         borderColor: '#e2e8f0',
-        marginBottom: 8,
+        marginBottom: hp(1),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
@@ -892,9 +893,9 @@ const styles = StyleSheet.create({
         elevation: 2
     },
     memberAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: normalize(40),
+        height: normalize(40),
+        borderRadius: normalize(20),
         backgroundColor: '#f3e5f5',
         justifyContent: 'center',
         alignItems: 'center'
@@ -902,15 +903,15 @@ const styles = StyleSheet.create({
     memberAvatarText: {
         color: '#48327d',
         fontWeight: 'bold',
-        fontSize: 16
+        fontSize: normalize(16)
     },
     memberName: {
-        fontSize: 14,
+        fontSize: normalize(14),
         fontWeight: 'bold',
         color: '#2d3436'
     },
     memberRole: {
-        fontSize: 12,
+        fontSize: normalize(12),
         color: '#636e72'
     },
     removeMemberBtn: {
@@ -919,12 +920,12 @@ const styles = StyleSheet.create({
     removeMemberText: {
         color: '#ff6b6b',
         fontWeight: '600',
-        fontSize: 12
+        fontSize: normalize(12)
     },
     emptyMemberList: {
-        padding: 40,
+        padding: wp(10),
         backgroundColor: 'white',
-        borderRadius: 12,
+        borderRadius: normalize(12),
         borderWidth: 1,
         borderColor: '#e2e8f0',
         borderStyle: 'dashed'

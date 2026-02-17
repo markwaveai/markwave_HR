@@ -14,6 +14,7 @@ import {
     Pressable
 } from 'react-native';
 import { authApi } from '../services/api';
+import { normalize, wp, hp } from '../utils/responsive';
 
 interface LoginScreenProps {
     onLogin: (user: any) => void;
@@ -252,12 +253,12 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f5f7fa',
         justifyContent: 'center',
-        padding: 20,
+        padding: wp(5),
     },
     card: {
         backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 24,
+        borderRadius: normalize(16),
+        padding: wp(6),
         shadowColor: "#000",
         shadowOffset: {
             width: 0,
@@ -269,43 +270,43 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#dfe6e9',
         width: '100%',
-        maxWidth: 400,
+        maxWidth: wp(95),
         alignSelf: 'center',
     },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: 24,
+        marginBottom: hp(3),
     },
     logo: {
-        width: 180,
-        height: 60,
-        marginBottom: 16,
+        width: wp(45),
+        height: hp(8),
+        marginBottom: hp(2),
     },
     title: {
-        fontSize: 22,
+        fontSize: normalize(22),
         fontWeight: 'bold',
         color: '#2d3436',
         textAlign: 'center',
-        marginBottom: 8,
+        marginBottom: hp(1),
     },
     subtitle: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#636e72',
         textAlign: 'center',
-        lineHeight: 20,
+        lineHeight: normalize(20),
     },
     toggleContainer: {
         flexDirection: 'row',
         backgroundColor: '#f1f5f9',
-        borderRadius: 12,
-        padding: 4,
-        marginBottom: 24,
+        borderRadius: normalize(12),
+        padding: wp(1),
+        marginBottom: hp(3),
     },
     toggleBtn: {
         flex: 1,
-        paddingVertical: 10,
+        paddingVertical: hp(1.2),
         alignItems: 'center',
-        borderRadius: 8,
+        borderRadius: normalize(8),
     },
     toggleBtnActive: {
         backgroundColor: 'white',
@@ -317,70 +318,70 @@ const styles = StyleSheet.create({
     },
     toggleText: {
         color: '#64748b',
-        fontSize: 14,
+        fontSize: normalize(14),
         fontWeight: '600',
     },
     toggleTextActive: {
         color: '#48327d',
     },
     formContainer: {
-        gap: 20,
+        gap: hp(2.5),
     },
     inputLabel: {
-        fontSize: 11,
+        fontSize: normalize(11),
         fontWeight: '700',
         color: '#636e72',
-        marginBottom: 8,
+        marginBottom: hp(1),
         letterSpacing: 0.5,
     },
     input: {
         backgroundColor: '#fbfcff',
         borderWidth: 1,
         borderColor: '#dfe6e9',
-        borderRadius: 12,
-        padding: 14,
-        fontSize: 16,
+        borderRadius: normalize(12),
+        padding: wp(3.5),
+        fontSize: normalize(16),
         color: '#2d3436',
     },
     otpInput: {
         textAlign: 'center',
         letterSpacing: 8,
-        fontSize: 24,
+        fontSize: normalize(24),
         fontWeight: 'bold',
     },
     changeLink: {
-        marginTop: 12,
+        marginTop: hp(1.5),
         alignSelf: 'flex-end',
     },
     changeLinkText: {
         color: '#48327d',
         fontWeight: '600',
-        fontSize: 12,
+        fontSize: normalize(12),
     },
     errorContainer: {
         backgroundColor: '#fff0f0',
-        padding: 12,
-        borderRadius: 8,
+        padding: wp(3),
+        borderRadius: normalize(8),
         borderWidth: 1,
         borderColor: '#ffcdd2',
     },
     errorText: {
         color: '#e05260',
-        fontSize: 13,
+        fontSize: normalize(13),
         textAlign: 'center',
         fontWeight: '500',
     },
     primaryBtn: {
         backgroundColor: '#48327d',
-        paddingVertical: 16,
-        borderRadius: 12,
+        paddingVertical: hp(2),
+        borderRadius: normalize(12),
         alignItems: 'center',
         shadowColor: '#48327d',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 8,
         elevation: 4,
-        marginTop: 8,
+        marginTop: hp(1),
     },
     primaryBtnDisabled: {
         backgroundColor: '#a6a0b5',
@@ -389,29 +390,29 @@ const styles = StyleSheet.create({
     },
     primaryBtnText: {
         color: 'white',
-        fontSize: 16,
+        fontSize: normalize(16),
         fontWeight: 'bold',
     },
     footer: {
         alignItems: 'center',
-        marginTop: 40,
+        marginTop: hp(5),
     },
     footerText: {
         color: '#636e72',
-        fontSize: 12,
+        fontSize: normalize(12),
         fontWeight: '600',
     },
     copyrightText: {
         color: '#b2bec3',
-        fontSize: 11,
-        marginTop: 4,
+        fontSize: normalize(11),
+        marginTop: hp(0.5),
     },
     validationText: {
         color: '#e05260',
-        fontSize: 11,
-        marginTop: 4,
+        fontSize: normalize(11),
+        marginTop: hp(0.5),
         fontWeight: '500',
-        marginLeft: 4,
+        marginLeft: wp(1),
     }
 });
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Pressable, Modal, TextInput, Alert, ActivityIndicator, RefreshControl, Platform } from 'react-native';
 import { leaveApi, authApi, attendanceApi } from '../services/api';
+import { normalize, wp, hp } from '../utils/responsive';
 import CustomDatePicker from '../components/CustomDatePicker';
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
 import WorkFromHomeScreen from './WorkFromHomeScreen';
@@ -40,15 +41,15 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const EMPLOYEE_ID = user?.id; // Dynamic ID from prop
 
     const LEAVE_CONFIG: any = {
-        'cl': { name: 'Casual Leave', code: 'cl', icon: <PlaneIcon size={18} color="#3498db" />, color: '#3498db', bg: '#e0f2fe' },
-        'sl': { name: 'Sick Leave', code: 'sl', icon: <ThermometerIcon size={18} color="#e74c3c" />, color: '#e74c3c', bg: '#fee2e2' },
-        'el': { name: 'Earned Leave', code: 'el', icon: <PalmTreeIcon size={18} color="#2ecc71" />, color: '#2ecc71', bg: '#dcfce7' },
-        'scl': { name: 'Special Casual Leave', code: 'scl', icon: <StarIcon size={18} color="#9b59b6" />, color: '#9b59b6', bg: '#f3e5f5' },
-        'bl': { name: 'Bereavement Leave', code: 'bl', icon: <FlameIcon size={18} color="#e67e22" />, color: '#e67e22', bg: '#fff3e0' },
-        'pl': { name: 'Paternity Leave', code: 'pl', icon: <BabyIcon size={18} color="#1abc9c" />, color: '#1abc9c', bg: '#e0f2f1' },
-        'll': { name: 'Long Leave', code: 'll', icon: <HomeIcon size={18} color="#34495e" />, color: '#34495e', bg: '#eceff1' },
-        'co': { name: 'Comp Off', code: 'co', icon: <HourglassIcon size={18} color="#f1c40f" />, color: '#f1c40f', bg: '#fffde7' },
-        'lwp': { name: 'Leave Without Pay', code: 'lwp', icon: <BanIcon size={18} color="#95a5a6" />, color: '#95a5a6', bg: '#f1f2f6' }
+        'cl': { name: 'Casual Leave', code: 'cl', icon: <PlaneIcon size={normalize(18)} color="#3498db" />, color: '#3498db', bg: '#e0f2fe' },
+        'sl': { name: 'Sick Leave', code: 'sl', icon: <ThermometerIcon size={normalize(18)} color="#e74c3c" />, color: '#e74c3c', bg: '#fee2e2' },
+        'el': { name: 'Earned Leave', code: 'el', icon: <PalmTreeIcon size={normalize(18)} color="#2ecc71" />, color: '#2ecc71', bg: '#dcfce7' },
+        'scl': { name: 'Special Casual Leave', code: 'scl', icon: <StarIcon size={normalize(18)} color="#9b59b6" />, color: '#9b59b6', bg: '#f3e5f5' },
+        'bl': { name: 'Bereavement Leave', code: 'bl', icon: <FlameIcon size={normalize(18)} color="#e67e22" />, color: '#e67e22', bg: '#fff3e0' },
+        'pl': { name: 'Paternity Leave', code: 'pl', icon: <BabyIcon size={normalize(18)} color="#1abc9c" />, color: '#1abc9c', bg: '#e0f2f1' },
+        'll': { name: 'Long Leave', code: 'll', icon: <HomeIcon size={normalize(18)} color="#34495e" />, color: '#34495e', bg: '#eceff1' },
+        'co': { name: 'Comp Off', code: 'co', icon: <HourglassIcon size={normalize(18)} color="#f1c40f" />, color: '#f1c40f', bg: '#fffde7' },
+        'lwp': { name: 'Leave Without Pay', code: 'lwp', icon: <BanIcon size={normalize(18)} color="#95a5a6" />, color: '#95a5a6', bg: '#f1f2f6' }
     };
 
     const fetchLeaves = async () => {
@@ -649,26 +650,26 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F7FA' },
-    header: { padding: 20, paddingTop: 40, backgroundColor: 'white', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#2d3436' },
-    headerSubtitle: { fontSize: 12, color: '#636e72', marginTop: 2 },
-    addButton: { backgroundColor: '#48327d', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, shadowColor: '#48327d', shadowOpacity: 0.2, shadowOffset: { height: 2, width: 0 }, elevation: 5, zIndex: 999 },
-    addButtonText: { color: 'white', fontWeight: 'bold', fontSize: 12 },
+    header: { padding: wp(5), paddingTop: Platform.OS === 'android' ? hp(5) : hp(2.5), backgroundColor: 'white', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+    headerTitle: { fontSize: normalize(20), fontWeight: 'bold', color: '#2d3436' },
+    headerSubtitle: { fontSize: normalize(12), color: '#636e72', marginTop: hp(0.2) },
+    addButton: { backgroundColor: '#48327d', paddingHorizontal: wp(4), paddingVertical: hp(1.2), borderRadius: normalize(8), shadowColor: '#48327d', shadowOpacity: 0.2, shadowOffset: { height: 2, width: 0 }, elevation: 5, zIndex: 999 },
+    addButtonText: { color: 'white', fontWeight: 'bold', fontSize: normalize(12) },
 
-    scrollContainer: { padding: 20 },
+    scrollContainer: { padding: wp(5) },
 
     // Balance Grid
     balanceGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 12,
-        marginBottom: 25,
+        gap: wp(3),
+        marginBottom: hp(3),
         justifyContent: 'space-between'
     },
     balanceCard: {
         backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: normalize(16),
+        padding: wp(4),
         borderWidth: 1,
         borderColor: '#e2e8f0',
         width: '48%',
@@ -678,70 +679,70 @@ const styles = StyleSheet.create({
         shadowRadius: 8,
         elevation: 2,
     },
-    balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-    iconBox: { width: 28, height: 28, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
-    balanceTitle: { fontSize: 11, fontWeight: '800', color: '#2d3436', textTransform: 'uppercase', flex: 1 },
-    balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 6, marginBottom: 15 },
-    bigNumber: { fontSize: 24, fontWeight: 'bold', color: '#48327d' },
-    daysLabel: { fontSize: 12, color: '#636e72', paddingBottom: 4, fontWeight: '500' },
-    progressSection: { gap: 6 },
+    balanceHeader: { flexDirection: 'row', alignItems: 'center', gap: wp(2), marginBottom: hp(1.5) },
+    iconBox: { width: normalize(28), height: normalize(28), borderRadius: normalize(8), justifyContent: 'center', alignItems: 'center' },
+    balanceTitle: { fontSize: normalize(11), fontWeight: '800', color: '#2d3436', textTransform: 'uppercase', flex: 1 },
+    balanceRow: { flexDirection: 'row', alignItems: 'flex-end', gap: wp(1.5), marginBottom: hp(1.8) },
+    bigNumber: { fontSize: normalize(24), fontWeight: 'bold', color: '#48327d' },
+    daysLabel: { fontSize: normalize(12), color: '#636e72', paddingBottom: hp(0.5), fontWeight: '500' },
+    progressSection: { gap: hp(0.8) },
     progressRow: { flexDirection: 'row', justifyContent: 'space-between' },
-    progressText: { fontSize: 11, color: '#636e72', fontWeight: '500' },
-    track: { height: 6, backgroundColor: '#f1f2f6', borderRadius: 3, overflow: 'hidden' },
-    fill: { height: '100%', borderRadius: 3 },
+    progressText: { fontSize: normalize(11), color: '#636e72', fontWeight: '500' },
+    track: { height: hp(0.8), backgroundColor: '#f1f2f6', borderRadius: normalize(3), overflow: 'hidden' },
+    fill: { height: '100%', borderRadius: normalize(3) },
 
-    sectionHeader: { marginBottom: 10 },
-    sectionTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3436' },
+    sectionHeader: { marginBottom: hp(1.2) },
+    sectionTitle: { fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436' },
 
     // History
-    historyList: { gap: 10 },
-    historyItem: { backgroundColor: 'white', padding: 15, borderRadius: 10, flexDirection: 'row', justifyContent: 'space-between', borderWidth: 1, borderColor: '#f1f2f6' },
-    historyLeft: { gap: 4 },
-    leaveType: { fontWeight: 'bold', color: '#2d3436', fontSize: 14 },
-    leaveDates: { fontSize: 12, color: '#636e72' },
-    historyRight: { alignItems: 'flex-end', gap: 4 },
-    statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-    statusText: { fontSize: 11, fontWeight: 'bold' },
-    daysCount: { fontSize: 11, color: '#b2bec3', fontWeight: '500' },
-    emptyText: { textAlign: 'center', color: '#636e72', marginTop: 20 },
+    historyList: { gap: hp(1.2) },
+    historyItem: { backgroundColor: 'white', padding: wp(4), borderRadius: normalize(10), flexDirection: 'row', justifyContent: 'space-between', borderWidth: 1, borderColor: '#f1f2f6' },
+    historyLeft: { gap: hp(0.5) },
+    leaveType: { fontWeight: 'bold', color: '#2d3436', fontSize: normalize(14) },
+    leaveDates: { fontSize: normalize(12), color: '#636e72' },
+    historyRight: { alignItems: 'flex-end', gap: hp(0.5) },
+    statusBadge: { paddingHorizontal: wp(2), paddingVertical: hp(0.2), borderRadius: normalize(4) },
+    statusText: { fontSize: normalize(11), fontWeight: 'bold' },
+    daysCount: { fontSize: normalize(11), color: '#b2bec3', fontWeight: '500' },
+    emptyText: { textAlign: 'center', color: '#636e72', marginTop: hp(2.5) },
 
     // Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-    modalContent: { backgroundColor: 'white', borderRadius: 12, padding: 0, overflow: 'hidden', maxHeight: '90%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f2f6', backgroundColor: '#f8fafc' },
-    modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3436', textTransform: 'uppercase' },
-    closeText: { fontSize: 20, color: '#636e72' },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: wp(5) },
+    modalContent: { backgroundColor: 'white', borderRadius: normalize(12), padding: 0, overflow: 'hidden', maxHeight: '90%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: wp(5), borderBottomWidth: 1, borderBottomColor: '#f1f2f6', backgroundColor: '#f8fafc' },
+    modalTitle: { fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436', textTransform: 'uppercase' },
+    closeText: { fontSize: normalize(20), color: '#636e72' },
 
-    formContainer: { padding: 20 },
-    inputLabel: { fontSize: 11, fontWeight: 'bold', color: '#636e72', marginBottom: 6, marginTop: 15, textTransform: 'uppercase' },
-    input: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8, padding: 10, color: '#2d3436', backgroundColor: '#fdfdfd' },
+    formContainer: { padding: wp(5) },
+    inputLabel: { fontSize: normalize(11), fontWeight: 'bold', color: '#636e72', marginBottom: hp(0.8), marginTop: hp(1.8), textTransform: 'uppercase' },
+    input: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8), padding: wp(2.5), color: '#2d3436', backgroundColor: '#fdfdfd' },
 
     // Session Buttons
-    sessionRow: { flexDirection: 'row', gap: 10 },
-    sessionBtn: { flex: 1, paddingVertical: 8, borderRadius: 6, borderWidth: 1, borderColor: '#dfe6e9', alignItems: 'center' },
+    sessionRow: { flexDirection: 'row', gap: wp(2.5) },
+    sessionBtn: { flex: 1, paddingVertical: hp(1), borderRadius: normalize(6), borderWidth: 1, borderColor: '#dfe6e9', alignItems: 'center' },
     sessionBtnActive: { backgroundColor: '#48327d', borderColor: '#48327d' },
-    sessionBtnText: { fontSize: 11, fontWeight: 'bold', color: '#636e72' },
+    sessionBtnText: { fontSize: normalize(11), fontWeight: 'bold', color: '#636e72' },
     sessionBtnTextActive: { color: 'white' },
 
     // Dropdown
-    dropdownButton: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8, padding: 12, backgroundColor: '#fdfdfd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    dropdownText: { fontSize: 14, color: '#2d3436' },
+    dropdownButton: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8), padding: wp(3), backgroundColor: '#fdfdfd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    dropdownText: { fontSize: normalize(14), color: '#2d3436' },
 
-    dateInput: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8, padding: 10, backgroundColor: '#fdfdfd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    dateText: { fontSize: 14, color: '#2d3436' },
+    dateInput: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8), padding: wp(2.5), backgroundColor: '#fdfdfd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    dateText: { fontSize: normalize(14), color: '#2d3436' },
 
-    pickerContent: { backgroundColor: 'white', borderRadius: 12, marginHorizontal: 40, marginTop: 200, elevation: 20, padding: 10 },
-    pickerItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' },
+    pickerContent: { backgroundColor: 'white', borderRadius: normalize(12), marginHorizontal: wp(10), marginTop: hp(25), elevation: 20, padding: wp(2.5) },
+    pickerItem: { paddingVertical: hp(1.5), paddingHorizontal: wp(4), borderBottomWidth: 1, borderBottomColor: '#f1f2f6' },
     selectedPickerItem: { backgroundColor: '#636e72' },
-    pickerItemText: { fontSize: 16, color: '#2d3436' },
+    pickerItemText: { fontSize: normalize(16), color: '#2d3436' },
     selectedPickerItemText: { color: 'white', fontWeight: 'bold' },
 
-    submitBtn: { backgroundColor: '#48327d', paddingVertical: 14, borderRadius: 10, marginTop: 24, alignItems: 'center', shadowColor: '#48327d', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 } },
-    submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+    submitBtn: { backgroundColor: '#48327d', paddingVertical: hp(1.8), borderRadius: normalize(10), marginTop: hp(3), alignItems: 'center', shadowColor: '#48327d', shadowOpacity: 0.3, shadowOffset: { width: 0, height: 4 } },
+    submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: normalize(16) },
 
-    cancelBtn: { padding: 10 },
+    cancelBtn: { padding: wp(2.5) },
     cancelBtnText: { color: '#636e72' },
-    modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20, gap: 10 },
+    modalActions: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: hp(2.5), gap: wp(2.5) },
 });
 
 export default LeaveScreen;

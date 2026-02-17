@@ -4,6 +4,7 @@ import { MailIcon, PhoneIcon, MapPinIcon, IdCardIcon, BriefcaseIcon, UsersIcon, 
 import { authApi } from '../services/api';
 import { fallbackEmployees } from '../data/fallbackEmployees';
 import EditProfileModal from '../components/EditProfileModal';
+import { normalize, wp, hp } from '../utils/responsive';
 
 const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () => void }) => {
     const [user, setUser] = useState(initialUser);
@@ -267,10 +268,10 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: 'white',
-        padding: 24,
-        paddingTop: 40,
-        margin: 16,
-        borderRadius: 24,
+        padding: wp(6),
+        paddingTop: hp(5),
+        margin: wp(4),
+        borderRadius: normalize(24),
         shadowColor: '#0f172a',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.05,
@@ -280,23 +281,23 @@ const styles = StyleSheet.create({
     headerContent: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16
+        gap: wp(4)
     },
     headerNameContainer: {
         flex: 1,
-        paddingRight: 32, // Space for the back button
+        paddingRight: wp(8),
     },
     avatarLarge: {
-        width: 64,
-        height: 64,
-        borderRadius: 16,
+        width: wp(16),
+        height: wp(16),
+        borderRadius: normalize(16),
         backgroundColor: '#48327d',
         justifyContent: 'center',
         alignItems: 'center',
         position: 'relative',
     },
     avatarTextLarge: {
-        fontSize: 24,
+        fontSize: normalize(24),
         fontWeight: 'bold',
         color: 'white',
     },
@@ -304,42 +305,42 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: -2,
         right: -2,
-        width: 16,
-        height: 16,
-        borderRadius: 8,
+        width: wp(4),
+        height: wp(4),
+        borderRadius: wp(2),
         backgroundColor: '#22c55e',
         borderWidth: 3,
         borderColor: 'white',
     },
     name: {
-        fontSize: 18,
+        fontSize: normalize(18),
         fontWeight: '800',
         color: '#0f172a',
-        marginBottom: 4,
+        marginBottom: hp(0.5),
     },
     headerSubInfo: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: wp(1.5),
     },
     role: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#64748b',
         fontWeight: '600',
     },
     dotSeparator: {
         color: '#cbd5e1',
-        fontSize: 14,
+        fontSize: normalize(14),
     },
     idTextSmall: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#94a3b8',
         fontWeight: '600',
         letterSpacing: 0.5,
     },
     section: {
-        paddingHorizontal: 16,
-        marginBottom: 24,
+        paddingHorizontal: wp(4),
+        marginBottom: hp(3),
     },
     verticalSection: {
         paddingHorizontal: 0,
@@ -347,25 +348,25 @@ const styles = StyleSheet.create({
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 16,
-        gap: 12,
+        marginBottom: hp(2),
+        gap: wp(3),
     },
     sectionIconBg: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: wp(10),
+        height: wp(10),
+        borderRadius: normalize(12),
         justifyContent: 'center',
         alignItems: 'center',
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: normalize(18),
         fontWeight: '800',
         color: '#1e293b',
     },
     card: {
         backgroundColor: 'white',
-        borderRadius: 20,
-        padding: 24,
+        borderRadius: normalize(20),
+        padding: wp(6),
         borderWidth: 1,
         borderColor: '#f1f5f9',
         shadowColor: '#0f172a',
@@ -380,26 +381,26 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
     },
     infoItem: {
-        marginBottom: 4,
+        marginBottom: hp(0.5),
     },
     iconMini: {
-        marginRight: 6,
-        marginTop: 2
+        marginRight: wp(1.5),
+        marginTop: hp(0.3)
     },
     valueRow: {
         flexDirection: 'row',
         alignItems: 'flex-start'
     },
     label: {
-        fontSize: 11,
+        fontSize: normalize(11),
         color: '#94a3b8',
         fontWeight: '800',
-        marginBottom: 6,
+        marginBottom: hp(0.8),
         letterSpacing: 0.5,
         textTransform: 'uppercase'
     },
     value: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#334155',
         fontWeight: '600',
         flex: 1,
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     divider: {
         height: 1,
         backgroundColor: '#f1f5f9',
-        marginVertical: 16,
+        marginVertical: hp(2),
     },
     workDetailRow: {
         flexDirection: 'row',
@@ -415,17 +416,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     workLabel: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#64748b',
         fontWeight: '500',
     },
     workValue: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#334155',
         fontWeight: '600',
     },
     workValueBold: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#0f172a',
         fontWeight: '700',
         letterSpacing: 0.5,
@@ -433,71 +434,71 @@ const styles = StyleSheet.create({
     teamCard: {
         flexDirection: 'row',
         alignItems: 'flex-start',
-        paddingVertical: 4,
+        paddingVertical: hp(0.5),
     },
     teamInfo: {
         flex: 1,
-        paddingRight: 4,
+        paddingRight: wp(1),
     },
     teamNameText: {
-        fontSize: 15,
+        fontSize: normalize(15),
         fontWeight: '700',
         color: '#1e293b',
-        marginBottom: 4,
+        marginBottom: hp(0.5),
     },
     leadRow: {
         flexDirection: 'row',
         alignItems: 'center',
         flexWrap: 'wrap',
-        marginTop: 2,
+        marginTop: hp(0.3),
     },
     leadLabel: {
-        fontSize: 12,
+        fontSize: normalize(12),
         color: '#64748b',
         fontWeight: '600',
-        marginLeft: 2,
+        marginLeft: wp(0.5),
     },
     leadName: {
-        fontSize: 12,
+        fontSize: normalize(12),
         color: '#334155',
         fontWeight: '500',
         flexShrink: 1,
     },
     activeDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+        width: wp(2),
+        height: wp(2),
+        borderRadius: wp(1),
         backgroundColor: '#f97316',
-        marginRight: 12
+        marginRight: wp(3)
     },
     backButton: {
         position: 'absolute',
-        top: 20,
-        right: 20,
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        top: hp(2.5),
+        right: wp(5),
+        width: wp(8),
+        height: wp(8),
+        borderRadius: wp(4),
         backgroundColor: '#f1f5f9',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
     },
     backButtonText: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#64748b',
         fontWeight: 'bold',
     },
     editButton: {
         marginLeft: 'auto',
         backgroundColor: '#f3e8ff',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingHorizontal: wp(3),
+        paddingVertical: hp(0.8),
+        borderRadius: normalize(8),
     },
     editButtonText: {
         color: '#48327d',
         fontWeight: '700',
-        fontSize: 12,
+        fontSize: normalize(12),
     },
 });
 

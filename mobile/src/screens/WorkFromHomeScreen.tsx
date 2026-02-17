@@ -3,6 +3,7 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput,
 import { wfhApi, authApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 import { CalendarIcon, PlaneIcon } from '../components/Icons';
+import { normalize, wp, hp } from '../utils/responsive';
 
 const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user: any, isModalVisible: boolean, setIsModalVisible: (v: boolean) => void }) => {
     const [requests, setRequests] = useState<any[]>([]);
@@ -279,32 +280,32 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F7FA' },
-    actionHeader: { padding: 16, alignItems: 'flex-end' },
-    addButton: { backgroundColor: '#48327d', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
-    addButtonText: { color: 'white', fontWeight: 'bold', fontSize: 12 },
-    emptyText: { textAlign: 'center', color: '#636e72', marginTop: 40 },
-    list: { padding: 16, gap: 12 },
-    card: { backgroundColor: 'white', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-    dateRange: { fontWeight: 'bold', color: '#2d3436', fontSize: 14 },
-    statusBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
-    statusText: { fontSize: 10, fontWeight: 'bold' },
-    reason: { color: '#636e72', fontSize: 13, marginBottom: 8 },
-    appliedOn: { color: '#b2bec3', fontSize: 11 },
+    actionHeader: { padding: wp(4), alignItems: 'flex-end' },
+    addButton: { backgroundColor: '#48327d', paddingHorizontal: wp(4), paddingVertical: hp(1.2), borderRadius: normalize(8) },
+    addButtonText: { color: 'white', fontWeight: 'bold', fontSize: normalize(12) },
+    emptyText: { textAlign: 'center', color: '#636e72', marginTop: hp(5) },
+    list: { padding: wp(4), gap: hp(1.5) },
+    card: { backgroundColor: 'white', padding: wp(4), borderRadius: normalize(12), borderWidth: 1, borderColor: '#e2e8f0' },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: hp(1) },
+    dateRange: { fontWeight: 'bold', color: '#2d3436', fontSize: normalize(14) },
+    statusBadge: { paddingHorizontal: wp(2), paddingVertical: hp(0.3), borderRadius: normalize(4) },
+    statusText: { fontSize: normalize(10), fontWeight: 'bold' },
+    reason: { color: '#636e72', fontSize: normalize(13), marginBottom: hp(1) },
+    appliedOn: { color: '#b2bec3', fontSize: normalize(11) },
 
     // Modal
-    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
-    modalContent: { backgroundColor: 'white', borderRadius: 12, overflow: 'hidden', maxHeight: '90%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f2f6', backgroundColor: '#f8fafc' },
-    modalTitle: { fontSize: 16, fontWeight: 'bold', color: '#2d3436' },
-    closeText: { fontSize: 20, color: '#636e72' },
-    formContainer: { padding: 20 },
-    inputLabel: { fontSize: 11, fontWeight: 'bold', color: '#636e72', marginBottom: 6, marginTop: 15 },
-    input: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8, padding: 10, color: '#2d3436', backgroundColor: '#fdfdfd' },
-    dateInput: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8, padding: 10, backgroundColor: '#fdfdfd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-    dateText: { fontSize: 14, color: '#2d3436' },
-    submitBtn: { backgroundColor: '#48327d', paddingVertical: 14, borderRadius: 10, marginTop: 24, alignItems: 'center' },
-    submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: wp(5) },
+    modalContent: { backgroundColor: 'white', borderRadius: normalize(12), overflow: 'hidden', maxHeight: '90%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', padding: wp(5), borderBottomWidth: 1, borderBottomColor: '#f1f2f6', backgroundColor: '#f8fafc' },
+    modalTitle: { fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436' },
+    closeText: { fontSize: normalize(20), color: '#636e72' },
+    formContainer: { padding: wp(5) },
+    inputLabel: { fontSize: normalize(11), fontWeight: 'bold', color: '#636e72', marginBottom: hp(0.8), marginTop: hp(1.8) },
+    input: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8), padding: wp(2.5), color: '#2d3436', backgroundColor: '#fdfdfd' },
+    dateInput: { borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8), padding: wp(2.5), backgroundColor: '#fdfdfd', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    dateText: { fontSize: normalize(14), color: '#2d3436' },
+    submitBtn: { backgroundColor: '#48327d', paddingVertical: hp(1.8), borderRadius: normalize(10), marginTop: hp(3), alignItems: 'center' },
+    submitBtnText: { color: 'white', fontWeight: 'bold', fontSize: normalize(16) },
 });
 
 export default WorkFromHomeScreen;

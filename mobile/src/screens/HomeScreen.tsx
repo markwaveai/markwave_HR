@@ -17,6 +17,7 @@ import {
     RefreshControl,
     PermissionsAndroid
 } from 'react-native';
+import { normalize, wp, hp } from '../utils/responsive';
 import Geolocation from 'react-native-geolocation-service';
 import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } from 'react-native-image-picker';
 import CircularProgress from '../components/CircularProgress';
@@ -353,7 +354,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     style: "destructive",
                     onPress: async () => {
                         try {
-                            await feedApi.deleteComment(postId, commentId, userId);
+                            await feedApi.deleteComment(postId, typeof commentId === 'string' ? parseInt(commentId, 10) : commentId, userId);
                             fetchFeedData();
                         } catch (error: any) {
                             Alert.alert("Error", error.message || "Failed to delete comment.");
@@ -420,7 +421,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         <View style={{ flex: 1 }}>
             <ScrollView
                 style={styles.container}
-                contentContainerStyle={{ paddingBottom: 100 }}
+                contentContainerStyle={{ paddingBottom: hp(12) }}
                 refreshControl={
                     <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6366f1']} />
                 }
@@ -501,31 +502,31 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 {/* Avg Hours Card */}
                 <View style={[styles.card, { zIndex: 5 }]}>
                     <View style={styles.cardHeader}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <ClockIcon color="#64748b" size={20} strokeWidth={2} />
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(2) }}>
+                            <ClockIcon color="#64748b" size={normalize(20)} strokeWidth={2} />
                             <Text style={styles.cardTitle}>Avg. Working Hours</Text>
                         </View>
                         <TouchableOpacity
-                            style={{ padding: 4 }}
+                            style={{ padding: wp(1) }}
                             onPress={() => setStatsDuration(prev => prev === 'week' ? 'month' : 'week')}
                         >
-                            <ClockIcon color="#48327d" size={24} strokeWidth={2} />
+                            <ClockIcon color="#48327d" size={normalize(24)} strokeWidth={2} />
                         </TouchableOpacity>
                     </View>
-                    <View style={{ paddingHorizontal: 20, paddingVertical: 16 }}>
-                        <Text style={{ fontSize: 32, fontWeight: 'bold', color: '#48327d', marginBottom: 4 }}>
+                    <View style={{ paddingHorizontal: wp(5), paddingVertical: hp(2) }}>
+                        <Text style={{ fontSize: normalize(32), fontWeight: 'bold', color: '#48327d', marginBottom: hp(0.5) }}>
                             {statsDuration === 'week'
                                 ? (personalStats?.week?.me?.avg || '0h 00m')
                                 : (personalStats?.month?.me?.avg || '0h 00m')
                             }
                         </Text>
                         {statsDuration === 'week' && (
-                            <Text style={{ fontSize: 14, color: personalStats?.lastWeekDiff?.startsWith('+') ? '#10b981' : '#ef4444' }}>
+                            <Text style={{ fontSize: normalize(14), color: personalStats?.lastWeekDiff?.startsWith('+') ? '#10b981' : '#ef4444' }}>
                                 {personalStats?.lastWeekDiff || '+0h 00m vs last week'}
                             </Text>
                         )}
                         {statsDuration === 'month' && (
-                            <Text style={{ fontSize: 14, color: '#94a3b8' }}>
+                            <Text style={{ fontSize: normalize(14), color: '#94a3b8' }}>
                                 Current Month Average
                             </Text>
                         )}
@@ -604,9 +605,9 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 </View>
 
                 <View style={styles.feedHeader}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(1.5) }}>
                         <Text style={styles.feedTitle}>Community Wall</Text>
-                        <ZapIcon color="#48327d" size={20} />
+                        <ZapIcon color="#48327d" size={normalize(20)} />
                     </View>
                 </View>
 
@@ -939,84 +940,84 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F5F7FA', padding: 20 },
-    welcomeSection: { marginBottom: 20, marginTop: 20 },
-    greetingTitle: { fontSize: 22, fontWeight: 'bold', color: '#2d3436' },
-    greetingSubtitle: { fontSize: 13, color: '#636e72', marginTop: 4 },
-    card: { backgroundColor: 'white', borderRadius: 12, padding: 20, marginBottom: 20, elevation: 2, borderColor: '#e2e8f0', borderWidth: 1 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10, alignItems: 'center', zIndex: 20 },
-    cardTitle: { fontSize: 14, fontWeight: 'bold', color: '#2d3436' },
+    container: { flex: 1, backgroundColor: '#F5F7FA', padding: wp(5) },
+    welcomeSection: { marginBottom: hp(2.5), marginTop: hp(2.5) },
+    greetingTitle: { fontSize: normalize(22), fontWeight: 'bold', color: '#2d3436' },
+    greetingSubtitle: { fontSize: normalize(13), color: '#636e72', marginTop: hp(0.5) },
+    card: { backgroundColor: 'white', borderRadius: normalize(12), padding: wp(5), marginBottom: hp(2.5), elevation: 2, borderColor: '#e2e8f0', borderWidth: 1 },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: hp(1.2), alignItems: 'center', zIndex: 20 },
+    cardTitle: { fontSize: normalize(14), fontWeight: 'bold', color: '#2d3436' },
     holidayCard: { position: 'relative', borderColor: '#f1f5f9' },
-    viewAllLink: { fontSize: 14, fontWeight: '500', color: '#48327d', textDecorationLine: 'underline' },
+    viewAllLink: { fontSize: normalize(14), fontWeight: '500', color: '#48327d', textDecorationLine: 'underline' },
     holidayContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', zIndex: 10 },
-    holidayName: { fontSize: 28, fontWeight: 'bold', color: '#48327d', marginBottom: 8 },
-    holidayInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-    holidayDate: { fontSize: 12, fontWeight: '500', color: 'rgba(142, 120, 176, 0.8)' },
-    holidayTag: { backgroundColor: '#48327d', paddingHorizontal: 4, paddingVertical: 2, borderRadius: 4 },
-    holidayTagText: { color: 'white', fontSize: 8, fontWeight: 'bold' },
-    holidayNav: { flexDirection: 'row', alignItems: 'flex-end', gap: 10, paddingBottom: 5 },
-    navArrow: { fontSize: 24, color: '#48327d', fontWeight: '300' },
+    holidayName: { fontSize: normalize(28), fontWeight: 'bold', color: '#48327d', marginBottom: hp(1) },
+    holidayInfoRow: { flexDirection: 'row', alignItems: 'center', gap: wp(2.5) },
+    holidayDate: { fontSize: normalize(12), fontWeight: '500', color: 'rgba(142, 120, 176, 0.8)' },
+    holidayTag: { backgroundColor: '#48327d', paddingHorizontal: wp(1), paddingVertical: hp(0.25), borderRadius: normalize(4) },
+    holidayTagText: { color: 'white', fontSize: normalize(8), fontWeight: 'bold' },
+    holidayNav: { flexDirection: 'row', alignItems: 'flex-end', gap: wp(2.5), paddingBottom: hp(0.6) },
+    navArrow: { fontSize: normalize(24), color: '#48327d', fontWeight: '300' },
     disabledArrow: { opacity: 0.3 },
-    holidayDecoration: { position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, backgroundColor: 'rgba(142, 120, 176, 0.05)', borderRadius: 80, zIndex: 0 },
-    balanceGridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 10, gap: 12 },
-    chartItem: { alignItems: 'center', width: '22%', marginBottom: 10 },
-    chartLabel: { fontSize: 8, fontWeight: 'bold', color: '#2d3436', marginTop: 4, textAlign: 'center' },
-    feedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 10 },
-    feedTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
-    addPostBtn: { backgroundColor: '#6366f1', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
-    addPostBtnText: { color: 'white', fontSize: 12, fontWeight: 'bold' },
-    emptyFeedText: { textAlign: 'center', color: '#94a3b8', fontSize: 13, marginTop: 20, fontStyle: 'italic' },
-    postCard: { backgroundColor: 'white', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 16 },
-    postHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12 },
-    postAuthorAvatar: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#48327d', justifyContent: 'center', alignItems: 'center' },
-    avatarText: { color: 'white', fontSize: 14, fontWeight: 'bold' },
-    postAuthorName: { fontSize: 14, fontWeight: '700', color: '#1e293b' },
-    postMeta: { fontSize: 10, color: '#94a3b8', marginTop: 2 },
-    postContent: { fontSize: 14, lineHeight: 20, color: '#475569', marginBottom: 16 },
-    postActions: { flexDirection: 'row', gap: 20, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 12 },
-    postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    actionIcon: { fontSize: 16 },
-    actionText: { fontSize: 12, fontWeight: '700', color: '#64748b' },
-    commentSection: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f8fafc' },
-    commentRow: { flexDirection: 'row', marginBottom: 6 },
-    commentAuthor: { fontSize: 11, fontWeight: '700', color: '#1e293b' },
-    commentText: { fontSize: 11, color: '#475569', flex: 1 },
-    commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10, backgroundColor: '#f8fafc', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 6 },
-    commentInput: { flex: 1, fontSize: 12, color: '#1e293b' },
-    sendBtn: { fontSize: 12, fontWeight: 'bold', color: '#6366f1' },
+    holidayDecoration: { position: 'absolute', bottom: -40, right: -40, width: normalize(160), height: normalize(160), backgroundColor: 'rgba(142, 120, 176, 0.05)', borderRadius: normalize(80), zIndex: 0 },
+    balanceGridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: hp(1.2), gap: wp(3) },
+    chartItem: { alignItems: 'center', width: '22%', marginBottom: hp(1.2) },
+    chartLabel: { fontSize: normalize(8), fontWeight: 'bold', color: '#2d3436', marginTop: hp(0.5), textAlign: 'center' },
+    feedHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp(2), marginTop: hp(1.2) },
+    feedTitle: { fontSize: normalize(18), fontWeight: '900', color: '#1e293b' },
+    addPostBtn: { backgroundColor: '#6366f1', paddingHorizontal: wp(3), paddingVertical: hp(0.75), borderRadius: normalize(8) },
+    addPostBtnText: { color: 'white', fontSize: normalize(12), fontWeight: 'bold' },
+    emptyFeedText: { textAlign: 'center', color: '#94a3b8', fontSize: normalize(13), marginTop: hp(2.5), fontStyle: 'italic' },
+    postCard: { backgroundColor: 'white', borderRadius: normalize(16), padding: wp(4), borderWidth: 1, borderColor: '#e2e8f0', marginBottom: hp(2) },
+    postHeader: { flexDirection: 'row', alignItems: 'center', gap: wp(3), marginBottom: hp(1.5) },
+    postAuthorAvatar: { width: normalize(36), height: normalize(36), borderRadius: normalize(18), backgroundColor: '#48327d', justifyContent: 'center', alignItems: 'center' },
+    avatarText: { color: 'white', fontSize: normalize(14), fontWeight: 'bold' },
+    postAuthorName: { fontSize: normalize(14), fontWeight: '700', color: '#1e293b' },
+    postMeta: { fontSize: normalize(10), color: '#94a3b8', marginTop: hp(0.25) },
+    postContent: { fontSize: normalize(14), lineHeight: normalize(20), color: '#475569', marginBottom: hp(2) },
+    postActions: { flexDirection: 'row', gap: wp(5), borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: hp(1.5) },
+    postActionBtn: { flexDirection: 'row', alignItems: 'center', gap: wp(1.5) },
+    actionIcon: { fontSize: normalize(16) },
+    actionText: { fontSize: normalize(12), fontWeight: '700', color: '#64748b' },
+    commentSection: { marginTop: hp(1.5), paddingTop: hp(1.5), borderTopWidth: 1, borderTopColor: '#f8fafc' },
+    commentRow: { flexDirection: 'row', marginBottom: hp(0.75) },
+    commentAuthor: { fontSize: normalize(11), fontWeight: '700', color: '#1e293b' },
+    commentText: { fontSize: normalize(11), color: '#475569', flex: 1 },
+    commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: wp(2.5), marginTop: hp(1.2), backgroundColor: '#f8fafc', borderRadius: normalize(10), paddingHorizontal: wp(3), paddingVertical: hp(0.75) },
+    commentInput: { flex: 1, fontSize: normalize(12), color: '#1e293b' },
+    sendBtn: { fontSize: normalize(12), fontWeight: 'bold', color: '#6366f1' },
     modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    modalContainer: { backgroundColor: 'white', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, minHeight: '60%' },
-    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-    modalTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-    closeBtn: { fontSize: 20, color: '#94a3b8' },
-    postInput: { backgroundColor: '#f1f5f9', borderRadius: 16, padding: 16, fontSize: 15, color: '#1e293b', height: 120, textAlignVertical: 'top', marginBottom: 20 },
-    typeSelector: { flexDirection: 'row', gap: 12, marginBottom: 30 },
-    typeBtn: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, backgroundColor: '#f1f5f9' },
+    modalContainer: { backgroundColor: 'white', borderTopLeftRadius: normalize(24), borderTopRightRadius: normalize(24), padding: wp(6), minHeight: '60%' },
+    modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp(2.5) },
+    modalTitle: { fontSize: normalize(20), fontWeight: '900', color: '#1e293b' },
+    closeBtn: { fontSize: normalize(20), color: '#94a3b8' },
+    postInput: { backgroundColor: '#f1f5f9', borderRadius: normalize(16), padding: wp(4), fontSize: normalize(15), color: '#1e293b', height: hp(15), textAlignVertical: 'top', marginBottom: hp(2.5) },
+    typeSelector: { flexDirection: 'row', gap: wp(3), marginBottom: hp(3.7) },
+    typeBtn: { paddingHorizontal: wp(5), paddingVertical: hp(1.2), borderRadius: normalize(12), backgroundColor: '#f1f5f9' },
     typeBtnActive: { backgroundColor: '#6366f1' },
-    typeBtnText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
+    typeBtnText: { fontSize: normalize(14), fontWeight: '700', color: '#64748b' },
     typeBtnTextActive: { color: 'white' },
-    publishBtn: { backgroundColor: '#1e293b', borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
-    publishBtnText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-    postImage: { width: '100%', height: 200, borderRadius: 12, marginBottom: 12 },
-    imagesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-    gridImage: { width: '48.5%', height: 120, marginBottom: 0 },
-    previewScroll: { marginBottom: 20 },
-    previewContainer: { position: 'relative', marginRight: 10 },
-    imagePreview: { width: 100, height: 100, borderRadius: 12 },
-    removeImageBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-    removeImageText: { color: 'white', fontSize: 12 },
-    modalActionsRow: { flexDirection: 'row', marginBottom: 20 },
-    photoSelectBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
-    photoSelectBtnText: { fontSize: 12, color: '#64748b', fontWeight: 'bold' },
+    publishBtn: { backgroundColor: '#1e293b', borderRadius: normalize(16), paddingVertical: hp(2), alignItems: 'center' },
+    publishBtnText: { color: 'white', fontSize: normalize(16), fontWeight: 'bold' },
+    postImage: { width: '100%', height: hp(25), borderRadius: normalize(12), marginBottom: hp(1.5) },
+    imagesGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: wp(2), marginBottom: hp(1.5) },
+    gridImage: { width: '48.5%', height: hp(15), marginBottom: 0 },
+    previewScroll: { marginBottom: hp(2.5) },
+    previewContainer: { position: 'relative', marginRight: wp(2.5) },
+    imagePreview: { width: normalize(100), height: normalize(100), borderRadius: normalize(12) },
+    removeImageBtn: { position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.5)', width: normalize(24), height: normalize(24), borderRadius: normalize(12), justifyContent: 'center', alignItems: 'center' },
+    removeImageText: { color: 'white', fontSize: normalize(12) },
+    modalActionsRow: { flexDirection: 'row', marginBottom: hp(2.5) },
+    photoSelectBtn: { backgroundColor: '#f1f5f9', paddingHorizontal: wp(3), paddingVertical: hp(1), borderRadius: normalize(8) },
+    photoSelectBtnText: { fontSize: normalize(12), color: '#64748b', fontWeight: 'bold' },
 
     // Post Bar Card
     postBarCard: {
         backgroundColor: 'white',
-        borderRadius: 16,
-        padding: 16,
+        borderRadius: normalize(16),
+        padding: wp(4),
         borderWidth: 1,
         borderColor: '#e2e8f0',
-        marginBottom: 20,
+        marginBottom: hp(2.5),
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.05,
@@ -1026,13 +1027,13 @@ const styles = StyleSheet.create({
     postBarTop: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
-        marginBottom: 16,
+        gap: wp(3),
+        marginBottom: hp(2),
     },
     postBarAvatar: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
+        width: normalize(32),
+        height: normalize(32),
+        borderRadius: normalize(16),
         backgroundColor: '#6366f11a',
         justifyContent: 'center',
         alignItems: 'center',
@@ -1040,20 +1041,20 @@ const styles = StyleSheet.create({
     postBarAvatarText: {
         color: '#6366f1',
         fontWeight: 'bold',
-        fontSize: 14,
+        fontSize: normalize(14),
     },
     postBarInputPlaceholder: {
         flex: 1,
-        paddingVertical: 8,
+        paddingVertical: hp(1),
     },
     postBarPlaceholderText: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#94a3b8',
     },
     postBarDivider: {
         height: 1,
         backgroundColor: '#f1f5f9',
-        marginBottom: 12,
+        marginBottom: hp(1.5),
     },
     postBarBottom: {
         flexDirection: 'row',
@@ -1062,12 +1063,12 @@ const styles = StyleSheet.create({
     },
     postBarActions: {
         flexDirection: 'row',
-        gap: 8,
+        gap: wp(2),
     },
     postBarLabelBtn: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 20,
+        paddingHorizontal: wp(2.5),
+        paddingVertical: hp(0.5),
+        borderRadius: normalize(20),
         backgroundColor: '#f1f5f9',
         flexDirection: 'row',
         alignItems: 'center',
@@ -1076,7 +1077,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#6366f1',
     },
     postBarLabelText: {
-        fontSize: 11,
+        fontSize: normalize(11),
         fontWeight: '700',
         color: '#64748b',
     },
@@ -1085,55 +1086,55 @@ const styles = StyleSheet.create({
     },
     postBarSubmitBtn: {
         backgroundColor: '#6366f1',
-        paddingHorizontal: 16,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingHorizontal: wp(4),
+        paddingVertical: hp(0.75),
+        borderRadius: normalize(8),
     },
     postBarSubmitText: {
         color: 'white',
-        fontSize: 12,
+        fontSize: normalize(12),
         fontWeight: '900',
     },
 
     // Absentees Modal Styles
     absenteesModalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
-    absenteesModalContent: { backgroundColor: '#F8FAFC', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, maxHeight: '90%', minHeight: '60%' },
-    absenteesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
-    absenteesModalTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b' },
-    syncStatusText: { fontSize: 12, color: '#64748b', fontWeight: '500', marginTop: 4, textTransform: 'uppercase' },
+    absenteesModalContent: { backgroundColor: '#F8FAFC', borderTopLeftRadius: normalize(20), borderTopRightRadius: normalize(20), padding: wp(5), maxHeight: '90%', minHeight: '60%' },
+    absenteesModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: hp(2.5) },
+    absenteesModalTitle: { fontSize: normalize(20), fontWeight: '900', color: '#1e293b' },
+    syncStatusText: { fontSize: normalize(12), color: '#64748b', fontWeight: '500', marginTop: hp(0.5), textTransform: 'uppercase' },
 
-    searchFilterContainer: { flexDirection: 'row', gap: 12, marginBottom: 20, zIndex: 100 },
-    searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingHorizontal: 12, height: 44 },
-    searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#1e293b' },
-    filterBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingHorizontal: 16, height: 44, justifyContent: 'center' },
-    filterBtnText: { fontSize: 14, fontWeight: '600', color: '#2d3436' },
+    searchFilterContainer: { flexDirection: 'row', gap: wp(3), marginBottom: hp(2.5), zIndex: 100 },
+    searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: normalize(8), paddingHorizontal: wp(3), height: hp(5.5) },
+    searchInput: { flex: 1, marginLeft: wp(2), fontSize: normalize(14), color: '#1e293b' },
+    filterBtn: { flexDirection: 'row', alignItems: 'center', gap: wp(2), backgroundColor: 'white', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: normalize(8), paddingHorizontal: wp(4), height: hp(5.5), justifyContent: 'center' },
+    filterBtnText: { fontSize: normalize(14), fontWeight: '600', color: '#2d3436' },
 
-    dropdownMenu: { position: 'absolute', top: 50, right: 0, width: 140, backgroundColor: 'white', borderRadius: 8, elevation: 5, paddingVertical: 4, zIndex: 1000, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, borderWidth: 1, borderColor: '#f1f5f9' },
-    dropdownItem: { paddingVertical: 10, paddingHorizontal: 16 },
+    dropdownMenu: { position: 'absolute', top: hp(6.25), right: 0, width: wp(35), backgroundColor: 'white', borderRadius: normalize(8), elevation: 5, paddingVertical: hp(0.5), zIndex: 1000, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, borderWidth: 1, borderColor: '#f1f5f9' },
+    dropdownItem: { paddingVertical: hp(1.25), paddingHorizontal: wp(4) },
     dropdownItemActive: { backgroundColor: '#64748b' },
-    dropdownItemText: { fontSize: 13, color: '#475569', fontWeight: '500' },
+    dropdownItemText: { fontSize: normalize(13), color: '#475569', fontWeight: '500' },
     dropdownItemTextActive: { color: 'white', fontWeight: 'bold' },
 
-    absenteeCard: { backgroundColor: 'white', borderRadius: 16, padding: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+    absenteeCard: { backgroundColor: 'white', borderRadius: normalize(16), padding: wp(4), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: hp(1.5), borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.02, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
     absenteeInfo: { flex: 1 },
-    absenteeName: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
-    absenteeRole: { fontSize: 13, color: '#94a3b8', fontWeight: '500' },
+    absenteeName: { fontSize: normalize(16), fontWeight: '700', color: '#1e293b' },
+    absenteeRole: { fontSize: normalize(13), color: '#94a3b8', fontWeight: '500' },
 
-    idBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-    idBadgeText: { fontSize: 11, fontWeight: '700', color: '#64748b' },
+    idBadge: { backgroundColor: '#f1f5f9', paddingHorizontal: wp(1.5), paddingVertical: hp(0.25), borderRadius: normalize(4) },
+    idBadgeText: { fontSize: normalize(11), fontWeight: '700', color: '#64748b' },
 
-    statusTag: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8, },
+    statusTag: { paddingHorizontal: wp(3), paddingVertical: hp(0.5), borderRadius: normalize(8), },
     statusTagAbsent: { backgroundColor: '#ffe5e5' },
-    statusTagText: { fontSize: 12, fontWeight: 'bold' },
+    statusTagText: { fontSize: normalize(12), fontWeight: 'bold' },
     statusTagTextAbsent: { color: '#ff7675' },
     statusTagLeave: { backgroundColor: '#e0f2fe' },
     statusTagTextLeave: { color: '#0284c7' },
 
-    modalFooter: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: 16, marginTop: 10 },
-    gotItButton: { backgroundColor: '#48327d', paddingVertical: 14, borderRadius: 12, alignItems: 'center', width: '100%' },
-    gotItButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    modalFooter: { borderTopWidth: 1, borderTopColor: '#e2e8f0', paddingTop: hp(2), marginTop: hp(1.25) },
+    gotItButton: { backgroundColor: '#48327d', paddingVertical: hp(1.75), borderRadius: normalize(12), alignItems: 'center', width: '100%' },
+    gotItButtonText: { color: 'white', fontSize: normalize(16), fontWeight: 'bold' },
 
-    emptyStateText: { fontSize: 14, color: '#94a3b8', marginTop: 20, textAlign: 'center' },
+    emptyStateText: { fontSize: normalize(14), color: '#94a3b8', marginTop: hp(2.5), textAlign: 'center' },
 
     // Legacy styles (hidden)
     absenteesCloseButtonText: { display: 'none' },

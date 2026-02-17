@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { leaveApi } from '../services/api';
 import AdminWorkFromHomeScreen from './AdminWorkFromHomeScreen';
+import { normalize, wp, hp } from '../utils/responsive';
 
 const AdminLeaveScreen = () => {
     const [activeTab, setActiveTab] = useState<'leave' | 'wfh'>('leave');
@@ -141,34 +142,34 @@ const AdminLeaveScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F7FA' },
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { padding: 20, paddingTop: 40, backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-    headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#2d3436' },
-    headerSubtitle: { fontSize: 12, color: '#636e72', marginTop: 2 },
+    header: { padding: wp(5), paddingTop: hp(5), backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
+    headerTitle: { fontSize: normalize(20), fontWeight: 'bold', color: '#2d3436' },
+    headerSubtitle: { fontSize: normalize(12), color: '#636e72', marginTop: hp(0.3) },
 
-    listContainer: { padding: 15, gap: 15 },
-    emptyContainer: { padding: 40, alignItems: 'center' },
-    emptyText: { color: '#b2bec3', fontSize: 16 },
+    listContainer: { padding: wp(3.8), gap: hp(1.8) },
+    emptyContainer: { padding: hp(5), alignItems: 'center' },
+    emptyText: { color: '#b2bec3', fontSize: normalize(16) },
 
-    card: { backgroundColor: 'white', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, marginBottom: 15 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-    employeeName: { fontSize: 16, fontWeight: 'bold', color: '#2d3436' },
-    employeeId: { fontSize: 12, color: '#636e72', fontFamily: 'monospace' },
+    card: { backgroundColor: 'white', borderRadius: normalize(12), padding: wp(4), borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, marginBottom: hp(1.8) },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: hp(1.5) },
+    employeeName: { fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436' },
+    employeeId: { fontSize: normalize(12), color: '#636e72', fontFamily: 'monospace' },
 
-    typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-    typeText: { fontSize: 10, fontWeight: 'bold' },
+    typeBadge: { paddingHorizontal: wp(2), paddingVertical: hp(0.5), borderRadius: normalize(6) },
+    typeText: { fontSize: normalize(10), fontWeight: 'bold' },
 
-    datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-    dateText: { fontSize: 13, color: '#2d3436', fontWeight: '500' },
-    daysText: { fontSize: 13, color: '#48327d', fontWeight: 'bold' },
+    datesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: hp(1) },
+    dateText: { fontSize: normalize(13), color: '#2d3436', fontWeight: '500' },
+    daysText: { fontSize: normalize(13), color: '#48327d', fontWeight: 'bold' },
 
-    reasonText: { fontSize: 12, color: '#636e72', marginBottom: 16, fontStyle: 'italic' },
+    reasonText: { fontSize: normalize(12), color: '#636e72', marginBottom: hp(2), fontStyle: 'italic' },
 
-    actionsRow: { flexDirection: 'row', gap: 10 },
-    actionButton: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
+    actionsRow: { flexDirection: 'row', gap: wp(2.5) },
+    actionButton: { flex: 1, paddingVertical: hp(1.2), borderRadius: normalize(8), alignItems: 'center' },
     rejectButton: { backgroundColor: '#fee2e2' },
-    rejectButtonText: { color: '#e74c3c', fontWeight: 'bold', fontSize: 13 },
+    rejectButtonText: { color: '#e74c3c', fontWeight: 'bold', fontSize: normalize(13) },
     approveButton: { backgroundColor: '#dcfce7' },
-    approveButtonText: { color: '#2ecc71', fontWeight: 'bold', fontSize: 13 },
+    approveButtonText: { color: '#2ecc71', fontWeight: 'bold', fontSize: normalize(13) },
 });
 
 export default AdminLeaveScreen;

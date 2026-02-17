@@ -1,0 +1,13 @@
+--- Teams ---
+ID: 2, Name: 'Team Srikrishna', Manager: 'Muddangala Srikrishna', Manager ID: MW1014
+ID: 3, Name: 'Team Umasankar', Manager: 'Mamidisetti Umasankar', Manager ID: MW1013
+ID: 4, Name: 'Team Eswarkondababu', Manager: 'Eswarkondababu Atapakula', Manager ID: MWI029
+ID: 6, Name: 'Team Gopi Chand', Manager: 'Athicomsetti N B Gopi Chand', Manager ID: MW1018
+ID: 11, Name: 'Team Satish', Manager: 'Vithanala Satish Kumar', Manager ID: MW1020
+ID: 52, Name: 'TrueHarvest', Manager: 'Sailaja Mandela', Manager ID: MW1017
+ID: 7, Name: 'Team Mahesh', Manager: 'Dommati Mahesh', Manager ID: MW1023
+ID: 5, Name: 'Team Chari', Manager: 'Amudalapalli Bhavani bhoga linga chari', Manager ID: MWI012
+
+--- 'Team Lead' Employees ---
+
+--- 'No Team' Teams ---

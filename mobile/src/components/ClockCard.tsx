@@ -1,5 +1,6 @@
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { MapPinIcon } from './Icons';
+import { normalize, wp, hp } from '../utils/responsive';
 
 interface ClockCardProps {
     currentTime: Date;
@@ -11,7 +12,7 @@ interface ClockCardProps {
     disabledReason?: string | null;
 }
 
-const { width } = Dimensions.get('window');
+
 
 const ClockCard: React.FC<ClockCardProps> = ({
     currentTime,
@@ -108,9 +109,9 @@ const ClockCard: React.FC<ClockCardProps> = ({
 const styles = StyleSheet.create({
     card: {
         backgroundColor: '#6366f1',
-        borderRadius: 16,
-        padding: 16,
-        minHeight: 140,
+        borderRadius: normalize(16),
+        padding: wp(4),
+        minHeight: hp(18),
         justifyContent: 'space-between',
         shadowColor: "#000",
         shadowOffset: {
@@ -120,29 +121,29 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.15,
         shadowRadius: 8,
         elevation: 8,
-        marginBottom: 16,
+        marginBottom: hp(2),
     },
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 16,
+        marginBottom: hp(2),
         opacity: 0.9,
     },
     dateText: {
         color: 'white',
-        fontSize: 13,
+        fontSize: normalize(13),
         fontWeight: '500',
     },
     badge: {
         backgroundColor: 'white',
-        borderRadius: 12,
-        paddingHorizontal: 8,
-        paddingVertical: 2,
+        borderRadius: normalize(12),
+        paddingHorizontal: wp(2),
+        paddingVertical: hp(0.3),
     },
     badgeText: {
         color: '#6366f1',
-        fontSize: 10,
+        fontSize: normalize(10),
         fontWeight: 'bold',
     },
     body: {
@@ -152,10 +153,10 @@ const styles = StyleSheet.create({
     },
     timeLabel: {
         color: 'white',
-        fontSize: 10,
+        fontSize: normalize(10),
         fontWeight: 'bold',
         letterSpacing: 1.5,
-        marginBottom: 4,
+        marginBottom: hp(0.5),
         opacity: 0.8,
         textTransform: 'uppercase',
     },
@@ -165,33 +166,33 @@ const styles = StyleSheet.create({
     },
     bigTime: {
         color: 'white',
-        fontSize: 32,
+        fontSize: normalize(32),
         fontWeight: '600',
         letterSpacing: -1,
     },
     seconds: {
         color: 'white',
-        fontSize: 16,
+        fontSize: normalize(16),
         opacity: 0.8,
-        marginHorizontal: 2,
+        marginHorizontal: wp(0.5),
     },
     ampm: {
         color: 'white',
-        fontSize: 16,
-        marginLeft: 2,
+        fontSize: normalize(16),
+        marginLeft: wp(0.5),
         fontWeight: '400',
     },
     button: {
         backgroundColor: 'white',
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderRadius: 12,
+        paddingVertical: hp(1.5),
+        paddingHorizontal: wp(5),
+        borderRadius: normalize(12),
         elevation: 3,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
-        minWidth: 110,
+        minWidth: wp(28),
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -201,13 +202,13 @@ const styles = StyleSheet.create({
     buttonText: {
         color: '#6366f1',
         fontWeight: '800',
-        fontSize: 14,
+        fontSize: normalize(14),
         textTransform: 'uppercase',
         letterSpacing: 0.5,
     },
     locationText: {
         color: 'white',
-        fontSize: 10,
+        fontSize: normalize(10),
         opacity: 0.8,
         fontWeight: '500',
     },
@@ -232,13 +233,13 @@ const styles = StyleSheet.create({
     },
     statusText: {
         color: 'white',
-        fontSize: 22,
+        fontSize: normalize(22),
         fontWeight: 'bold',
     },
     statusIconContainer: {
         backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        padding: 8,
-        borderRadius: 25,
+        padding: wp(2),
+        borderRadius: normalize(25),
         borderWidth: 1,
         borderColor: 'rgba(255, 255, 255, 0.2)',
     }

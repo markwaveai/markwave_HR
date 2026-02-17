@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { normalize, wp, hp } from '../utils/responsive';
 
 const ProfileScreen = ({ user, onBack }: { user: any, onBack?: () => void }) => {
     if (!user) return null;
@@ -34,57 +35,57 @@ const styles = StyleSheet.create({
     },
     header: {
         alignItems: 'center',
-        paddingVertical: 60,
+        paddingVertical: hp(8),
         backgroundColor: 'white',
         borderBottomWidth: 1,
         borderBottomColor: '#f1f5f9',
         flex: 1,
     },
     avatarLarge: {
-        width: 100,
-        height: 100,
-        borderRadius: 50,
+        width: wp(25),
+        height: wp(25),
+        borderRadius: wp(12.5),
         backgroundColor: '#48327d',
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: hp(2.5),
     },
     avatarTextLarge: {
-        fontSize: 36,
+        fontSize: normalize(36),
         fontWeight: 'bold',
         color: 'white',
     },
     name: {
-        fontSize: 24,
+        fontSize: normalize(24),
         fontWeight: 'bold',
         color: '#0f172a',
-        marginBottom: 4,
+        marginBottom: hp(0.5),
     },
     role: {
-        fontSize: 16,
+        fontSize: normalize(16),
         color: '#64748b',
-        marginBottom: 20,
+        marginBottom: hp(2.5),
     },
     instruction: {
-        fontSize: 14,
+        fontSize: normalize(14),
         color: '#94a3b8',
         fontStyle: 'italic',
-        marginTop: 20,
+        marginTop: hp(2.5),
     },
     backButton: {
         position: 'absolute',
-        top: 20,
-        right: 20,
-        width: 36,
-        height: 36,
-        borderRadius: 12,
+        top: hp(2.5),
+        right: wp(5),
+        width: wp(9),
+        height: wp(9),
+        borderRadius: normalize(12),
         backgroundColor: '#f8fafc',
         justifyContent: 'center',
         alignItems: 'center',
         zIndex: 10,
     },
     backButtonText: {
-        fontSize: 18,
+        fontSize: normalize(18),
         color: '#64748b',
         fontWeight: 'bold',
     },
