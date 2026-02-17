@@ -68,7 +68,7 @@ const ApplyLeaveModal = ({
 
         // Rule 3: Afternoon Session (Session 2) - valid before 2:00 PM
         if (fromSession === 'Session 2') {
-            if (currentTime >= 14) return true; // After 2:00 PM
+            if (currentTime >= 14) return true; // After or at 2:00 PM
         }
 
         return false;
@@ -204,6 +204,7 @@ const ApplyLeaveModal = ({
                                 type="date"
                                 className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-sm text-[#2d3436] outline-none focus:border-[#48327d] transition-colors"
                                 value={fromDate}
+                                min={new Date().toISOString().split('T')[0]}
                                 onChange={(e) => setFromDate(e.target.value)}
                                 required
                             />

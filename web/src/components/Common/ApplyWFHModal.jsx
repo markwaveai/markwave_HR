@@ -53,6 +53,25 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
             return;
         }
 
+        // Client-side validation: Check for Sundays in the date range
+        const startDate = new Date(fromDate);
+        const endDate = new Date(toDate);
+        let currentDate = new Date(startDate);
+
+        while (currentDate <= endDate) {
+            // Check if it's a Sunday (getDay() returns 0 for Sunday)
+            if (currentDate.getDay() === 0) {
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = currentDate.toLocaleDateString('en-US', options);
+                setToast({
+                    message: `WFH requests are not allowed on Sundays. ${formattedDate} is a Sunday.`,
+                    type: 'error'
+                });
+                return;
+            }
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
         setIsSubmitting(true);
         try {
             await wfhApi.apply({
@@ -102,6 +121,7 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                                 <input
                                     type="date"
                                     value={fromDate}
+                                    min={new Date().toISOString().split('T')[0]}
                                     onChange={(e) => setFromDate(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-[#48327d] outline-none transition-all text-sm font-medium"
                                 />
@@ -113,6 +133,7 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                                 <input
                                     type="date"
                                     value={toDate}
+                                    min={fromDate || new Date().toISOString().split('T')[0]}
                                     onChange={(e) => setToDate(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-[#48327d] outline-none transition-all text-sm font-medium"
                                 />

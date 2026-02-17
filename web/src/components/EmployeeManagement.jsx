@@ -79,10 +79,17 @@ function EmployeeManagement() {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+
+        // Only allow letters and spaces for first and last names
+        if ((name === 'firstName' || name === 'lastName') && value !== '') {
+            if (!/^[a-zA-Z\s]+$/.test(value)) return;
+        }
+
         // Only allow digits for contact and aadhar
         if ((name === 'contact' || name === 'aadhar') && value !== '') {
             if (!/^\d+$/.test(value)) return;
         }
+
         setFormData({ ...formData, [name]: value });
     };
 
@@ -253,7 +260,7 @@ function EmployeeManagement() {
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
                             type="text"
-                            placeholder="Search employees..."
+                            placeholder="Search employee records"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-9 pr-4 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#48327d]/20 w-64"
@@ -385,7 +392,7 @@ function EmployeeManagement() {
                                 <th className="px-6 py-4 text-center">Email</th>
                                 <th className="px-6 py-4 text-center">Aadhar</th>
                                 <th className="px-6 py-4 text-center">Location</th>
-                                <th className="px-6 py-4 text-center">Actions</th>
+                                <th className="px-6 py-4 text-center min-w-[100px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#f1f2f6] text-xs">
@@ -430,7 +437,7 @@ function EmployeeManagement() {
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             {emp.status !== 'Inactive' && (
-                                                <div className="flex items-center justify-center gap-1">
+                                                <div className="flex items-center justify-center gap-2">
                                                     <button
                                                         onClick={() => {
                                                             setEditingEmployee(emp);
@@ -446,17 +453,17 @@ function EmployeeManagement() {
                                                             });
                                                             setIsModalOpen(true);
                                                         }}
-                                                        className="p-2 text-[#48327d] hover:bg-purple-50 rounded-lg transition-colors"
+                                                        className="p-2 text-[#48327d] hover:bg-purple-50 rounded-lg transition-all hover:scale-110 active:scale-90"
                                                         title="Edit Employee"
                                                     >
-                                                        <Edit2 size={16} />
+                                                        <Edit2 size={18} />
                                                     </button>
                                                     <button
                                                         onClick={() => setDeleteConfirm({ isOpen: true, employee: emp })}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors group-hover:scale-110 active:scale-90"
+                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all hover:scale-110 active:scale-90"
                                                         title="Deactivate Employee"
                                                     >
-                                                        <Trash2 size={16} />
+                                                        <Trash2 size={18} />
                                                     </button>
                                                 </div>
                                             )}

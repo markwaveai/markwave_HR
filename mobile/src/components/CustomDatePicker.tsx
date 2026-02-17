@@ -54,6 +54,10 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
 
         const days = [];
 
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         // Empty slots for previous month
         for (let i = 0; i < firstDay; i++) {
             days.push(<View key={`empty-${i}`} style={styles.dayCell} />);
@@ -61,6 +65,10 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
 
         // Days
         for (let i = 1; i <= daysInMonth; i++) {
+            const dateToCheck = new Date(year, month, i);
+            dateToCheck.setHours(0, 0, 0, 0);
+            const isPast = dateToCheck < today;
+
             const isSelected = value && new Date(value).getDate() === i && new Date(value).getMonth() === month && new Date(value).getFullYear() === year;
             const isToday = new Date().getDate() === i && new Date().getMonth() === month && new Date().getFullYear() === year;
 
@@ -70,14 +78,17 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
                     style={[
                         styles.dayCell,
                         isSelected && styles.selectedDay,
-                        !isSelected && isToday && styles.todayCell
+                        !isSelected && isToday && styles.todayCell,
+                        isPast && styles.disabledDay
                     ]}
-                    onPress={() => handleSelect(i)}
+                    onPress={() => !isPast && handleSelect(i)}
+                    disabled={isPast}
                 >
                     <Text style={[
                         styles.dayText,
                         isSelected && styles.selectedDayText,
-                        !isSelected && isToday && styles.todayText
+                        !isSelected && isToday && styles.todayText,
+                        isPast && styles.disabledDayText
                     ]}>{i}</Text>
                 </TouchableOpacity>
             );
@@ -206,6 +217,13 @@ const styles = StyleSheet.create({
     todayText: {
         color: '#48327d',
         fontWeight: 'bold'
+    },
+    disabledDay: {
+        backgroundColor: '#f5f5f5'
+    },
+    disabledDayText: {
+        color: '#cbd5e1',
+        textDecorationLine: 'line-through'
     },
     closeButton: {
         marginTop: 15,

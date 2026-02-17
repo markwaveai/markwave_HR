@@ -434,11 +434,12 @@ const styles = StyleSheet.create({
     },
     teamCard: {
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         paddingVertical: 4,
     },
     teamInfo: {
         flex: 1,
+        paddingRight: 4,
     },
     teamNameText: {
         fontSize: 15,
@@ -449,17 +450,20 @@ const styles = StyleSheet.create({
     leadRow: {
         flexDirection: 'row',
         alignItems: 'center',
+        flexWrap: 'wrap',
+        marginTop: 2,
     },
     leadLabel: {
         fontSize: 12,
         color: '#64748b',
-        fontWeight: '600'
+        fontWeight: '600',
+        marginLeft: 2,
     },
     leadName: {
         fontSize: 12,
         color: '#334155',
         fontWeight: '500',
-        flex: 1,
+        flexShrink: 1,
     },
     activeDot: {
         width: 8,

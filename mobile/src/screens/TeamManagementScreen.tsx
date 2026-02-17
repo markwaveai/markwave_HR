@@ -627,8 +627,8 @@ const TeamManagementScreen = () => {
                                     <Text style={{ color: '#a0aec0', textAlign: 'center' }}>No members in this team yet.</Text>
                                 </View>
                             ) : (
-                                <ScrollView style={{ height: 300 }} showsVerticalScrollIndicator={true}>
-                                    <View style={{ gap: 10, paddingBottom: 10 }}>
+                                <ScrollView style={{ height: 300 }} showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
+                                    <View style={{ gap: 10 }}>
                                         {selectedTeamMembers.map(member => (
                                             <View key={member.id} style={styles.memberItem}>
                                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
@@ -774,17 +774,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         flex: 1,
-        marginRight: 10,
+        marginRight: 12,
+        minWidth: 0,
     },
     managerName: {
         fontSize: 13,
         color: '#64748b',
         fontWeight: '600',
+        flexShrink: 1,
     },
     manageBtn: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
+        flexShrink: 0,
     },
     manageBtnText: {
         fontSize: 13,

@@ -51,7 +51,7 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
     try:
         from .utils import send_email_via_api
         
-        # Parse notifyTo names and find emails
+        # Parse notifyTo names and find emails - ONLY send to explicitly selected recipients
         recipient_emails = []
         if notify_to_str:
             names = [n.strip() for n in notify_to_str.split(',') if n.strip()]
@@ -71,56 +71,40 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
                     if target and target.email:
                         recipient_emails.append(target.email)
 
-        # 1. Automatically add Team Managers
-        if employee.teams.exists():
-            for team in employee.teams.all():
-                if team.manager and team.manager.email and team.manager.email not in recipient_emails:
-                    recipient_emails.append(team.manager.email)
-        
-        # 2. Add Project Managers fallback if still empty
+        # If no recipients were selected, don't send any email
         if not recipient_emails:
-            from django.db.models import Q
-            pms = Employees.objects.filter(Q(role__icontains='Project Manager') | Q(role__icontains='Manager'))
-            for pm in pms:
-                if pm.email and pm.email not in recipient_emails:
-                    recipient_emails.append(pm.email)
-
-        # 3. Final fallback to Admin
-        if not recipient_emails:
-            admin = Employees.objects.filter(role__icontains='Admin').first()
-            if admin and admin.email:
-                recipient_emails.append(admin.email)
+            print(f"No recipients selected for leave notification for {employee.first_name} {employee.last_name}")
+            return
 
         # Send HTML Email
-        if recipient_emails:
-            subject = f"Leave Request - {employee.first_name} {employee.last_name}({employee.employee_id})"
-            
-            leave_display_names = {
-                'cl': 'Casual Leave',
-                'sl': 'Sick Leave',
-                'el': 'Earned Leave',
-                'scl': 'Special Casual Leave',
-                'bl': 'Bereavement Leave',
-                'pl': 'Paternity Leave',
-                'll': 'Long Leave',
-                'co': 'Comp Off'
-            }
-            leave_name = leave_display_names.get(leave_type, leave_type.upper())
-            
-            # Action Links - prioritize environment variable, fallback to auto-detection
-            import os
-            # Production domain
-            base_url = os.getenv('FRONTEND_BASE_URL', 'https://hr.markwave.ai')
-            api_base = f"{base_url}/api" if not base_url.endswith('/api') else base_url
-            
-            approve_url = f"{api_base}/leaves/email-action/{leave_request.id}/approve/"
-            reject_url = f"{api_base}/leaves/email-action/{leave_request.id}/reject/"
+        subject = f"Leave Request - {employee.first_name} {employee.last_name}({employee.employee_id})"
+        
+        leave_display_names = {
+            'cl': 'Casual Leave',
+            'sl': 'Sick Leave',
+            'el': 'Earned Leave',
+            'scl': 'Special Casual Leave',
+            'bl': 'Bereavement Leave',
+            'pl': 'Paternity Leave',
+            'll': 'Long Leave',
+            'co': 'Comp Off'
+        }
+        leave_name = leave_display_names.get(leave_type, leave_type.upper())
+        
+        # Action Links - prioritize environment variable, fallback to auto-detection
+        import os
+        # Production domain
+        base_url = os.getenv('FRONTEND_BASE_URL', 'https://hr.markwave.ai')
+        api_base = f"{base_url}/api" if not base_url.endswith('/api') else base_url
+        
+        approve_url = f"{api_base}/leaves/email-action/{leave_request.id}/approve/"
+        reject_url = f"{api_base}/leaves/email-action/{leave_request.id}/reject/"
 
-            # Format dates for display
-            formatted_from = datetime.datetime.strptime(from_date, '%Y-%m-%d').strftime('%d-%m-%Y')
-            formatted_to = datetime.datetime.strptime(to_date, '%Y-%m-%d').strftime('%d-%m-%Y')
-            
-            body = f"""<!DOCTYPE html>
+        # Format dates for display
+        formatted_from = datetime.datetime.strptime(from_date, '%Y-%m-%d').strftime('%d-%m-%Y')
+        formatted_to = datetime.datetime.strptime(to_date, '%Y-%m-%d').strftime('%d-%m-%Y')
+        
+        body = f"""<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -171,7 +155,9 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
                 </table>
                 
                 <p style="font-size: 12px; color: #999999; text-align: center; margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #eeeeee;">
-                    This is an automated notification from MarkwaveHR.<br>
+                    <strong>This email notification regarding the leave request has been sent only to the designated approver.</strong><br>
+                    Only the assigned person is required to review and take action.<br><br>
+                    If you are not the intended recipient, please ignore this email.<br>
                     Clicking Approve or Reject will immediately update the leave status.
                 </p>
             </td>
@@ -179,10 +165,12 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
     </table>
 </body>
 </html>"""
-            
-            main_recipient = recipient_emails[0]
-            cc_list = recipient_emails[1:] if len(recipient_emails) > 1 else []
-            send_email_via_api(main_recipient, subject, body, cc_emails=cc_list)
+        
+        # Send individual emails to each selected recipient (no CC)
+        for recipient_email in recipient_emails:
+            send_email_via_api(recipient_email, subject, body)
+    except Exception as e:
+        print(f"Error in background notification task: {str(e)}")
     except Exception as e:
         print(f"Error in background notification task: {str(e)}")
 

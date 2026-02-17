@@ -68,9 +68,9 @@ function Settings({ user }) {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
                     {/* Primary Content Area */}
-                    <div className="lg:col-span-8 space-y-8">
+                    <div className="lg:col-span-8 space-y-6 lg:space-y-8">
                         {/* Profile Details */}
                         <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">
@@ -102,7 +102,7 @@ function Settings({ user }) {
                     </div>
 
                     {/* Secondary Context Area */}
-                    <div className="lg:col-span-4 space-y-8">
+                    <div className="lg:col-span-4 space-y-6 lg:space-y-8">
                         {/* Organizational Identity */}
                         <section className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3 bg-slate-50/30">

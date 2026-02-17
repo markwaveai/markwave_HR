@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import HttpResponse
-from core.models import WorkFromHome, Employees
+from core.models import WorkFromHome, Employees, Holidays
 from .serializers import WorkFromHomeSerializer
 from django.db.models import Q
 import datetime
@@ -103,9 +103,11 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
 </body>
 </html>"""
         
-        main_recipient = recipient_emails[0]
-        cc_list = recipient_emails[1:] if len(recipient_emails) > 1 else []
-        send_email_via_api(main_recipient, subject, body, cc_emails=cc_list)
+        
+        # Send individual emails to each selected recipient (no CC)
+        for recipient_email in recipient_emails:
+            send_email_via_api(recipient_email, subject, body)
+
 
     except Exception as e:
         print(f"Error sending WFH notification: {str(e)}")
@@ -152,6 +154,68 @@ def apply_wfh(request):
         if not employee:
             return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
+        # Parse dates
+        try:
+            start_date = datetime.datetime.strptime(from_date, '%Y-%m-%d').date()
+            end_date = datetime.datetime.strptime(to_date, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Invalid date format. Please use YYYY-MM-DD.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Validate date range
+        if end_date < start_date:
+            return Response({'error': 'End date cannot be before start date.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get all holidays for validation
+        all_holidays = Holidays.objects.all()
+        holiday_dict = {}
+        for holiday in all_holidays:
+            try:
+                holiday_date = datetime.datetime.strptime(holiday.date, '%Y-%m-%d').date()
+                holiday_dict[holiday_date] = holiday.name
+            except ValueError:
+                continue
+
+        # Validate each date in the range
+        current_date = start_date
+        while current_date <= end_date:
+            # Check if it's a Sunday (weekday() returns 6 for Sunday)
+            if current_date.weekday() == 6:
+                formatted_date = current_date.strftime('%B %d, %Y')
+                return Response({
+                    'error': f'WFH requests are not allowed on Sundays. {formatted_date} is a Sunday.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if it's a public holiday
+            if current_date in holiday_dict:
+                formatted_date = current_date.strftime('%B %d, %Y')
+                holiday_name = holiday_dict[current_date]
+                return Response({
+                    'error': f'WFH requests are not allowed on public holidays. {formatted_date} is {holiday_name}.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check for duplicate/overlapping WFH requests
+            # Check if there's any existing WFH request that includes this date
+            existing_requests = WorkFromHome.objects.filter(
+                employee=employee
+            )
+            
+            for existing in existing_requests:
+                try:
+                    existing_start = datetime.datetime.strptime(existing.from_date, '%Y-%m-%d').date()
+                    existing_end = datetime.datetime.strptime(existing.to_date, '%Y-%m-%d').date()
+                    
+                    # Check if current_date falls within any existing request
+                    if existing_start <= current_date <= existing_end:
+                        formatted_date = current_date.strftime('%B %d, %Y')
+                        return Response({
+                            'error': f'You already have a WFH request for {formatted_date}. Please check your WFH history.'
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                except ValueError:
+                    continue
+
+            current_date += datetime.timedelta(days=1)
+
+        # All validations passed, create the WFH request
         new_request = WorkFromHome.objects.create(
             employee=employee,
             from_date=from_date,
@@ -166,6 +230,7 @@ def apply_wfh(request):
         return Response({'message': 'WFH request submitted', 'id': new_request.id}, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 
 @api_view(['GET'])
 def get_wfh_requests(request, employee_id):

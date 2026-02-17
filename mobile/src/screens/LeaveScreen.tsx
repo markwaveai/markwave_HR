@@ -112,14 +112,14 @@ const LeaveScreen = ({ user }: { user: any }) => {
         // Rule 1: Enable requests only after 9:30 AM
         if (currentTime < 9.5) return true; // Before 9:30 AM (9.5)
 
-        // Rule 2: Morning Session (Session 1) - valid between 9:30 AM and 12:30 PM
+        // Rule 2: Morning Session (First Half) - valid between 9:30 AM and 12:30 PM
         // Also applies to Full Day (since it includes morning)
-        if (fromSession === 'Session 1' || fromSession === 'Full Day') {
+        if (fromSession === 'First Half' || fromSession === 'Full Day') {
             if (currentTime > 12.5) return true; // After 12:30 PM
         }
 
-        // Rule 3: Afternoon Session (Session 2) - valid before 2:00 PM
-        if (fromSession === 'Session 2') {
+        // Rule 3: Afternoon Session (Second Half) - valid before 2:00 PM
+        if (fromSession === 'Second Half') {
             if (currentTime >= 14) return true; // After 2:00 PM
         }
 

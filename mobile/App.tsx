@@ -225,7 +225,7 @@ function App() {
                   )}
                   {isAdmin ? (
                     <DrawerItem
-                      title="Team"
+                      title="Team Management"
                       icon={<BuildingIcon color={activeTab === 'Teams' ? '#48327d' : '#64748b'} size={24} />}
                       isActive={activeTab === 'Teams'}
                       onPress={() => { setActiveTab('Teams'); setIsDrawerVisible(false); }}
@@ -238,12 +238,21 @@ function App() {
                       onPress={() => { setActiveTab('Team'); setIsDrawerVisible(false); }}
                     />
                   )}
-                  <DrawerItem
-                    title="Leaves"
-                    icon={<CalendarIcon color={activeTab === 'Menu' || activeTab === 'AdminLeave' ? '#48327d' : '#64748b'} size={24} />}
-                    isActive={activeTab === 'Menu' || activeTab === 'AdminLeave'}
-                    onPress={() => { setActiveTab(isAdmin ? 'AdminLeave' : 'Menu'); setIsDrawerVisible(false); }}
-                  />
+                  {isAdmin ? (
+                    <DrawerItem
+                      title="Leave Management"
+                      icon={<CalendarIcon color={activeTab === 'AdminLeave' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'AdminLeave'}
+                      onPress={() => { setActiveTab('AdminLeave'); setIsDrawerVisible(false); }}
+                    />
+                  ) : (
+                    <DrawerItem
+                      title="Leaves"
+                      icon={<CalendarIcon color={activeTab === 'Menu' ? '#48327d' : '#64748b'} size={24} />}
+                      isActive={activeTab === 'Menu'}
+                      onPress={() => { setActiveTab('Menu'); setIsDrawerVisible(false); }}
+                    />
+                  )}
                   <DrawerItem
                     title="Settings"
                     icon={<SettingsIcon color={activeTab === 'Settings' ? '#48327d' : '#64748b'} size={24} />}

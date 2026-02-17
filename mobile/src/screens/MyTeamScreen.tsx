@@ -165,10 +165,16 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
         setIsEditModalVisible(true);
     };
 
-    const filteredMembers = teamMembers.filter(member =>
-        (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-        (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    );
+    const filteredMembers = teamMembers.filter(member => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+            (member.name?.toLowerCase() || '').includes(searchLower) ||
+            (member.role?.toLowerCase() || '').includes(searchLower) ||
+            (member.email?.toLowerCase() || '').includes(searchLower) ||
+            (member.location?.toLowerCase() || '').includes(searchLower) ||
+            (member.employee_id?.toLowerCase() || '').includes(searchLower)
+        );
+    });
 
     const renderHeader = () => {
         const currentTeam = teams.find(t => t.id === selectedTeamId);
@@ -177,7 +183,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
             <View style={styles.headerContainer}>
                 <View style={styles.titleRow}>
                     <View style={styles.titleContent}>
-                        <Text style={styles.pageTitle}>My Team</Text>
+                        <Text style={styles.pageTitle}>Team</Text>
                         <Text style={styles.teamLeadSubtitle}>
                             {currentTeam?.manager_name ? `Team ${currentTeam.manager_name}` : (currentTeam ? `Team ${currentTeam.name}` : (user?.team_lead_name ? `Team ${user.team_lead_name}` : 'My Team Members'))}
                         </Text>

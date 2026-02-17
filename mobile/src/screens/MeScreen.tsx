@@ -30,7 +30,7 @@ const LiveDateTime: React.FC<{ user: any, clockStatus: any, debugInfo: any }> = 
             </Text>
             <View style={styles.debugInfoBox}>
                 <Text style={styles.debugInfoText}>ID: {user.id} | St: {clockStatus || 'UNKNOWN'}</Text>
-                <Text style={styles.debugInfoText}>LastLog: {debugInfo ? `${debugInfo.last_log_id}` : 'None'}</Text>
+                <Text style={styles.debugInfoText}>LastLog: {debugInfo?.last_punch || 'None'}</Text>
             </View>
         </View>
     );
@@ -108,7 +108,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
             setClockStatus(status.status);
             setCanClock(status.can_clock !== undefined ? status.can_clock : true);
             setDisabledReason(status.disabled_reason);
-            setDebugInfo(status.debug);
+            setDebugInfo(status); // Store entire status object to access last_punch
             setTeamStats(stats);
 
             // Set today as selected day in timing card
@@ -683,26 +683,48 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                             <TouchableOpacity
                                                 key={h}
                                                 onPress={() => setArrivalDropdownVisible(!arrivalDropdownVisible)}
-                                                style={[{ width: w, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', zIndex: 10 }]}
+                                                style={[{
+                                                    width: w,
+                                                    flexDirection: 'row',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    gap: 4,
+                                                    zIndex: 10,
+                                                    backgroundColor: arrivalFilter !== 'All' ? '#f3e8ff' : 'transparent',
+                                                    paddingVertical: 6,
+                                                    paddingHorizontal: 8,
+                                                    borderRadius: 6,
+                                                    borderWidth: 1,
+                                                    borderColor: arrivalFilter !== 'All' ? '#48327d20' : 'transparent'
+                                                }]}
                                             >
-                                                <Text style={{ color: arrivalFilter !== 'All' ? '#48327d' : '#888', fontWeight: 'bold', fontSize: 10 }}>
+                                                <Text style={{
+                                                    color: arrivalFilter !== 'All' ? '#48327d' : '#64748b',
+                                                    fontWeight: '900',
+                                                    fontSize: 9,
+                                                    letterSpacing: 0.5
+                                                }}>
                                                     {arrivalFilter === 'All' ? 'ARRIVAL STATUS' : arrivalFilter.toUpperCase()}
                                                 </Text>
+                                                <ChevronDownIcon size={10} color={arrivalFilter !== 'All' ? '#48327d' : '#64748b'} />
                                                 {/* Dropdown Menu */}
                                                 {arrivalDropdownVisible && (
                                                     <View style={{
                                                         position: 'absolute',
-                                                        top: 30, // Just below the header
+                                                        top: 35,
                                                         right: 0,
-                                                        width: 100,
+                                                        width: 110,
                                                         backgroundColor: 'white',
-                                                        borderRadius: 8,
+                                                        borderRadius: 10,
                                                         shadowColor: "#000",
-                                                        shadowOffset: { width: 0, height: 2 },
-                                                        shadowOpacity: 0.25,
-                                                        shadowRadius: 3.84,
-                                                        elevation: 5,
-                                                        zIndex: 999
+                                                        shadowOffset: { width: 0, height: 4 },
+                                                        shadowOpacity: 0.15,
+                                                        shadowRadius: 8,
+                                                        elevation: 8,
+                                                        zIndex: 999,
+                                                        borderWidth: 1,
+                                                        borderColor: '#f1f5f9',
+                                                        overflow: 'hidden'
                                                     }}>
                                                         {['All', 'On Time', 'Late'].map((opt) => (
                                                             <TouchableOpacity
@@ -711,9 +733,18 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                                                     setArrivalFilter(opt);
                                                                     setArrivalDropdownVisible(false);
                                                                 }}
-                                                                style={{ padding: 10, borderBottomWidth: opt === 'Late' ? 0 : 1, borderBottomColor: '#f1f5f9' }}
+                                                                style={{
+                                                                    padding: 12,
+                                                                    borderBottomWidth: opt === 'Late' ? 0 : 1,
+                                                                    borderBottomColor: '#f1f5f9',
+                                                                    backgroundColor: arrivalFilter === opt ? '#f8fafc' : 'white'
+                                                                }}
                                                             >
-                                                                <Text style={{ fontSize: 10, fontWeight: '600', color: arrivalFilter === opt ? '#48327d' : '#2d3436' }}>
+                                                                <Text style={{
+                                                                    fontSize: 11,
+                                                                    fontWeight: arrivalFilter === opt ? '800' : '600',
+                                                                    color: arrivalFilter === opt ? '#48327d' : '#334155'
+                                                                }}>
                                                                     {opt === 'All' ? 'All Status' : opt}
                                                                 </Text>
                                                             </TouchableOpacity>
@@ -891,18 +922,18 @@ const styles = StyleSheet.create({
     actionLinkItem: { flexDirection: 'row', alignItems: 'center', gap: 12 },
     actionLinkIcon: { fontSize: 14, color: '#48327d', width: 20, textAlign: 'center' },
     actionLabel: { fontSize: 13, fontWeight: '700', color: '#48327d', flex: 1, marginLeft: 8 },
-    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b' },
-    tableHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, marginTop: 10, paddingHorizontal: 4 },
-    filterTabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4 },
-    filterTab: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 },
+    sectionTitle: { fontSize: 18, fontWeight: '900', color: '#1e293b', marginBottom: 4 },
+    tableHeader: { flexDirection: 'column', gap: 12, marginBottom: 20, marginTop: 10, paddingHorizontal: 20 },
+    filterTabs: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4, alignSelf: 'flex-start' },
+    filterTab: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
     filterTabActive: { backgroundColor: 'white', elevation: 1 },
-    filterTabText: { fontSize: 10, fontWeight: '900', color: '#94a3b8' },
-    filterTabTextActive: { color: '#48327d' },
+    filterTabText: { fontSize: 10, fontWeight: '900', color: '#64748b', letterSpacing: 0.3 },
+    filterTabTextActive: { color: '#48327d', fontWeight: '900' },
     mainTabsContainer: { flexDirection: 'row', backgroundColor: '#f1f5f9', borderRadius: 8, padding: 4, marginHorizontal: 20, marginBottom: 16 },
     mainTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6 },
     mainTabActive: { backgroundColor: 'white', elevation: 1 },
-    mainTabText: { fontSize: 13, fontWeight: '700', color: '#94a3b8' },
-    mainTabTextActive: { color: '#48327d' },
+    mainTabText: { fontSize: 13, fontWeight: '800', color: '#64748b' },
+    mainTabTextActive: { color: '#48327d', fontWeight: '900' },
     monthScrollerContainer: { marginBottom: 16, marginHorizontal: 20 },
     monthScroller: { backgroundColor: '#f1f5f9', borderRadius: 12, padding: 4 },
     monthScrollerContent: { paddingRight: 4 },
@@ -912,7 +943,7 @@ const styles = StyleSheet.create({
     monthTextActive: { color: '#48327d' },
     tableCard: { backgroundColor: 'white', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', overflow: 'hidden', elevation: 1 },
     tableHead: { flexDirection: 'row', backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 16 },
-    headCell: { fontSize: 9, fontWeight: '900', color: '#94a3b8', textAlign: 'center', letterSpacing: 0.8 },
+    headCell: { fontSize: 9, fontWeight: '900', color: '#64748b', textAlign: 'center', letterSpacing: 0.8 },
     tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingVertical: 16, alignItems: 'center' },
     rowOff: { backgroundColor: '#fcfcfd' },
     cell: { paddingHorizontal: 16, justifyContent: 'center' },
