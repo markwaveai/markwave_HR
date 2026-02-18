@@ -272,73 +272,71 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         const nextType = clockStatus === 'IN' ? 'OUT' : 'IN';
 
         try {
-            // Only fetch GPS location for clock-in, not for clock-out
-            if (nextType === 'IN') {
-                // Request location permission
-                const hasPermission = await requestLocationPermission();
+            // Request location permission
+            const hasPermission = await requestLocationPermission();
 
-                if (!hasPermission) {
-                    Alert.alert('Permission Denied', 'Location permission is required for clock-in.');
-                    setClockLoading(false);
-                    return;
-                }
-
-                // Get current position with high accuracy for clock-in
-                Geolocation.getCurrentPosition(
-                    async (position) => {
-                        const { latitude, longitude } = position.coords;
-                        const finalLocation = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
-
-                        try {
-                            await attendanceApi.clock({
-                                employee_id: user.employee_id || user.id,
-                                location: finalLocation,
-                                type: nextType
-                            });
-                            await fetchData();
-                        } catch (err) {
-                            console.log("Clock action failed:", err);
-                            Alert.alert('Error', 'Failed to update attendance');
-                        } finally {
-                            setClockLoading(false);
-                        }
-                    },
-                    (error) => {
-                        console.log('Location error:', error);
-                        // Fallback to a default location if GPS fails
-                        const fallbackLocation = `Location unavailable (Error: ${error.message})`;
-
-                        attendanceApi.clock({
-                            employee_id: user.employee_id || user.id,
-                            location: fallbackLocation,
-                            type: nextType
-                        }).then(() => {
-                            fetchData();
-                        }).catch((err) => {
-                            console.log("Clock action failed:", err);
-                            Alert.alert('Error', 'Failed to update attendance');
-                        }).finally(() => {
-                            setClockLoading(false);
-                        });
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 15000,
-                        maximumAge: 10000
-                    }
-                );
-            } else {
-                // For clock-out, use a simple static location
-                const finalLocation = "Office";
-
-                await attendanceApi.clock({
-                    employee_id: user.employee_id || user.id,
-                    location: finalLocation,
-                    type: nextType
-                });
-                await fetchData();
+            if (!hasPermission) {
+                Alert.alert('Permission Denied', 'Location permission is required for attendance.');
                 setClockLoading(false);
+                return;
             }
+
+            // Get current position for both IN and OUT
+            Geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const coordsStr = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+                    let finalLocation = coordsStr;
+
+                    try {
+                        // Attempt to resolve address (reverse geocode)
+                        const geoData = await attendanceApi.resolveLocation(latitude, longitude);
+                        if (geoData && geoData.address) {
+                            finalLocation = `${geoData.address} (${coordsStr})`;
+                        }
+                    } catch (e) {
+                        console.log("Could not resolve location address, using coordinates:", e);
+                        // Fallback to coordinates only, already set
+                    }
+
+                    try {
+                        await attendanceApi.clock({
+                            employee_id: user.employee_id || user.id,
+                            location: finalLocation,
+                            type: nextType
+                        });
+                        await fetchData();
+                    } catch (err: any) {
+                        console.log("Clock action failed:", err);
+                        Alert.alert('Error', err.message || 'Failed to update attendance');
+                    } finally {
+                        setClockLoading(false);
+                    }
+                },
+                (error) => {
+                    console.log('Location error:', error);
+                    // Fallback if GPS fails
+                    const fallbackLocation = `Location unavailable (Error: ${error.message})`;
+
+                    attendanceApi.clock({
+                        employee_id: user.employee_id || user.id,
+                        location: fallbackLocation,
+                        type: nextType
+                    }).then(() => {
+                        fetchData();
+                    }).catch((err) => {
+                        console.log("Clock action failed:", err);
+                        Alert.alert('Error', 'Failed to update attendance');
+                    }).finally(() => {
+                        setClockLoading(false);
+                    });
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 10000
+                }
+            );
         } catch (err) {
             console.log("Clock action failed:", err);
             Alert.alert('Error', 'Failed to update attendance');
