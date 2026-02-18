@@ -5,9 +5,10 @@ import { UsersIcon, ChevronRightIcon } from './Icons';
 interface EmployeeOverviewCardProps {
     stats: any;
     onShowAbsentees: () => void;
+    onShowAllLogins: () => void;
 }
 
-const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onShowAbsentees }) => {
+const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onShowAbsentees, onShowAllLogins }) => {
     // Default values if stats is null/undefined
     const total = stats?.total_employees || 0;
     const absent = stats?.absentees_count || 0;
@@ -20,10 +21,15 @@ const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onSh
             </View>
 
             <View style={styles.statsRow}>
-                <View style={styles.statBlock}>
+                <TouchableOpacity
+                    style={styles.statBlock}
+                    onPress={onShowAllLogins}
+                    activeOpacity={0.7}
+                >
                     <Text style={styles.statLabel}>TOTAL EMPLOYEES</Text>
                     <Text style={styles.totalValue}>{total}</Text>
-                </View>
+                    <Text style={styles.hintText}>Tap to view all</Text>
+                </TouchableOpacity>
 
                 <View style={styles.statDivider} />
 
@@ -96,6 +102,12 @@ const styles = StyleSheet.create({
         fontSize: 28,
         fontWeight: 'bold',
         color: '#2d3436',
+    },
+    hintText: {
+        fontSize: 10,
+        color: '#3b82f6',
+        fontWeight: '600',
+        marginTop: 2,
     },
     absentValue: {
         fontSize: 28,

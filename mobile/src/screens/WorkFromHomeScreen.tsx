@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Modal, TextInput, Alert, ActivityIndicator, RefreshControl } from 'react-native';
-import { wfhApi, authApi } from '../services/api';
+import { wfhApi, authApi, attendanceApi } from '../services/api';
 import CustomDatePicker from '../components/CustomDatePicker';
 import { CalendarIcon, PlaneIcon } from '../components/Icons';
 import { normalize, wp, hp } from '../utils/responsive';
@@ -11,6 +11,7 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
     const [refreshing, setRefreshing] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [profile, setProfile] = useState<any>(null);
+    const [holidays, setHolidays] = useState<any[]>([]);
 
     // Form State
     const [fromDate, setFromDate] = useState('');
@@ -32,6 +33,10 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
         if (user?.id) {
             fetchRequests();
             authApi.getProfile(user.id).then(setProfile).catch(console.log);
+            attendanceApi.getHolidays().then(setHolidays).catch((err) => {
+                console.log("Failed to fetch holidays:", err);
+                setHolidays([]);
+            });
         }
     }, [user?.id]);
 
@@ -44,6 +49,15 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
         } finally {
             setLoading(false);
         }
+    };
+
+    const isDateDisabled = (dateStr: string) => {
+        if (!dateStr) return false;
+        const d = new Date(dateStr);
+        // Check Sunday (0)
+        if (d.getDay() === 0) return true;
+        // Check Holidays
+        return holidays.some(h => (h.raw_date || h.date) === dateStr);
     };
 
     const handleApply = async () => {
@@ -64,22 +78,34 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
             return;
         }
 
-        // Client-side validation: Check for Sundays in the date range
+        // Validate Range for Sundays and Holidays
         const startDate = new Date(fromDate);
         const endDate = new Date(toDate);
         let currentDate = new Date(startDate);
 
         while (currentDate <= endDate) {
-            // Check if it's a Sunday (getDay() returns 0 for Sunday)
-            if (currentDate.getDay() === 0) {
+            // Reconstruct date string YYYY-MM-DD for comparison
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            if (isDateDisabled(dateStr)) {
+                // Determine reason for better error message
+                const isSun = currentDate.getDay() === 0;
+                const holiday = holidays.find(h => (h.raw_date || h.date) === dateStr);
+
                 const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
                 const formattedDate = currentDate.toLocaleDateString('en-US', options);
+
+                const reasonMsg = isSun ? "is a Sunday" : `is a Holiday (${holiday?.name})`;
                 Alert.alert(
                     "Invalid Date",
-                    `WFH requests are not allowed on Sundays. ${formattedDate} is a Sunday.`
+                    `WFH requests are not allowed on Sundays or Holidays. ${formattedDate} ${reasonMsg}.`
                 );
                 return;
             }
+            // Move to next day
             currentDate.setDate(currentDate.getDate() + 1);
         }
 

@@ -27,6 +27,8 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
 
     // Apply Leave Modal State
     const [applyModalVisible, setApplyModalVisible] = useState(false);
+    console.log('AdminLeaveScreen Render. ApplyModalVisible:', applyModalVisible);
+
     const [leaveType, setLeaveType] = useState('cl');
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
@@ -114,7 +116,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
         if (!dateStr) return false;
         const d = new Date(dateStr);
         if (d.getDay() === 0) return true;
-        return holidays.some(h => h.raw_date === dateStr);
+        return holidays.some(h => (h.raw_date || h.date) === dateStr);
     };
 
     const openDatePicker = (field: 'from' | 'to') => {
@@ -154,8 +156,9 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
             return;
         }
 
-        const effectiveToDate = toDate || fromDate;
+        // Validate Range for Sundays and Holidays
         const start = new Date(fromDate);
+        const effectiveToDate = toDate || fromDate;
         const end = new Date(effectiveToDate);
 
         if (end < start) {
@@ -163,10 +166,39 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
             return;
         }
 
+        let current = new Date(start);
+        while (current <= end) {
+            const yyyy = current.getFullYear();
+            const mm = String(current.getMonth() + 1).padStart(2, '0');
+            const dd = String(current.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            if (isDateDisabled(dateStr)) {
+                // Determine reason
+                const isSun = current.getDay() === 0;
+                const holiday = holidays.find(h => (h.raw_date || h.date) === dateStr);
+
+                const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = current.toLocaleDateString('en-US', options);
+
+                const reasonMsg = isSun ? "is a Sunday" : `is a Holiday (${holiday?.name || 'Public Holiday'})`;
+                Alert.alert(
+                    "Restricted",
+                    `Cannot apply leave on Sundays or Public Holidays. ${formattedDate} ${reasonMsg}.`
+                );
+                return;
+            }
+            current.setDate(current.getDate() + 1);
+        }
+
         setIsSubmitting(true);
         try {
             const diff = end.getTime() - start.getTime();
             let days = Math.ceil(diff / (1000 * 3600 * 24)) + 1;
+
+            // Adjust for Sunday? No, we already rejected range if it includes Sunday. 
+            // But if we allowed spanning (which we don't now), we would calc days excluding Sun.
+            // Since we block restricted days, current calc is valid for strictly working days range.
 
             if (fromDate === effectiveToDate) {
                 if (fromSession !== 'Full Day') days = 0.5;
@@ -175,7 +207,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                 if (toSession !== 'Full Day') days -= 0.5;
             }
 
-            await leaveApi.apply({
+            const response = await leaveApi.apply({
                 employeeId: EMPLOYEE_ID,
                 type: leaveType,
                 fromDate,
@@ -186,7 +218,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                 created_at: new Date().toISOString(),
             });
 
-            Alert.alert("Success", "Leave applied and auto-approved!");
+            Alert.alert("Success", response.message || "Leave applied successfully!");
             setApplyModalVisible(false);
             resetApplyForm();
             fetchMyHistory(); // Refresh history tab
@@ -209,16 +241,21 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <View>
+                <View style={{ flex: 1, marginRight: 10 }}>
                     <Text style={styles.headerTitle}>Leave & WFH Management</Text>
                     <Text style={styles.headerSubtitle}>Review pending requests</Text>
                 </View>
-                <Pressable
-                    onPress={() => setApplyModalVisible(true)}
-                    style={({ pressed }) => [styles.applyBtn, pressed && { opacity: 0.7 }]}
+                <TouchableOpacity
+                    onPress={() => {
+                        console.log('Apply Leave Clicked. Setting Visible to True.');
+                        setApplyModalVisible(true);
+                    }}
+                    style={styles.applyBtn}
+                    hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                    activeOpacity={0.7}
                 >
                     <Text style={styles.applyBtnText}>+ Apply Leave</Text>
-                </Pressable>
+                </TouchableOpacity>
             </View>
 
             <View style={{ flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
@@ -338,6 +375,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                 animationType="slide"
                 transparent={true}
                 onRequestClose={() => { setApplyModalVisible(false); resetApplyForm(); }}
+                onShow={() => console.log('Modal onShow triggered')}
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
@@ -366,7 +404,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                         <Text style={[styles.dateText, !fromDate && { color: '#b2bec3' }]}>
                                             {fromDate || 'Select Date'}
                                         </Text>
-                                        <CalendarIcon color="#64748b" size={18} />
+                                        <CalendarIcon color="#64748b" size={normalize(18)} />
                                     </TouchableOpacity>
                                 </View>
                                 <View style={{ flex: 1 }}>
@@ -375,7 +413,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                         <Text style={[styles.dateText, !toDate && { color: '#b2bec3' }]}>
                                             {toDate || 'Select Date'}
                                         </Text>
-                                        <CalendarIcon color="#64748b" size={18} />
+                                        <CalendarIcon color="#64748b" size={normalize(18)} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -425,10 +463,9 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                 </>
                             ) : null}
 
-                            {/* Reason */}
                             <Text style={styles.inputLabel}>REASON *</Text>
                             <TextInput
-                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                style={[styles.input, { height: hp(10), textAlignVertical: 'top' }]}
                                 value={reason}
                                 onChangeText={setReason}
                                 placeholder="Briefly describe the reason..."
@@ -483,7 +520,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                 onClose={() => setDatePickerVisible(false)}
                 onSelect={handleDateSelect}
                 value={activeDateInput === 'from' ? fromDate : toDate}
-                disabledDates={holidays.map((h: any) => h.date).filter(Boolean)}
+                disabledDates={holidays.map((h: any) => h.raw_date || h.date).filter(Boolean)}
             />
         </View>
     );
@@ -502,7 +539,7 @@ const styles = StyleSheet.create({
 
     applyBtn: {
         backgroundColor: '#48327d', paddingHorizontal: wp(3.5), paddingVertical: hp(1.2),
-        borderRadius: normalize(8), elevation: 3
+        borderRadius: normalize(8), elevation: 3, zIndex: 999
     },
     applyBtnText: { color: 'white', fontWeight: 'bold', fontSize: normalize(12) },
 

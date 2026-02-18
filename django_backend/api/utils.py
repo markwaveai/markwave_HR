@@ -24,7 +24,7 @@ def send_email_via_api(to_email, subject, body, cc_emails=None):
     payload = {
         "subject": subject,
         "msgbody": body,
-        "to_emails": [to_email],
+        "to_emails": [to_email.strip() if to_email else ""],
         "cc_emails": cc_emails
     }
     

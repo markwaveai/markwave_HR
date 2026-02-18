@@ -10,7 +10,15 @@ import threading
 
 from django.utils import timezone
 
+
+
+# Centralized Admin Roles Definition
+ADMIN_ROLES = {
+    'admin', 'administrator', 'advisor-technology & operations', 'project manager', 'founder'
+}
+
 @api_view(['GET'])
+
 def get_leaves(request, employee_id):
     employee = Employees.objects.filter(employee_id=employee_id).first()
     if not employee and str(employee_id).isdigit():
@@ -158,15 +166,26 @@ def notify_employee_status_update(leave_request_id):
         from .utils import send_email_via_api
         from core.models import Leaves
         
+        print(f"DEBUG: notify_employee_status_update called for ID {leave_request_id}")
+        
         # Fetch fresh object inside the thread to avoid lazy loading issues
-        leave_request = Leaves.objects.get(pk=leave_request_id)
+        try:
+            leave_request = Leaves.objects.get(pk=leave_request_id)
+        except Leaves.DoesNotExist:
+            print(f"ERROR: Leave request {leave_request_id} not found in thread")
+            return
+
         employee = leave_request.employee
         
-        print(f"Starting status update notification for Leave ID {leave_request_id}, Employee: {employee.first_name} {employee.last_name}")
+        print(f"DEBUG: Found leave request {leave_request.id}. Employee: {employee.first_name} {employee.last_name} ({employee.employee_id})")
         
         if not employee.email:
-            print(f"Skipping notification: No email found for employee {employee.first_name} {employee.last_name}")
+            print(f"DEBUG: Skipping notification: No email found for employee {employee.first_name} {employee.last_name}")
             return
+        
+        # Sanitize email
+        employee_email = employee.email.strip()
+        print(f"DEBUG: Employee Email: '{employee_email}' (original: '{employee.email}')")
 
         status_text = leave_request.status
         color = "#10b981" if status_text == 'Approved' else "#ef4444"
@@ -210,55 +229,62 @@ def notify_employee_status_update(leave_request_id):
         body = f"""<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
-        <tr>
-            <td style="background-color: {color}; padding: 30px; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Leave Request {status_text}</h1>
-            </td>
-        </tr>
-        <tr>
-            <td style="padding: 30px;">
-                <p style="font-size: 16px; color: #333333; margin: 0 0 10px 0;">Hello {employee.first_name},</p>
-                <p style="font-size: 15px; color: #333333; margin: 0 0 25px 0;">
-                    Your leave request has been <strong>{status_text.lower()}</strong>.
-                </p>
-                
-                <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; margin: 20px 0;">
-                    <tr>
-                        <td style="color: #666666; font-size: 13px; font-weight: bold;">TYPE:</td>
-                        <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">{leave_name}</td>
-                    </tr>
-                    <tr>
-                        <td style="color: #666666; font-size: 13px; font-weight: bold;">PERIOD:</td>
-                        <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">
-                            {fmt_date(from_date)} to {fmt_date(to_date)}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style="color: #666666; font-size: 13px; font-weight: bold;">STATUS:</td>
-                        <td style="color: {color}; font-size: 14px; font-weight: bold; text-align: right;">{status_text.upper()}</td>
-                    </tr>
-                </table>
-                
-                <p style="font-size: 12px; color: #999999; text-align: center; margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #eeeeee;">
-                    This is an automated notification from the Markwave HR Portal.
-                </p>
-            </td>
-        </tr>
-    </table>
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+    <tr>
+        <td style="background-color: {color}; padding: 30px; text-align: center;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Leave Request {status_text}</h1>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 30px;">
+            <p style="font-size: 16px; color: #333333; margin: 0 0 10px 0;">Hello {employee.first_name},</p>
+            <p style="font-size: 15px; color: #333333; margin: 0 0 25px 0;">
+                Your leave request has been <strong>{status_text.lower()}</strong>.
+            </p>
+            
+            <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; margin: 20px 0;">
+                <tr>
+                    <td style="color: #666666; font-size: 13px; font-weight: bold;">TYPE:</td>
+                    <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">{leave_name}</td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 13px; font-weight: bold;">PERIOD:</td>
+                    <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">
+                        {fmt_date(from_date)} to {fmt_date(to_date)}
+                    </td>
+                </tr>
+                <tr>
+                    <td style="color: #666666; font-size: 13px; font-weight: bold;">STATUS:</td>
+                    <td style="color: {color}; font-size: 14px; font-weight: bold; text-align: right;">{status_text.upper()}</td>
+                </tr>
+            </table>
+            
+            <p style="font-size: 12px; color: #999999; text-align: center; margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #eeeeee;">
+                This is an automated notification from the Markwave HR Portal.
+            </p>
+        </td>
+    </tr>
+</table>
 </body>
 </html>"""
-        success, result = send_email_via_api(employee.email, subject, body)
-        if success:
-            print(f"Successfully sent leave status update to {employee.email}")
-        else:
-            print(f"Failed to send leave status update to {employee.email}: {result}")
+        print(f"DEBUG: Sending email to {employee_email}")
+        try:
+            success, result = send_email_via_api(employee_email, subject, body)
+            if success:
+                print(f"DEBUG: Successfully sent leave status update to {employee_email}. Result: {result}")
+            else:
+                print(f"DEBUG: Failed to send leave status update to {employee_email}: {result}")
+        except Exception as api_err:
+            print(f"DEBUG: Exception calling send_email_via_api: {str(api_err)}")
+            import traceback
+            traceback.print_exc()
+
     except Exception as e:
-        print(f"Error sending employee leave notification: {str(e)}")
+        print(f"DEBUG: Error sending employee leave notification: {str(e)}")
         import traceback
         traceback.print_exc()
 
@@ -286,7 +312,7 @@ def apply_leave(request):
         current_year = datetime.now().year
 
         # Roles treated as admin (must match frontend App.tsx isAdmin logic)
-        ADMIN_ROLES = {'admin', 'administrator', 'project manager', 'advisor-technology & operations'}
+
 
         # Validate that leave dates are not in the past (skip for admins)
         from_date_obj = datetime.strptime(from_date, '%Y-%m-%d')
@@ -392,6 +418,9 @@ def apply_leave(request):
                 target=process_leave_notifications,
                 args=(employee, new_request, notify_to_str, leave_type, from_date, to_date, days, data.get('reason', 'N/A'), data.get('from_session', 'Full Day'), data.get('to_session', 'Full Day'))
             ).start()
+        else:
+            # For admins, trigger the "Approved" notification immediately
+            threading.Thread(target=notify_employee_status_update, args=(new_request.id,)).start()
 
         msg = 'Leave request auto-approved' if is_admin else 'Leave request submitted'
         return Response({'message': msg, 'id': new_request.id}, status=status.HTTP_201_CREATED)
@@ -519,7 +548,7 @@ def email_leave_action(request, request_id, action):
 @api_view(['GET'])
 def get_pending_leaves(request):
     # Roles treated as admin — their leaves are auto-approved and must not appear here
-    ADMIN_ROLES = ['admin', 'administrator', 'project manager', 'advisor-technology & operations']
+
     # Exclude leaves submitted by admin-equivalent role employees
     leaves = Leaves.objects.filter(status='Pending').exclude(
         employee__role__in=[
@@ -538,6 +567,9 @@ def leave_action(request, request_id):
         return Response({'error': 'Leave request not found'}, status=status.HTTP_404_NOT_FOUND)
         
     action = request.data.get('action') # 'Approve' or 'Reject'
+    
+    print(f"DEBUG: leave_action called for ID {request_id}, action {action}")
+    
     if action not in ['Approve', 'Reject']:
         return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
         
@@ -545,7 +577,14 @@ def leave_action(request, request_id):
     leave_request.save()
     
     # Notify employee in background
-    threading.Thread(target=notify_employee_status_update, args=(leave_request.id,)).start()
+    try:
+        t = threading.Thread(target=notify_employee_status_update, args=(leave_request.id,))
+        t.start()
+        print(f"DEBUG: Started notification thread {t.name} for leave {leave_request.id}")
+    except Exception as e:
+        print(f"ERROR: Failed to start notification thread: {e}")
+        import traceback
+        traceback.print_exc()
     
     return Response({'message': f'Leave request {action}d successfully'})
 
@@ -586,17 +625,24 @@ def get_leave_balance(request, employee_id):
     total_used = 0
     
     for balance in balances:
-        code = balance.leave_type.code.lower()
-        allocated = balance.allocated_days
-        
-        # Only include leave types with actual allocation
-        if allocated > 0:
-            used = usage.get(code, 0)
-            remaining = max(0, allocated - used)
+        try:
+            if not balance.leave_type or not balance.leave_type.code:
+                continue
+                
+            code = balance.leave_type.code.lower()
+            allocated = balance.allocated_days or 0
             
-            result[code] = remaining
-            total_allocated += allocated
-            total_used += used
+            # Only include leave types with actual allocation
+            if allocated > 0:
+                used = usage.get(code, 0)
+                remaining = max(0, allocated - used)
+                
+                result[code] = remaining
+                total_allocated += allocated
+                total_used += used
+        except Exception as e:
+            print(f"Error processing balance record {balance.id}: {e}")
+            continue
     
     # Only add total if there are any leaves
     if total_allocated > 0:

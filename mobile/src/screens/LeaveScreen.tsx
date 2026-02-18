@@ -183,9 +183,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
         // Check Duplicate Leave
         if (isDuplicateLeave()) return true;
 
-        // Check restricted days within range (Sundays/Holidays)
-        if (hasRestrictedDaysInRange()) return true;
-
+        // We allow restricted days in range here, to show specific alert on Submit
         return false;
     };
 
@@ -195,10 +193,35 @@ const LeaveScreen = ({ user }: { user: any }) => {
             return;
         }
 
-        // Double check validation on submit (just in case)
-        if (isDateDisabled(fromDate) || (toDate && isDateDisabled(toDate))) {
-            Alert.alert("Restricted", "Cannot apply leave on Sundays or Public Holidays.");
-            return;
+        // Validate Range for Sundays and Holidays
+        if (fromDate) {
+            const start = new Date(fromDate);
+            const end = toDate ? new Date(toDate) : new Date(fromDate);
+            let current = new Date(start);
+
+            while (current <= end) {
+                const yyyy = current.getFullYear();
+                const mm = String(current.getMonth() + 1).padStart(2, '0');
+                const dd = String(current.getDate()).padStart(2, '0');
+                const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                if (isDateDisabled(dateStr)) {
+                    // Determine reason
+                    const isSun = current.getDay() === 0;
+                    const holiday = holidays.find(h => (h.raw_date || h.date) === dateStr);
+
+                    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+                    const formattedDate = current.toLocaleDateString('en-US', options);
+
+                    const reasonMsg = isSun ? "is a Sunday" : `is a Holiday (${holiday?.name || 'Public Holiday'})`;
+                    Alert.alert(
+                        "Restricted",
+                        `Cannot apply leave on Sundays or Public Holidays. ${formattedDate} ${reasonMsg}.`
+                    );
+                    return;
+                }
+                current.setDate(current.getDate() + 1);
+            }
         }
 
         if (!EMPLOYEE_ID) {
@@ -347,6 +370,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 <View style={{ flexDirection: 'row', gap: wp(1.5) }}>
                     <Pressable
                         onPress={() => {
+                            Alert.alert("Debug", "User Leave Button Clicked");
                             setActiveTab('leave');
                             setIsModalVisible(true);
                         }}
@@ -656,7 +680,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                             onClose={() => setDatePickerVisible(false)}
                             onSelect={handleDateSelect}
                             value={activeDateInput === 'from' ? fromDate : toDate}
-                            disabledDates={holidays.map((h: any) => h.date || h.raw_date).filter(Boolean)}
+                            disabledDates={holidays.map((h: any) => h.raw_date || h.date).filter(Boolean)}
                         />
                     </>
                 )

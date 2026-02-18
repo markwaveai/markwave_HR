@@ -23,6 +23,7 @@ import { launchCamera, launchImageLibrary, ImageLibraryOptions, CameraOptions } 
 import CircularProgress from '../components/CircularProgress';
 import { attendanceApi, feedApi, leaveApi, adminApi } from '../services/api';
 import EmployeeOverviewCard from '../components/EmployeeOverviewCard';
+import AllLoginsModal from '../components/AllLoginsModal';
 import HolidayModal from '../components/HolidayModal';
 import RegularizeModal from '../components/RegularizeModal';
 import ClockCard from '../components/ClockCard';
@@ -79,6 +80,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const [disabledReason, setDisabledReason] = useState<string | null>(null);
     const [dashboardStats, setDashboardStats] = useState<any>(null);
     const [isAbsenteesModalVisible, setIsAbsenteesModalVisible] = useState(false);
+    const [isAllLoginsModalVisible, setIsAllLoginsModalVisible] = useState(false);
     const [holidayIndex, setHolidayIndex] = useState(0);
     const [holidays, setHolidays] = useState<any[]>([]);
     const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
@@ -123,11 +125,11 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     // Silent failure in background - console only
                     return null;
                 }),
-                isAdmin ? adminApi.getDashboardStats().catch((err) => {
+                adminApi.getDashboardStats().catch((err) => {
                     console.error('❌ Admin Stats API Error:', err);
-                    errors.adminStats = err.message || 'Failed to load admin stats';
+                    errors.adminStats = err.message || 'Failed to load dashboard stats';
                     return null;
-                }) : Promise.resolve(null),
+                }),
                 attendanceApi.getHolidays().catch((err) => {
                     console.error('❌ Holidays API Error:', err);
                     errors.holidays = err.message || 'Failed to load holidays';
@@ -470,6 +472,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     <EmployeeOverviewCard
                         stats={dashboardStats}
                         onShowAbsentees={() => setIsAbsenteesModalVisible(true)}
+                        onShowAllLogins={() => setIsAllLoginsModalVisible(true)}
                     />
                 )}
 
@@ -853,6 +856,12 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 employeeId={user.id}
                 onSuccess={() => fetchDashboardData()}
                 teamLeadName={user.team_lead_name}
+            />
+
+            <AllLoginsModal
+                visible={isAllLoginsModalVisible}
+                onClose={() => setIsAllLoginsModalVisible(false)}
+                employees={dashboardStats?.all_employees || []}
             />
 
             {/* Absentees Modal */}

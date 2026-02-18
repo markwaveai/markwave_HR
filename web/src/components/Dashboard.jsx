@@ -7,6 +7,7 @@ import HolidayModal from './Dashboard/HolidayModal';
 import FeedSection from './Dashboard/FeedSection';
 import EmployeeStatsCard from './Dashboard/EmployeeStatsCard';
 import AbsenteesModal from './Dashboard/AbsenteesModal';
+import AllLoginsModal from './Dashboard/AllLoginsModal';
 import { attendanceApi, adminApi } from '../services/api';
 
 function Dashboard({ user }) {
@@ -21,6 +22,7 @@ function Dashboard({ user }) {
     const [showCalendar, setShowCalendar] = useState(false);
     const [dashboardStats, setDashboardStats] = useState(null);
     const [showAbsentees, setShowAbsentees] = useState(false);
+    const [showAllLogins, setShowAllLogins] = useState(false);
     const [timeOffset, setTimeOffset] = useState(0);
     const [holidays, setHolidays] = useState([]);
     // Derived state for upcoming holidays (from today onwards)
@@ -226,6 +228,7 @@ function Dashboard({ user }) {
                     <EmployeeStatsCard
                         stats={dashboardStats}
                         onShowAbsentees={() => setShowAbsentees(true)}
+                        onShowAllLogins={() => setShowAllLogins(true)}
                     />
 
                     <AvgHoursCard stats={personalStats} />
@@ -253,6 +256,12 @@ function Dashboard({ user }) {
                 <AbsenteesModal
                     absentees={dashboardStats?.absentees}
                     onClose={() => setShowAbsentees(false)}
+                />
+            )}
+            {showAllLogins && (
+                <AllLoginsModal
+                    employees={dashboardStats?.all_employees}
+                    onClose={() => setShowAllLogins(false)}
                 />
             )}
         </div>

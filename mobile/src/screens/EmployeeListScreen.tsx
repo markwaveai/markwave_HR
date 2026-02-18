@@ -304,11 +304,11 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
             </View>
 
             {isLoading ? (
-                <ActivityIndicator size="large" color="#48327d" style={{ marginTop: 20 }} />
+                <ActivityIndicator size="large" color="#48327d" style={{ marginTop: hp(2.5) }} />
             ) : (
                 <ScrollView
                     style={styles.verticalScroll}
-                    contentContainerStyle={{ paddingBottom: 100, paddingTop: 16 }}
+                    contentContainerStyle={{ paddingBottom: hp(12), paddingTop: hp(2) }}
                 >
                     {/* Card Container for Table */}
                     <View style={styles.tableCard}>
@@ -472,7 +472,7 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
                                                         backgroundColor: '#f8fafc'
                                                     }}>
                                                         <Text style={{ fontSize: normalize(11), color: '#64748b', marginBottom: hp(1), fontWeight: 'bold' }}>ADD NEW DESIGNATION</Text>
-                                                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                                                        <View style={{ flexDirection: 'row', gap: wp(2) }}>
                                                             <TextInput
                                                                 style={{
                                                                     flex: 1,
@@ -513,8 +513,8 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
                                                             <TouchableOpacity
                                                                 style={{
                                                                     backgroundColor: '#e2e8f0',
-                                                                    paddingHorizontal: 12,
-                                                                    paddingVertical: 8,
+                                                                    paddingHorizontal: wp(3),
+                                                                    paddingVertical: hp(1),
                                                                     borderRadius: 6,
                                                                     justifyContent: 'center'
                                                                 }}
@@ -739,9 +739,9 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: '#48327d',
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-        borderRadius: 20,
+        paddingHorizontal: wp(4),
+        paddingVertical: hp(1),
+        borderRadius: normalize(20),
     },
     addButtonText: {
         color: 'white',

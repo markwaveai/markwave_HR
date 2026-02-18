@@ -638,10 +638,37 @@ def dashboard_stats(request):
 
         on_time_arrival = f"{on_time_this}%"
 
+        # --- All Employees Status Logic ---
+        all_employees_list = []
+        for emp in active_employees:
+            status = 'Absent'
+            check_in = None
+            
+            if emp.employee_id in present_employee_ids:
+                status = 'Present'
+                # Find check-in time
+                attendance_rec = Attendance.objects.filter(employee=emp, date=current_date_str).first()
+                if attendance_rec and attendance_rec.check_in:
+                    check_in = attendance_rec.check_in
+            elif emp.employee_id in on_leave_set:
+                status = 'On Leave'
+            
+            all_employees_list.append({
+                'id': emp.id,
+                'employee_id': emp.employee_id,
+                'name': f"{emp.first_name} {emp.last_name}",
+                'role': emp.role,
+                'location': emp.location,
+                'status': status,
+                'check_in': check_in,
+                'contact': emp.contact
+            })
+
         return Response({
             'total_employees': total_count,
             'absentees_count': absentees_count,
             'absentees': absentees_list,
+            'all_employees': all_employees_list,
             'avg_working_hours': avg_working_hours,
             'lastWeekDiff': last_week_diff,
             'on_time_arrival': on_time_arrival

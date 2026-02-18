@@ -1,7 +1,7 @@
 import React from 'react';
 import { Users, UserMinus, ArrowRight } from 'lucide-react';
 
-const EmployeeStatsCard = ({ stats, onShowAbsentees }) => {
+const EmployeeStatsCard = ({ stats, onShowAbsentees, onShowAllLogins }) => {
     return (
         <div className="bg-white rounded-xl p-4 shadow-lg border border-slate-100 flex flex-col gap-3 relative overflow-hidden group min-h-[140px] justify-between">
             <div className="flex justify-between items-start">
@@ -10,7 +10,10 @@ const EmployeeStatsCard = ({ stats, onShowAbsentees }) => {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
+                <div
+                    className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={onShowAllLogins}
+                >
                     <span className="text-[9px] font-bold text-[#64748b] uppercase tracking-tight mb-1">Total Employees</span>
                     <div className="text-3xl font-black text-[#1e293b]">
                         {stats?.total_employees || 0}

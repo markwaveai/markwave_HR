@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { wfhApi } from '../services/api';
+import { normalize, wp, hp } from '../utils/responsive';
 
 const AdminWorkFromHomeScreen = () => {
     const [requests, setRequests] = useState<any[]>([]);
@@ -115,27 +116,27 @@ const AdminWorkFromHomeScreen = () => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#F5F7FA' },
     centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    listContainer: { padding: 15, gap: 15 },
-    emptyContainer: { padding: 40, alignItems: 'center' },
-    emptyText: { color: '#b2bec3', fontSize: 16 },
+    listContainer: { padding: wp(4), gap: hp(2) },
+    emptyContainer: { padding: wp(10), alignItems: 'center' },
+    emptyText: { color: '#b2bec3', fontSize: normalize(16) },
 
-    card: { backgroundColor: 'white', borderRadius: 12, padding: 16, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, marginBottom: 15 },
-    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
-    employeeName: { fontSize: 16, fontWeight: 'bold', color: '#2d3436' },
-    employeeId: { fontSize: 12, color: '#636e72', fontFamily: 'monospace' },
-    appliedOn: { fontSize: 10, color: '#b2bec3' },
+    card: { backgroundColor: 'white', borderRadius: normalize(12), padding: wp(4), borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5, shadowOffset: { width: 0, height: 2 }, marginBottom: hp(2) },
+    cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: hp(1.5) },
+    employeeName: { fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436' },
+    employeeId: { fontSize: normalize(12), color: '#636e72', fontFamily: 'monospace' },
+    appliedOn: { fontSize: normalize(10), color: '#b2bec3' },
 
-    datesRow: { flexDirection: 'row', marginBottom: 8 },
-    dateText: { fontSize: 13, color: '#2d3436', fontWeight: '500' },
+    datesRow: { flexDirection: 'row', marginBottom: hp(1) },
+    dateText: { fontSize: normalize(13), color: '#2d3436', fontWeight: '500' },
 
-    reasonText: { fontSize: 12, color: '#636e72', marginBottom: 16, fontStyle: 'italic' },
+    reasonText: { fontSize: normalize(12), color: '#636e72', marginBottom: hp(2), fontStyle: 'italic' },
 
-    actionsRow: { flexDirection: 'row', gap: 10 },
-    actionButton: { flex: 1, paddingVertical: 10, borderRadius: 8, alignItems: 'center', backgroundColor: '#f0f0f0' },
+    actionsRow: { flexDirection: 'row', gap: wp(2.5) },
+    actionButton: { flex: 1, paddingVertical: hp(1.2), borderRadius: normalize(8), alignItems: 'center', backgroundColor: '#f0f0f0' },
     rejectButton: { backgroundColor: '#fee2e2' },
-    rejectButtonText: { color: '#e74c3c', fontWeight: 'bold', fontSize: 13 },
+    rejectButtonText: { color: '#e74c3c', fontWeight: 'bold', fontSize: normalize(13) },
     approveButton: { backgroundColor: '#dcfce7' },
-    approveButtonText: { color: '#2ecc71', fontWeight: 'bold', fontSize: 13 },
+    approveButtonText: { color: '#2ecc71', fontWeight: 'bold', fontSize: normalize(13) },
 });
 
 export default AdminWorkFromHomeScreen;

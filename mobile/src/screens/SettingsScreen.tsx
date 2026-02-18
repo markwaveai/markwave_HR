@@ -211,14 +211,14 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                                                 </Text>
                                                 {team.manager_name && (
                                                     <View style={styles.leadRow}>
-                                                        <UserIcon size={12} color="#94a3b8" />
+                                                        <UserIcon size={normalize(12)} color="#94a3b8" />
                                                         <Text style={styles.leadLabel}> Lead: </Text>
                                                         <Text style={styles.leadName}>{team.manager_name}</Text>
                                                     </View>
                                                 )}
                                             </View>
                                         </View>
-                                        {index < user.teams.length - 1 && <View style={[styles.divider, { marginVertical: 12 }]} />}
+                                        {index < user.teams.length - 1 && <View style={[styles.divider, { marginVertical: hp(1.5) }]} />}
                                     </React.Fragment>
                                 ))
                             ) : (
@@ -230,7 +230,7 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                                         </Text>
                                         {user.team_lead_name && (
                                             <View style={styles.leadRow}>
-                                                <UserIcon size={12} color="#94a3b8" />
+                                                <UserIcon size={normalize(12)} color="#94a3b8" />
                                                 <Text style={styles.leadLabel}> Lead: </Text>
                                                 <Text style={styles.leadName}>{user.team_lead_name}</Text>
                                             </View>
@@ -243,7 +243,7 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 )}
             </View>
 
-            <View style={{ height: 100 }} />
+            <View style={{ height: hp(12) }} />
 
             <EditProfileModal
                 visible={editModalVisible}
