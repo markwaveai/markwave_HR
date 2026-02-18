@@ -322,6 +322,7 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
                 onClose={() => setDatePickerVisible(false)}
                 onSelect={handleDateSelect}
                 value={activeDateInput === 'from' ? fromDate : toDate}
+                disabledDates={holidays.map((h: any) => h.raw_date || h.date).filter(Boolean)}
             />
         </View>
     );

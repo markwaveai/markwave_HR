@@ -91,8 +91,8 @@ const LeaveScreen = ({ user }: { user: any }) => {
         const d = new Date(dateStr);
         // Check Sunday (0)
         if (d.getDay() === 0) return true;
-        // Check Holidays (Compare with raw_date from API)
-        return holidays.some(h => h.raw_date === dateStr);
+        // Check Holidays (Compare with raw_date or date from API)
+        return holidays.some(h => (h.raw_date || h.date) === dateStr);
     };
 
     const isTimeRestricted = () => {
