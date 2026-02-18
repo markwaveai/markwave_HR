@@ -23,29 +23,6 @@ def get_leaves(request, employee_id):
     serializer = LeavesSerializer(leaves, many=True)
     return Response(serializer.data)
 
-@api_view(['GET'])
-def get_leave_balance(request, employee_id):
-    """Get leave balance for an employee"""
-    employee = Employees.objects.filter(employee_id=employee_id).first()
-    if not employee and str(employee_id).isdigit():
-        employee = Employees.objects.filter(pk=employee_id).first()
-    
-    if not employee:
-        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
-    
-    # Return leave balance from employee record
-    balance = {
-        'cl': employee.cl or 0,
-        'sl': employee.sl or 0,
-        'el': employee.el or 0,
-        'scl': employee.scl or 0,
-        'bl': employee.bl or 0,
-        'pl': employee.pl or 0,
-        'll': employee.ll or 0,
-        'co': employee.co or 0,
-    }
-    
-    return Response(balance)
 
 def process_leave_notifications(employee, leave_request, notify_to_str, leave_type, from_date, to_date, days, reason, from_session='Full Day', to_session='Full Day'):
     try:

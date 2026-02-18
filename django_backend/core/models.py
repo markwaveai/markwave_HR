@@ -24,7 +24,7 @@ class AttendanceLogs(models.Model):
     employee = models.ForeignKey('Employees', models.DO_NOTHING, to_field='employee_id', null=True, blank=True)
     timestamp = models.DateTimeField()
     type = models.CharField(max_length=10, blank=True, null=True)
-    location = models.CharField(max_length=255, blank=True, null=True)
+    location = models.TextField(blank=True, null=True)
     date = models.CharField(max_length=10, blank=True, null=True)
 
     class Meta:

@@ -200,3 +200,11 @@ EMAIL_API_URL = os.getenv('EMAIL_API_URL', 'https://mark-email-server-jn6cma3vvq
 
 # Admin Fallback Configuration
 ADMIN_WHATSAPP_NUMBER = os.getenv('ADMIN_WHATSAPP_NUMBER', '919247534762')
+
+# Cache Configuration
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}

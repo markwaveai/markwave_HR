@@ -8,6 +8,7 @@ from django.db.models import Q
 import pytz
 import threading
 from .utils import send_email_via_api
+from django.core.cache import cache
 
 def process_regularization_email(target_email, subject, title, message, color="#48327d", icon="📅"):
     try:
@@ -93,7 +94,9 @@ def clock(request):
     location = data.get('location')
     clock_type = data.get('type') 
     
+    print(f"DEBUG: Clock request received - Emp: {employee_id}, Type: {clock_type}, Location: {location}")
     if not employee_id:
+        print("DEBUG: Clock failed - Employee ID missing")
         return Response({'error': 'Employee ID required'}, status=status.HTTP_400_BAD_REQUEST)
         
     try:
@@ -104,8 +107,12 @@ def clock(request):
             employee = Employees.objects.filter(pk=employee_id).first()
             
         if not employee:
+            print(f"DEBUG: Clock failed - Employee {employee_id} not found")
             return Response({'error': f'Employee with ID {employee_id} not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        print(f"DEBUG: Clock proceed for {employee.first_name} {employee.last_name}")
     except Exception as e:
+        print(f"DEBUG: Clock exception in lookup: {e}")
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     # India Time Adjustment (naive)
@@ -345,19 +352,35 @@ def get_personal_stats(request, employee_id):
             employee__in=emp_list,
             date__gte=start_dt.strftime('%Y-%m-%d'),
             date__lte=end_dt.strftime('%Y-%m-%d')
-        )
+        ).select_related('employee')
         
+        today_str = now.strftime('%Y-%m-%d')
+        
+        # Pre-fetch logs for "today" if today is in range
+        today_logs_map = {}
+        if start_dt.strftime('%Y-%m-%d') <= today_str <= end_dt.strftime('%Y-%m-%d'):
+            today_logs = AttendanceLogs.objects.filter(
+                employee__in=emp_list,
+                date=today_str
+            ).order_by('employee', 'timestamp')
+            
+            for log in today_logs:
+                emp_id = log.employee.employee_id # to_field is employee_id
+                if emp_id not in today_logs_map:
+                    today_logs_map[emp_id] = []
+                today_logs_map[emp_id].append(log)
+
         total_mins = 0
         present_days = 0
         on_time_count = 0
         
         for s in summaries:
             mins = 0
-            is_today = (s.date == now.strftime('%Y-%m-%d'))
+            is_today = (s.date == today_str)
             
             if is_today:
-                # Calculate from logs for accuracy (Live status)
-                logs = AttendanceLogs.objects.filter(employee=s.employee, date=s.date).order_by('timestamp')
+                # Use pre-fetched logs
+                logs = today_logs_map.get(s.employee.employee_id, [])
                 calculated_mins = 0
                 last_in = None
                 
@@ -369,25 +392,26 @@ def get_personal_stats(request, employee_id):
                         calculated_mins += duration
                         last_in = None
                 
-                # Add live duration if currently IN
                 if last_in:
                     duration = (now - last_in).total_seconds() / 60
                     calculated_mins += duration
                     
-                # Subtract breaks if tracked in summary (optional, but logs calculation implicitly handles breaks between logs)
-                # If we just sum durations between IN and OUT, we handle breaks correctly (unlogged time is break).
-                # But we should respect 'break_minutes' if they are manually added? 
-                # Usually logs are the source of truth.
                 mins = int(calculated_mins)
             else:
-                # Past days: Use stored worked_hours
-                if s.worked_hours and 'h' in s.worked_hours:
+                raw_worked = s.worked_hours
+                if raw_worked and 'h' in raw_worked:
                     try:
-                        parts = s.worked_hours.replace('m', '').split('h ')
-                        h = int(parts[0])
-                        m = int(parts[1]) if len(parts) > 1 else 0
+                        # Optimization: Avoid replace/split if possible, use simple search or cache-friendly parsing
+                        # But for now, just making it more robust
+                        h_index = raw_worked.find('h')
+                        h = int(raw_worked[:h_index])
+                        m_str = raw_worked[h_index+1:].strip().replace('m', '')
+                        m = int(m_str) if m_str else 0
                         mins = h * 60 + m
-                    except: pass
+                    except: 
+                        mins = 0
+                else:
+                    mins = 0
             
             if mins > 0 or (s.check_in and s.check_in != '-'):
                 total_mins += mins
@@ -519,8 +543,32 @@ def get_history(request, employee_id):
         holiday_name = holiday_info.name if holiday_info else None
 
         if log:
-            # Existing Attendance Record
-            punches = AttendanceLogs.objects.filter(employee=employee, date=log.date).order_by('timestamp')
+            # logs_map already has logs, but we need the detailed punches from AttendanceLogs
+            pass
+
+    # Pre-fetch all punches for the dates we are interested in
+    all_punches = AttendanceLogs.objects.filter(
+        employee=employee,
+        date__in=sorted_dates
+    ).order_by('timestamp')
+    
+    punches_by_date = {}
+    for p in all_punches:
+        if p.date not in punches_by_date:
+            punches_by_date[p.date] = []
+        punches_by_date[p.date].append(p)
+
+    result = []
+    for d_str in sorted_dates:
+        log = logs_map.get(d_str)
+        leave_type = leave_dates.get(d_str)
+        holiday_info = holiday_map.get(d_str)
+        is_holiday_combined = (log and log.is_holiday) or (holiday_info is not None)
+        is_optional_holiday = holiday_info.is_optional if holiday_info else False
+        holiday_name = holiday_info.name if holiday_info else None
+
+        if log:
+            punches = punches_by_date.get(log.date, [])
             logs_data = []
             calculated_break_mins = 0
             last_out_timestamp = None
@@ -530,7 +578,6 @@ def get_history(request, employee_id):
                 t_str = punch.timestamp.strftime('%I:%M %p')
                 if punch.type == 'IN':
                     if current_pair and current_pair.get('in'):
-                        # Previous was an IN without OUT
                         current_pair['out'] = None
                         logs_data.append(current_pair)
                     
@@ -540,7 +587,6 @@ def get_history(request, employee_id):
                     current_pair = {'in': t_str}
                 elif punch.type == 'OUT':
                     if not current_pair:
-                        # OUT without IN (Missed Check-in)
                         current_pair = {'in': None, 'out': t_str}
                         logs_data.append(current_pair)
                         last_out_timestamp = punch.timestamp
@@ -557,11 +603,7 @@ def get_history(request, employee_id):
 
             india_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
             today_str = india_now.strftime('%Y-%m-%d')
-            
-            # Simple, robust active check: is it today and is check_out missing/placeholder?
             is_active = (log.date == today_str) and (not log.check_out or log.check_out == '-')
-
-            # Override status if leave exists for this date
             display_status = leave_type if leave_type else log.status
             
             result.append({
@@ -570,9 +612,8 @@ def get_history(request, employee_id):
                 'leaveType': leave_type, 
                 'checkIn': log.check_in or '-',
                 'checkOut': log.check_out or '-',
-                'is_active': is_active, # Informative for frontend
-                'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
-                'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
+                'is_active': is_active,
+                'breakMinutes': calculated_break_mins if punches else (log.break_minutes or 0),
                 'isHoliday': is_holiday_combined,
                 'isOptionalHoliday': is_optional_holiday,
                 'holidayName': holiday_name,
@@ -803,6 +844,11 @@ def action_regularization(request, pk):
 
 @api_view(['GET'])
 def get_holidays(request):
+    cache_key = 'holidays_list'
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return Response(cached_data)
+
     current_year = datetime.now().year
     # Fetch holidays from current date onwards
     # Fetch holidays for the entire current year (and maybe next year for buffer)
@@ -832,4 +878,6 @@ def get_holidays(request):
             'type': h.type,
             'is_optional': h.is_optional
         })
+    
+    cache.set(cache_key, data, 3600) # Cache for 1 hour
     return Response(data)

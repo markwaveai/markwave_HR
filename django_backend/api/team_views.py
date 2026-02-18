@@ -577,36 +577,51 @@ def dashboard_stats(request):
         last_mon = this_mon - timedelta(days=7)
         last_sun = this_sun - timedelta(days=7)
         
-        # Helper to calc avg for a date range for ALL employees
-        def calc_global_avg(start_dt, end_dt):
-            # We use Attendance summaries for speed
-            summaries = Attendance.objects.filter(
-                date__gte=start_dt.strftime('%Y-%m-%d'),
-                date__lte=end_dt.strftime('%Y-%m-%d')
-            ).exclude(worked_hours__isnull=True).exclude(worked_hours='-')
-            
+        # Pre-fetch all attendance for the two week range
+        stats_records = Attendance.objects.filter(
+            date__gte=last_mon.strftime('%Y-%m-%d'),
+            date__lte=this_sun.strftime('%Y-%m-%d')
+        ).exclude(worked_hours__isnull=True).exclude(worked_hours='-').exclude(check_in__isnull=True).exclude(check_in='-')
+
+        def calc_group_avg(records, start_dt, end_dt):
+            start_str = start_dt.strftime('%Y-%m-%d')
+            end_str = end_dt.strftime('%Y-%m-%d')
             total_mins = 0
             count = 0
+            on_time_count = 0
+            present_count = 0
             
-            for s in summaries:
-                # Parse worked_hours string "8h 30m"
-                if not s.worked_hours: continue
-                try:
-                    parts = s.worked_hours.replace('m', '').split('h ')
-                    h = int(parts[0])
-                    m = int(parts[1]) if len(parts) > 1 else 0
-                    mins = h * 60 + m
-                    if mins > 0:
-                        total_mins += mins
-                        count += 1
-                except:
-                    pass
+            for s in records:
+                if start_str <= s.date <= end_str:
+                    # Parse worked_hours
+                    try:
+                        parts = s.worked_hours.replace('m', '').split('h ')
+                        h = int(parts[0])
+                        m = int(parts[1]) if len(parts) > 1 else 0
+                        mins = h * 60 + m
+                        if mins > 0:
+                            total_mins += mins
+                            count += 1
+                    except:
+                        pass
+                    
+                    # Global On Time Arrival (only for this range)
+                    present_count += 1
+                    if s.check_in and ':' in s.check_in:
+                        try:
+                            t = datetime.strptime(s.check_in, '%I:%M %p')
+                            cutoff = datetime.strptime('09:30 AM', '%I:%M %p')
+                            if t <= cutoff:
+                                on_time_count += 1
+                        except:
+                            pass
             
-            # Average per present-person-day
-            return total_mins / count if count > 0 else 0
+            avg = total_mins / count if count > 0 else 0
+            on_time_pct = (on_time_count / present_count * 100) if present_count > 0 else 0
+            return avg, int(on_time_pct)
 
-        avg_this = calc_global_avg(this_mon, this_sun)
-        avg_last = calc_global_avg(last_mon, last_sun)
+        avg_this, on_time_this = calc_group_avg(stats_records, this_mon, this_sun)
+        avg_last, _ = calc_group_avg(stats_records, last_mon, last_sun)
         
         # Format "This Week"
         h = int(avg_this // 60)
@@ -621,29 +636,7 @@ def dashboard_stats(request):
         prefix = "+" if diff >= 0 else "-"
         last_week_diff = f"{prefix}{diff_h}h {str(diff_m).zfill(2)}m"
 
-        # --- Global On Time Arrival ---
-        def is_on_time(check_in):
-            if not check_in or ':' not in check_in: return False
-            try:
-                t = datetime.strptime(check_in, '%I:%M %p')
-                cutoff = datetime.strptime('09:30 AM', '%I:%M %p')
-                return t <= cutoff
-            except:
-                return False
-
-        # Check records for THIS WEEK (this_mon to this_sun)
-        week_records = Attendance.objects.filter(
-             date__gte=this_mon.strftime('%Y-%m-%d'),
-             date__lte=this_sun.strftime('%Y-%m-%d')
-        ).exclude(check_in__isnull=True).exclude(check_in='-')
-
-        present_count = week_records.count()
-        on_time_count = 0
-        for rec in week_records:
-            if is_on_time(rec.check_in):
-                on_time_count += 1
-                
-        on_time_arrival = f"{int((on_time_count / present_count) * 100)}%" if present_count > 0 else "0%"
+        on_time_arrival = f"{on_time_this}%"
 
         return Response({
             'total_employees': total_count,

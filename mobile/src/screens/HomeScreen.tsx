@@ -98,12 +98,20 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const fetchDashboardData = async (showAlerts = false) => {
         try {
             const errors: { [key: string]: string } = {};
-            const [statusData, statsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
-                attendanceApi.getStatus(user.id).catch((err) => {
-                    console.error('❌ Status API Error:', err);
-                    errors.status = err.message || 'Failed to load status';
-                    return { status: 'OUT' };
-                }),
+
+            // Critical Data: Clock status is essential for the main CTA
+            const statusData = await attendanceApi.getStatus(user.id).catch((err) => {
+                console.error('❌ Status API Error:', err);
+                errors.status = err.message || 'Failed to load status';
+                return { status: 'OUT', can_clock: false, disabled_reason: 'Status check failed' };
+            });
+
+            setIsClockedIn(statusData.status === 'IN');
+            setCanClock(statusData.can_clock !== false);
+            setDisabledReason(statusData.disabled_reason || null);
+
+            // Secondary Data: Dashboard cards and stats
+            const [statsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
                 attendanceApi.getPersonalStats(user.id).catch((err) => {
                     console.error('❌ Stats API Error:', err);
                     errors.stats = err.message || 'Failed to load stats';
@@ -112,22 +120,18 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 leaveApi.getBalance(user.id).catch((err) => {
                     console.error('❌ Balance API Error:', err);
                     errors.balance = err.message || 'Failed to load leave balance';
-                    if (showAlerts) {
-                        Alert.alert('Error Loading Leave Balance', err.message || 'Could not fetch leave balance. Please check your connection.');
-                    }
+                    // Silent failure in background - console only
                     return null;
                 }),
-                adminApi.getDashboardStats().catch((err) => {
+                isAdmin ? adminApi.getDashboardStats().catch((err) => {
                     console.error('❌ Admin Stats API Error:', err);
                     errors.adminStats = err.message || 'Failed to load admin stats';
                     return null;
-                }),
+                }) : Promise.resolve(null),
                 attendanceApi.getHolidays().catch((err) => {
                     console.error('❌ Holidays API Error:', err);
                     errors.holidays = err.message || 'Failed to load holidays';
-                    if (showAlerts) {
-                        Alert.alert('Error Loading Holidays', err.message || 'Could not fetch holidays. Please check your connection.');
-                    }
+                    // Silent failure in background - console only
                     return [];
                 }),
                 !isAdmin ? leaveApi.getLeaves(user.id).catch((err) => {
@@ -144,10 +148,6 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
             setApiErrors(errors);
 
-
-            setIsClockedIn(statusData.status === 'IN');
-            setCanClock(statusData.can_clock !== false);
-            setDisabledReason(statusData.disabled_reason || null);
             console.log('Personal Stats Data:', JSON.stringify(statsData, null, 2));
             console.log('Leave Balance Data:', JSON.stringify(balanceData, null, 2));
             console.log('Holidays Data:', holidayData);
@@ -200,7 +200,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         fetchData(true);
     }, [user.id]);
 
-    const updateLocation = async () => {
+    const updateLocation = async (): Promise<string | null> => {
         setIsLoadingLocation(true);
         try {
             let hasPermission = false;
@@ -214,35 +214,47 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
             }
 
             if (hasPermission) {
-                await new Promise<void>((resolve) => {
+                const finalLocation = await new Promise<string | null>((resolve) => {
+                    const timeout = setTimeout(() => {
+                        console.log("Geolocation timeout occurred");
+                        resolve("Location Timeout");
+                    }, 20000); // 20s safety timeout
+
                     Geolocation.getCurrentPosition(
                         async (position) => {
+                            clearTimeout(timeout);
                             const { latitude, longitude } = position.coords;
+                            let locStr = `Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`;
                             try {
                                 const data = await attendanceApi.resolveLocation(latitude, longitude);
                                 if (data && data.address) {
-                                    setLocationState(`${data.address} (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`);
-                                } else {
-                                    setLocationState(`Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`);
+                                    locStr = `${data.address} (${latitude.toFixed(6)}, ${longitude.toFixed(6)})`;
                                 }
                             } catch (e) {
-                                setLocationState(`Lat: ${latitude.toFixed(6)}, Long: ${longitude.toFixed(6)}`);
+                                console.log("Address resolution failed, using coordinates");
                             }
-                            resolve();
+                            setLocationState(locStr);
+                            resolve(locStr);
                         },
                         (error) => {
+                            clearTimeout(timeout);
                             console.log(error.code, error.message);
-                            setLocationState("Location Error");
-                            resolve();
+                            const errStr = "Location Error";
+                            setLocationState(errStr);
+                            resolve(errStr);
                         },
                         { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
                     );
                 });
+                return finalLocation;
             } else {
-                setLocationState("Location Permission Denied");
+                const deniedStr = "Location Permission Denied";
+                setLocationState(deniedStr);
+                return deniedStr;
             }
         } catch (err) {
             console.warn(err);
+            return null;
         } finally {
             setIsLoadingLocation(false);
         }
@@ -250,8 +262,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
     useEffect(() => {
         fetchData(false, true);
-        // Location will be fetched only when user clicks check-in button
-        const interval = setInterval(() => fetchData(), 30000);
+        const interval = setInterval(() => fetchData(), 60000); // Poll every 60 seconds
         return () => clearInterval(interval);
     }, [user.id]);
 
@@ -370,28 +381,31 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     };
 
     const handleClockAction = async () => {
-        // Fetch location when user presses the button
-        if (!locationState || locationState.includes('Error') || locationState.includes('Denied')) {
-            await updateLocation();
+        setIsLoadingLocation(true);
+        let currentLocation = locationState;
+
+        // Fetch location if we don't have it or if it's an error
+        if (!currentLocation || currentLocation.includes('Error') || currentLocation.includes('Denied') || currentLocation.includes('Timeout')) {
+            currentLocation = await updateLocation();
         }
 
-        // Check again after update attempt
-        if (!locationState || locationState.includes('Error') || locationState.includes('Denied')) {
+        // Check again with the NEWEST location value
+        if (!currentLocation || currentLocation.includes('Error') || currentLocation.includes('Denied') || currentLocation.includes('Timeout')) {
             Alert.alert('Location Required', 'Please enable GPS and grant permission to clock in/out.');
+            setIsLoadingLocation(false);
             return;
         }
 
-        setIsLoadingLocation(true);
         const nextType = isClockedIn ? 'OUT' : 'IN';
 
         try {
             await attendanceApi.clock({
                 employee_id: user.id,
-                location: locationState,
+                location: currentLocation,
                 type: nextType
             });
-            fetchDashboardData();
-            // Don't clear locationState, let it stay visible on the card
+            // Await data refresh so UI updates before loading ends
+            await fetchDashboardData();
         } catch (error) {
             Alert.alert('Error', 'Failed to update attendance');
         } finally {
