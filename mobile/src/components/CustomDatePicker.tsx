@@ -7,9 +7,10 @@ interface CustomDatePickerProps {
     onClose: () => void;
     onSelect: (date: string) => void;
     value?: string;
+    disabledDates?: string[]; // Array of 'YYYY-MM-DD' strings (holidays)
 }
 
-const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, onSelect, value }) => {
+const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, onSelect, value, disabledDates = [] }) => {
     const [currentDate, setCurrentDate] = useState(value ? new Date(value) : new Date());
 
     React.useEffect(() => {
@@ -60,9 +61,14 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
 
         const days = [];
 
-        // Get today's date at midnight for comparison
+        // Get today's date for month navigation guard
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const currentMonthYear = { month: today.getMonth(), year: today.getFullYear() };
+
+        // Disable entire previous months (but allow past days within current month)
+        const isViewingPreviousMonth =
+            (month < currentMonthYear.month && year <= currentMonthYear.year) ||
+            year < currentMonthYear.year;
 
         // Empty slots for previous month
         for (let i = 0; i < firstDay; i++) {
@@ -71,9 +77,13 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
 
         // Days
         for (let i = 1; i <= daysInMonth; i++) {
-            const dateToCheck = new Date(year, month, i);
-            dateToCheck.setHours(0, 0, 0, 0);
-            const isPast = dateToCheck < today;
+            const dateObj = new Date(year, month, i);
+            const isSunday = dateObj.getDay() === 0;
+            const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+            const isHoliday = disabledDates.includes(dateStr);
+
+            // Disable if viewing a previous month, Sunday, or holiday (past days in current month are allowed)
+            const isDisabled = isViewingPreviousMonth || isSunday || isHoliday;
 
             const isSelected = value && new Date(value).getDate() === i && new Date(value).getMonth() === month && new Date(value).getFullYear() === year;
             const isToday = new Date().getDate() === i && new Date().getMonth() === month && new Date().getFullYear() === year;
@@ -85,16 +95,20 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
                         styles.dayCell,
                         isSelected && styles.selectedDay,
                         !isSelected && isToday && styles.todayCell,
-                        isPast && styles.disabledDay
+                        isDisabled && styles.disabledDay,
+                        !isSelected && isSunday && styles.sundayDay,
+                        !isSelected && isHoliday && !isSunday && styles.holidayDay,
                     ]}
-                    onPress={() => !isPast && handleSelect(i)}
-                    disabled={isPast}
+                    onPress={() => !isDisabled && handleSelect(i)}
+                    disabled={isDisabled}
                 >
                     <Text style={[
                         styles.dayText,
                         isSelected && styles.selectedDayText,
                         !isSelected && isToday && styles.todayText,
-                        isPast && styles.disabledDayText
+                        isDisabled && styles.disabledDayText,
+                        !isSelected && isSunday && styles.sundayText,
+                        !isSelected && isHoliday && !isSunday && styles.holidayText,
                     ]}>{i}</Text>
                 </TouchableOpacity>
             );
@@ -240,8 +254,21 @@ const styles = StyleSheet.create({
         backgroundColor: '#f5f5f5'
     },
     disabledDayText: {
-        color: '#cbd5e1',
-        textDecorationLine: 'line-through'
+        color: '#cbd5e1'
+    },
+    sundayDay: {
+        backgroundColor: '#fff0f0'
+    },
+    sundayText: {
+        color: '#e74c3c',
+        fontWeight: 'bold'
+    },
+    holidayDay: {
+        backgroundColor: '#fff8e1'
+    },
+    holidayText: {
+        color: '#f39c12',
+        fontWeight: 'bold'
     },
     disabledNavBtn: {
         opacity: 0.3

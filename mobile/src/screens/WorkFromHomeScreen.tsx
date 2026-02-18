@@ -83,6 +83,29 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
+        // Check if dates are in previous months
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+
+        const fromDateObj = new Date(startDate);
+        const toDateObj = new Date(endDate);
+
+        const isFromPreviousMonth = fromDateObj.getFullYear() < currentYear ||
+            (fromDateObj.getFullYear() === currentYear && fromDateObj.getMonth() < currentMonth);
+
+        const isToPreviousMonth = toDateObj.getFullYear() < currentYear ||
+            (toDateObj.getFullYear() === currentYear && toDateObj.getMonth() < currentMonth);
+
+        if (isFromPreviousMonth || isToPreviousMonth) {
+            // Check if admin (optional, assuming user prop has role or we use profile)
+            const isAdmin = user?.is_admin || ['Admin', 'Administrator', 'Project Manager'].includes(user?.role);
+            if (!isAdmin) {
+                Alert.alert("Notice", "WFH requests for previous months are not allowed. Please select a date in the current month or future.");
+                return;
+            }
+        }
+
         setIsSubmitting(true);
         try {
             await wfhApi.apply({

@@ -480,7 +480,9 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                         <View style={styles.cardHeader}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                 <CalendarIcon color="#64748b" size={20} strokeWidth={2} />
-                                <Text style={styles.cardTitle}>Leave Balance</Text>
+                                <Text style={styles.cardTitle}>Leave Balance
+                                    (Annual)
+                                </Text>
                             </View>
                         </View>
                         {apiErrors.balance ? (

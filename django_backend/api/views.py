@@ -224,7 +224,7 @@ def get_profile(request, employee_id):
             
         # Fetch dynamic managers
         from django.db.models import Q
-        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager'))
+        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager') | Q(role='Administrator') | Q(role='Admin'))
         manager_names = ", ".join([f"{m.first_name} {m.last_name or ''}".strip() for m in managers])
         advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
         
@@ -352,7 +352,7 @@ def verify_email_otp(request):
 
         # Fetch dynamic managers
         from django.db.models import Q
-        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager'))
+        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager') | Q(role='Administrator') | Q(role='Admin'))
         manager_names = ", ".join([f"{m.first_name} {m.last_name or ''}".strip() for m in managers])
         advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
 

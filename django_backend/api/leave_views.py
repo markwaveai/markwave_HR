@@ -285,15 +285,22 @@ def apply_leave(request):
         
         current_year = datetime.now().year
 
-        # Validate that leave dates are not in the past
+        # Roles treated as admin (must match frontend App.tsx isAdmin logic)
+        ADMIN_ROLES = {'admin', 'administrator', 'project manager', 'advisor-technology & operations'}
+
+        # Validate that leave dates are not in the past (skip for admins)
         from_date_obj = datetime.strptime(from_date, '%Y-%m-%d')
         to_date_obj = datetime.strptime(to_date, '%Y-%m-%d')
         today = datetime.now().date()
+        is_admin_check = (employee.role or '').strip().lower() in ADMIN_ROLES
         
-        if from_date_obj.date() < today or to_date_obj.date() < today:
-            return Response({
-                'error': 'Leave requests for past dates are not allowed. Please select today or a future date.'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        if not is_admin_check:
+            # Allow past dates ONLY if they are within the current month
+            current_month_start = today.replace(day=1)
+            if from_date_obj.date() < current_month_start or to_date_obj.date() < current_month_start:
+                return Response({
+                    'error': 'Leave requests for previous months are not allowed. Please select a date in the current month or future.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate that leave dates don't fall on Sundays or public holidays
         
@@ -361,6 +368,10 @@ def apply_leave(request):
             # If no balance record exists and it's not LWP, deny
             return Response({'error': f'You do not have allocation for {leave_code_upper}. Please contact HR.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Auto-approve if the applicant is an Admin or admin-equivalent role
+        is_admin = (employee.role or '').strip().lower() in ADMIN_ROLES
+        initial_status = 'Approved' if is_admin else 'Pending'
+
         new_request = Leaves.objects.create(
             employee=employee,
             type=leave_type,
@@ -370,18 +381,20 @@ def apply_leave(request):
             reason=data.get('reason', ''),
             from_session=data.get('from_session', 'Full Day'),
             to_session=data.get('to_session', 'Full Day'),
-            status='Pending',
+            status=initial_status,
             created_at=timezone.now()
         )
 
-        # Offload notification to background thread
-        notify_to_str = data.get('notifyTo', '')
-        threading.Thread(
-            target=process_leave_notifications,
-            args=(employee, new_request, notify_to_str, leave_type, from_date, to_date, days, data.get('reason', 'N/A'), data.get('from_session', 'Full Day'), data.get('to_session', 'Full Day'))
-        ).start()
+        # Offload notification to background thread (skip for admin auto-approvals)
+        if not is_admin:
+            notify_to_str = data.get('notifyTo', '')
+            threading.Thread(
+                target=process_leave_notifications,
+                args=(employee, new_request, notify_to_str, leave_type, from_date, to_date, days, data.get('reason', 'N/A'), data.get('from_session', 'Full Day'), data.get('to_session', 'Full Day'))
+            ).start()
 
-        return Response({'message': 'Leave request submitted', 'id': new_request.id}, status=status.HTTP_201_CREATED)
+        msg = 'Leave request auto-approved' if is_admin else 'Leave request submitted'
+        return Response({'message': msg, 'id': new_request.id}, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -505,7 +518,15 @@ def email_leave_action(request, request_id, action):
 
 @api_view(['GET'])
 def get_pending_leaves(request):
-    leaves = Leaves.objects.filter(status='Pending').order_by('-created_at')
+    # Roles treated as admin — their leaves are auto-approved and must not appear here
+    ADMIN_ROLES = ['admin', 'administrator', 'project manager', 'advisor-technology & operations']
+    # Exclude leaves submitted by admin-equivalent role employees
+    leaves = Leaves.objects.filter(status='Pending').exclude(
+        employee__role__in=[
+            r for role in ADMIN_ROLES
+            for r in [role, role.title(), role.upper()]
+        ]
+    ).order_by('-created_at')
     serializer = LeavesSerializer(leaves, many=True)
     return Response(serializer.data)
 

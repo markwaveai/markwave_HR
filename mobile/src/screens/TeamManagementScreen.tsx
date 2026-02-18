@@ -179,7 +179,7 @@ const TeamManagementScreen = () => {
                     onPress: async () => {
                         try {
                             console.log('Removing member:', memberId, 'from team:', editingTeam.id);
-                            const result = await teamApi.updateMember(memberId, { team_id: null });
+                            const result = await teamApi.updateMember(memberId, { remove_team_id: editingTeam.id });
                             console.log('Member removed successfully:', result);
                             await fetchTeamMembers(editingTeam.id);
                             await fetchTeams();
@@ -257,8 +257,8 @@ const TeamManagementScreen = () => {
             />
 
             <Modal visible={modalVisible} animationType="slide" transparent={true}>
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
+                <View style={[styles.modalOverlay, { flex: 1 }]}>
+                    <View style={[styles.modalContent, { maxHeight: '90%', paddingBottom: hp(2) }]}>
                         <Text style={styles.modalTitle}>{editingTeam ? 'Edit Team' : 'New Team'}</Text>
 
                         <Text style={styles.inputLabel}>Team Name</Text>
@@ -296,7 +296,7 @@ const TeamManagementScreen = () => {
 
                         {/* Manager Picker Modal */}
                         <Modal visible={managerPickerOpen} transparent={true} animationType="slide">
-                            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                            <View style={[styles.modalOverlay, { flex: 1, justifyContent: 'flex-end' }]}>
                                 <View style={{ backgroundColor: 'white', maxHeight: '60%', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
                                         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2d3436' }}>Select Manager</Text>
@@ -318,7 +318,7 @@ const TeamManagementScreen = () => {
                                             onChangeText={setManagerSearchQuery}
                                         />
                                     </View>
-                                    <ScrollView style={{ height: 300 }}>
+                                    <ScrollView style={{ maxHeight: hp(40) }}>
                                         {managers
                                             .filter(mgr => {
                                                 if (!mgr) return false;
@@ -372,7 +372,7 @@ const TeamManagementScreen = () => {
                                 {/* Member Checkbox List */}
                                 <ScrollView
                                     style={{
-                                        maxHeight: 200,
+                                        maxHeight: hp(25),
                                         borderWidth: 1,
                                         borderColor: '#e2e8f0',
                                         borderRadius: 8,
@@ -506,8 +506,8 @@ const TeamManagementScreen = () => {
 
             {/* Member Management Modal */}
             <Modal visible={memberModalOpen} animationType="slide" transparent={true}>
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, { maxHeight: '90%' }]}>
+                <View style={[styles.modalOverlay, { flex: 1 }]}>
+                    <View style={[styles.modalContent, { maxHeight: '90%', paddingBottom: hp(3) }]}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                             <View>
                                 <Text style={styles.modalTitle}>Manage Members</Text>
@@ -549,7 +549,7 @@ const TeamManagementScreen = () => {
 
                         {/* Employee Picker Modal */}
                         <Modal visible={pickerModalOpen} transparent={true} animationType="slide">
-                            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                            <View style={[styles.modalOverlay, { flex: 1, justifyContent: 'flex-end' }]}>
                                 <View style={{ backgroundColor: 'white', maxHeight: '60%', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
                                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
                                         <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2d3436' }}>Select Employee</Text>
@@ -571,7 +571,7 @@ const TeamManagementScreen = () => {
                                             onChangeText={setEmployeeSearchQuery}
                                         />
                                     </View>
-                                    <ScrollView style={{ height: 300 }}>
+                                    <ScrollView style={{ maxHeight: hp(40) }}>
                                         {availableEmployees
                                             .filter(emp => {
                                                 if (!emp) return false;
@@ -618,7 +618,7 @@ const TeamManagementScreen = () => {
 
                         {/* Current Members List */}
                         {/* Current Members List */}
-                        <View style={{ marginTop: 20, minHeight: 200 }}>
+                        <View style={{ marginTop: 20, flexShrink: 1 }}>
                             <Text style={[styles.inputLabel, { marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 11 }]}>
                                 CURRENT MEMBERS ({selectedTeamMembers.length})
                             </Text>
@@ -628,7 +628,7 @@ const TeamManagementScreen = () => {
                                     <Text style={{ color: '#a0aec0', textAlign: 'center' }}>No members in this team yet.</Text>
                                 </View>
                             ) : (
-                                <ScrollView style={{ height: 300 }} showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
+                                <ScrollView style={{ maxHeight: hp(40) }} showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
                                     <View style={{ gap: 10 }}>
                                         {selectedTeamMembers.map(member => (
                                             <View key={member.id} style={styles.memberItem}>
@@ -807,6 +807,7 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: normalize(16),
         padding: wp(5),
+        paddingBottom: hp(2),
         elevation: 5
     },
     modalTitle: {

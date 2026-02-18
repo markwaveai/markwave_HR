@@ -351,7 +351,7 @@ function App() {
             {activeTab === 'Me' && <MeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
             {activeTab === 'Menu' && <LeaveScreen user={appUser} />}
             {activeTab === 'Employees' && <EmployeeListScreen user={appUser} />}
-            {activeTab === 'AdminLeave' && <AdminLeaveScreen />}
+            {activeTab === 'AdminLeave' && <AdminLeaveScreen user={appUser} />}
             {activeTab === 'Teams' && <TeamManagementScreen />}
             {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
             {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}

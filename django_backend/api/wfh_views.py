@@ -165,6 +165,19 @@ def apply_wfh(request):
         if end_date < start_date:
             return Response({'error': 'End date cannot be before start date.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Validate that wfh dates are not in previous months (skip for admins)
+        # Roles treated as admin (must match frontend App.tsx isAdmin logic)
+        ADMIN_ROLES = {'admin', 'administrator', 'project manager', 'advisor-technology & operations'}
+        is_admin = (employee.role or '').strip().lower() in ADMIN_ROLES
+
+        if not is_admin:
+            today = datetime.date.today()
+            current_month_start = today.replace(day=1)
+            if start_date < current_month_start or end_date < current_month_start:
+                 return Response({
+                    'error': 'WFH requests for previous months are not allowed. Please select a date in the current month or future.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
         # Get all holidays for validation
         all_holidays = Holidays.objects.all()
         holiday_dict = {}
@@ -215,19 +228,29 @@ def apply_wfh(request):
 
             current_date += datetime.timedelta(days=1)
 
+
+        # Roles treated as admin (must match frontend App.tsx isAdmin logic)
+        ADMIN_ROLES = {'admin', 'administrator', 'project manager', 'advisor-technology & operations'}
+
+        # Auto-approve if the applicant is an Admin or admin-equivalent role
+        is_admin = (employee.role or '').strip().lower() in ADMIN_ROLES
+        initial_status = 'Approved' if is_admin else 'Pending'
+
         # All validations passed, create the WFH request
         new_request = WorkFromHome.objects.create(
             employee=employee,
             from_date=from_date,
             to_date=to_date,
             reason=reason,
-            status='Pending'
+            status=initial_status
         )
 
-        # Notify Manager/Admin
-        threading.Thread(target=send_wfh_notification_to_manager, args=(employee, new_request, reason, notify_to)).start()
+        # Notify Manager/Admin (skip for admin auto-approvals)
+        if not is_admin:
+            threading.Thread(target=send_wfh_notification_to_manager, args=(employee, new_request, reason, notify_to)).start()
 
-        return Response({'message': 'WFH request submitted', 'id': new_request.id}, status=status.HTTP_201_CREATED)
+        msg = 'WFH request auto-approved' if is_admin else 'WFH request submitted'
+        return Response({'message': msg, 'id': new_request.id}, status=status.HTTP_201_CREATED)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
