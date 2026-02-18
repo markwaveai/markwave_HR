@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 // API Configuration
-const ENV = 'local'; // 'local' or 'production'
+const ENV = __DEV__ ? 'local' : 'production';
 
 const URLS = {
     local: 'http://10.0.2.2:8000/api',

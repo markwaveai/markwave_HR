@@ -153,6 +153,7 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     'http://34.14.209.166:8000',
     'http://hr.markwave.ai:8000',
+    'https://hr.markwave.ai',
     'http://localhost:8000',
     'http://127.0.0.1:8000'
 ]
