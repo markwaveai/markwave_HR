@@ -631,12 +631,12 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 </View>
             </View>
 
-            <View style={[styles.card, { marginBottom: 16, zIndex: 10 }]}>
+            <View style={[styles.card, { marginBottom: hp(2), zIndex: 10 }]}>
                 <View style={styles.cardHeaderFlex}>
                     <View style={{ position: 'relative', zIndex: 20 }}>
-                        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4 }} onPress={() => setShowDurationDropdown(!showDurationDropdown)}>
+                        <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', gap: wp(1), paddingVertical: hp(0.5) }} onPress={() => setShowDurationDropdown(!showDurationDropdown)}>
                             <Text style={styles.cardHeaderTitle}>{statsDuration}</Text>
-                            <ChevronDownIcon size={16} color="#48327d" />
+                            <ChevronDownIcon size={normalize(16)} color="#48327d" />
                         </TouchableOpacity>
                         {showDurationDropdown && (
                             <View style={styles.dropdownMenu}>
@@ -651,43 +651,43 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 </View>
                 <View style={styles.statsRow}>
                     <View style={styles.statsRowIdentity}>
-                        <View style={styles.statsIconCircle}><UserIcon color="#48327d" size={18} /></View>
+                        <View style={styles.statsIconCircle}><UserIcon color="#48327d" size={normalize(18)} /></View>
                         <Text style={styles.statsRowLabel}>Me</Text>
                     </View>
                     <View style={styles.statsRowMetric}>
                         <Text style={styles.smallMetricLabel}>AVG HRS /{"\n"}DAY</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                             <Text style={styles.statsRowValue}>{meStats.avg.split(' ')[0]}</Text>
-                            <Text style={[styles.statsRowValue, { fontSize: 13, marginLeft: 2, opacity: 0.7 }]}>{meStats.avg.split(' ')[1]}</Text>
+                            <Text style={[styles.statsRowValue, { fontSize: normalize(13), marginLeft: wp(0.5), opacity: 0.7 }]}>{meStats.avg.split(' ')[1]}</Text>
                         </View>
                     </View>
                     <View style={styles.statsRowMetric}>
                         <Text style={styles.smallMetricLabel}>ON TIME{"\n"}ARRIVAL</Text>
-                        <Text style={[styles.statsRowValue, { fontSize: 24, marginTop: 4 }]}>{meStats.onTime}</Text>
+                        <Text style={[styles.statsRowValue, { fontSize: normalize(24), marginTop: hp(0.5) }]}>{meStats.onTime}</Text>
                     </View>
                 </View>
                 {teamStats && (teamStats.avg_working_hours || teamStats.on_time_arrival) && (
-                    <View style={[styles.statsRow, { marginTop: 16, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 16 }]}>
+                    <View style={[styles.statsRow, { marginTop: hp(2), borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: hp(2) }]}>
                         <View style={styles.statsRowIdentity}>
-                            <View style={[styles.statsIconCircle, { backgroundColor: '#fcfaff' }]}><UsersIcon color="#48327d" size={18} /></View>
+                            <View style={[styles.statsIconCircle, { backgroundColor: '#fcfaff' }]}><UsersIcon color="#48327d" size={normalize(18)} /></View>
                             <Text style={styles.statsRowLabel}>My Team</Text>
                         </View>
                         <View style={styles.statsRowMetric}>
                             <Text style={styles.smallMetricLabel}>AVG HRS /{"\n"}DAY</Text>
                             <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
                                 <Text style={styles.statsRowValue}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[0]}</Text>
-                                <Text style={[styles.statsRowValue, { fontSize: 13, marginLeft: 2, opacity: 0.7 }]}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[1] || '00m'}</Text>
+                                <Text style={[styles.statsRowValue, { fontSize: normalize(13), marginLeft: wp(0.5), opacity: 0.7 }]}>{(teamStats?.avg_working_hours || '0h 00m').split(' ')[1] || '00m'}</Text>
                             </View>
                         </View>
                         <View style={styles.statsRowMetric}>
                             <Text style={styles.smallMetricLabel}>ON TIME{"\n"}ARRIVAL</Text>
-                            <Text style={[styles.statsRowValue, { fontSize: 24, marginTop: 4 }]}>{teamStats?.on_time_arrival || '0%'}</Text>
+                            <Text style={[styles.statsRowValue, { fontSize: normalize(24), marginTop: hp(0.5) }]}>{teamStats?.on_time_arrival || '0%'}</Text>
                         </View>
                     </View>
                 )}
             </View>
 
-            <View style={[styles.card, { marginBottom: 16 }]}>
+            <View style={[styles.card, { marginBottom: hp(2) }]}>
                 <Text style={styles.cardHeaderSectionTitle}>Timings</Text>
                 <View style={styles.daySelector}>
                     {DAYS_ABBR.map((label, i) => {
@@ -714,7 +714,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                         const isApprovedLeave = !!activeDayLog.leaveType;
                         const isHoliday = activeDayLog.isHoliday;
                         if (isWeekend || isApprovedLeave || isHoliday) {
-                            return <View style={styles.progressSection}><Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center', paddingVertical: 20 }}>{isHoliday ? `Holiday: ${activeDayLog.holidayName}` : isWeekend ? 'Weekend' : getLeaveLabel(activeDayLog.leaveType)}</Text></View>;
+                            return <View style={styles.progressSection}><Text style={{ fontSize: normalize(14), color: '#94a3b8', textAlign: 'center', paddingVertical: hp(2.5) }}>{isHoliday ? `Holiday: ${activeDayLog.holidayName}` : isWeekend ? 'Weekend' : getLeaveLabel(activeDayLog.leaveType)}</Text></View>;
                         }
                         return (
                             <View style={styles.progressSection}>
@@ -725,7 +725,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                 </View>
                                 <View style={styles.timingFooterRow}>
                                     <Text style={styles.timingFooterText}>Duration: {activeTiming.effective}</Text>
-                                    <View style={styles.timingFooterBreak}><CoffeeIcon color="#64748b" size={14} style={{ marginRight: 4 }} /><Text style={styles.timingFooterText}>{activeTiming.totalBreakMins} min</Text></View>
+                                    <View style={styles.timingFooterBreak}><CoffeeIcon color="#64748b" size={normalize(14)} style={{ marginRight: wp(1) }} /><Text style={styles.timingFooterText}>{activeTiming.totalBreakMins} min</Text></View>
                                 </View>
                             </View>
                         );
@@ -733,7 +733,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 </View>
             </View>
 
-            <View style={[styles.card, { marginBottom: 24, paddingVertical: 24 }]}>
+            <View style={[styles.card, { marginBottom: hp(3), paddingVertical: hp(3) }]}>
                 {/* <Text style={styles.cardHeaderSectionTitle}>Actions</Text> - Removing as per clean UI request */}
                 <View style={styles.actionGrid}>
                     <LiveDateTime user={user} clockStatus={clockStatus} debugInfo={debugInfo} />
@@ -756,8 +756,8 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                             ) : (
                                 <>
                                     <View style={styles.btnIconCircle}>
-                                        {disabledReason === 'On Leave' ? <UmbrellaIcon color={clockStatus === 'IN' ? "#ef4444" : "#48327d"} size={14} /> :
-                                            disabledReason === 'Holiday' ? <PartyPopperIcon color={clockStatus === 'IN' ? "#ef4444" : "#48327d"} size={14} /> :
+                                        {disabledReason === 'On Leave' ? <UmbrellaIcon color={clockStatus === 'IN' ? "#ef4444" : "#48327d"} size={normalize(14)} /> :
+                                            disabledReason === 'Holiday' ? <PartyPopperIcon color={clockStatus === 'IN' ? "#ef4444" : "#48327d"} size={normalize(14)} /> :
                                                 <Text style={[styles.btnIconArrow, { color: clockStatus === 'IN' ? "#ef4444" : "#48327d" }]}>{clockStatus === 'IN' ? '✕' : '➜'}</Text>}
                                     </View>
                                     <Text style={[styles.checkInButtonText, clockStatus === 'IN' && { color: '#ef4444' }]}>
@@ -792,7 +792,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                         onPress={() => setShowMonthDropdown(!showMonthDropdown)}
                     >
                         <Text style={styles.monthDropdownText}>{MONTHS[selectedMonth]}</Text>
-                        <ChevronDownIcon size={16} color="#48327d" />
+                        <ChevronDownIcon size={normalize(16)} color="#48327d" />
                     </TouchableOpacity>
                     {showMonthDropdown && (
                         <View style={styles.monthDropdownMenu}>
@@ -867,9 +867,9 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                     <View key={index} style={[styles.tableRow, showAsOff && styles.rowOff]}>
                                         <View style={[styles.cell, { width: COL_WIDTHS.date }]}>
                                             <Text style={styles.dateText}>{new Date(log.date).toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short' })}</Text>
-                                            {showAsOff && <Text style={[styles.offBadge, { maxWidth: 60 }]} numberOfLines={1}>{log.isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : !!log.leaveType ? getLeaveCode(log.leaveType) : 'ABSENT'}</Text>}
+                                            {showAsOff && <Text style={[styles.offBadge, { maxWidth: wp(16) }]} numberOfLines={1}>{log.isHoliday ? 'HOLIDAY' : isWeekend ? 'W-OFF' : !!log.leaveType ? getLeaveCode(log.leaveType) : 'ABSENT'}</Text>}
                                         </View>
-                                        {showAsOff ? <View style={{ flex: 1, paddingLeft: 12 }}><Text style={styles.offFullText}>{log.isHoliday ? (log.holidayName || 'Holiday') : isWeekend ? 'Weekly-off' : !!log.leaveType ? getLeaveLabel(log.leaveType) : 'Absent'}</Text></View> : (
+                                        {showAsOff ? <View style={{ flex: 1, paddingLeft: wp(3) }}><Text style={styles.offFullText}>{log.isHoliday ? (log.holidayName || 'Holiday') : isWeekend ? 'Weekly-off' : !!log.leaveType ? getLeaveLabel(log.leaveType) : 'Absent'}</Text></View> : (
                                             <>
                                                 <View style={[styles.cell, { width: COL_WIDTHS.visual }]}><View style={styles.visualBarTable}>{getVisualSegments(log).map((seg, i) => <View key={i} style={[styles.visualSeg, { width: `${seg.width}%`, backgroundColor: seg.type === 'work' ? '#48327d' : 'transparent' }]} />)}</View></View>
                                                 <Text style={[styles.cell, styles.timeText, { width: COL_WIDTHS.inOut }]}>{log.checkIn || '-'}</Text>
@@ -878,9 +878,9 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                                 </TouchableOpacity>
                                                 <View style={[styles.cell, { width: COL_WIDTHS.inOut }]}>
                                                     {(log.is_active === false && log.checkOut === '-' && log.checkIn !== '-' && !isTodayVal) ? (
-                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(2) }}>
                                                             <View style={styles.missedCheckOutBadge}><Text style={styles.missedCheckOutText}>MISSED</Text></View>
-                                                            <TouchableOpacity onPress={() => { setActiveRegularizeLog(log); setRegularizeModalVisible(true); }}><MoreVerticalIcon size={16} color="#1e293b" /></TouchableOpacity>
+                                                            <TouchableOpacity onPress={() => { setActiveRegularizeLog(log); setRegularizeModalVisible(true); }}><MoreVerticalIcon size={normalize(16)} color="#1e293b" /></TouchableOpacity>
                                                         </View>
                                                     ) : <Text style={styles.timeText}>{log.checkOut || '-'}</Text>}
                                                 </View>
@@ -921,13 +921,13 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />}
                 data={activeTab === 'Requests' ? requests : []}
                 keyExtractor={(item, index) => item?.id?.toString() || index.toString()}
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
+                contentContainerStyle={[styles.scrollContent, { paddingBottom: hp(12) }]}
                 showsVerticalScrollIndicator={false}
                 ListHeaderComponent={renderHeader}
                 renderItem={({ item: req }) => (
                     <View style={styles.requestCard}>
                         <View style={styles.requestCardHeader}>
-                            <View style={{ flex: 1, marginRight: 12 }}>
+                            <View style={{ flex: 1, marginRight: wp(3) }}>
                                 <Text style={styles.requestEmpName} numberOfLines={1} ellipsizeMode="tail">{req.employee_name}</Text>
                                 <View style={styles.requestBadgeRow}>
                                     <View style={styles.requestEmpIdBadge}><Text style={styles.requestEmpIdText}>{req.employee_id}</Text></View>
@@ -936,7 +936,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                     </View>
                                 </View>
                             </View>
-                            <View style={{ alignItems: 'flex-end', minWidth: 60 }}>
+                            <View style={{ alignItems: 'flex-end', minWidth: wp(16) }}>
                                 <Text style={styles.requestDate}>{req.attendance?.date || '-'}</Text>
                                 <Text style={styles.requestCreated}>{req.created_at ? new Date(req.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '-'}</Text>
                             </View>

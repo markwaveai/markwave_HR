@@ -297,20 +297,20 @@ const TeamManagementScreen = () => {
                         {/* Manager Picker Modal */}
                         <Modal visible={managerPickerOpen} transparent={true} animationType="slide">
                             <View style={[styles.modalOverlay, { flex: 1, justifyContent: 'flex-end' }]}>
-                                <View style={{ backgroundColor: 'white', maxHeight: '60%', borderTopLeftRadius: 20, borderTopRightRadius: 20 }}>
-                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
-                                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2d3436' }}>Select Manager</Text>
+                                <View style={{ backgroundColor: 'white', maxHeight: '60%', borderTopLeftRadius: normalize(20), borderTopRightRadius: normalize(20) }}>
+                                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: wp(4), borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
+                                        <Text style={{ fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436' }}>Select Manager</Text>
                                         <TouchableOpacity onPress={() => setManagerPickerOpen(false)}>
-                                            <CloseIcon color="#636e72" size={20} />
+                                            <CloseIcon color="#636e72" size={normalize(20)} />
                                         </TouchableOpacity>
                                     </View>
-                                    <View style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
+                                    <View style={{ padding: wp(3), borderBottomWidth: 1, borderBottomColor: '#f1f2f6' }}>
                                         <TextInput
                                             style={{
                                                 backgroundColor: '#f8f9fa',
-                                                padding: 10,
-                                                borderRadius: 8,
-                                                fontSize: 14,
+                                                padding: wp(2.5),
+                                                borderRadius: normalize(8),
+                                                fontSize: normalize(14),
                                                 color: '#2d3436'
                                             }}
                                             placeholder="Search managers..."
@@ -332,7 +332,7 @@ const TeamManagementScreen = () => {
                                                 <TouchableOpacity
                                                     key={mgr.id}
                                                     style={{
-                                                        padding: 16,
+                                                        padding: wp(4),
                                                         borderBottomWidth: 1,
                                                         borderBottomColor: '#f1f2f6',
                                                         backgroundColor: String(formData.manager_id) === String(mgr.id) ? '#f3e5f5' : 'white',
@@ -343,7 +343,7 @@ const TeamManagementScreen = () => {
                                                         setManagerSearchQuery('');
                                                     }}
                                                 >
-                                                    <Text style={{ color: '#2d3436', fontWeight: '500', fontSize: 14 }}>
+                                                    <Text style={{ color: '#2d3436', fontWeight: '500', fontSize: normalize(14) }}>
                                                         {mgr.first_name} {mgr.last_name} ({mgr.employee_id})
                                                     </Text>
                                                 </TouchableOpacity>
@@ -355,13 +355,13 @@ const TeamManagementScreen = () => {
 
                         {/* Add Initial Members Section - Only for New Teams */}
                         {!editingTeam && (
-                            <View style={{ marginTop: 10 }}>
+                            <View style={{ marginTop: hp(1.25) }}>
                                 <Text style={styles.inputLabel}>Add Initial Members</Text>
 
                                 {/* Search Input */}
-                                <View style={{ marginBottom: 8 }}>
+                                <View style={{ marginBottom: hp(1) }}>
                                     <TextInput
-                                        style={[styles.input, { paddingLeft: 12 }]}
+                                        style={[styles.input, { paddingLeft: wp(3) }]}
                                         placeholder="Search employees..."
                                         placeholderTextColor="#a0aec0"
                                         value={memberSearchTerm}
@@ -375,7 +375,7 @@ const TeamManagementScreen = () => {
                                         maxHeight: hp(25),
                                         borderWidth: 1,
                                         borderColor: '#e2e8f0',
-                                        borderRadius: 8,
+                                        borderRadius: normalize(8),
                                         backgroundColor: '#f8f9fa'
                                     }}
                                     nestedScrollEnabled={true}
@@ -400,7 +400,7 @@ const TeamManagementScreen = () => {
                                                 style={{
                                                     flexDirection: 'row',
                                                     alignItems: 'center',
-                                                    padding: 12,
+                                                    padding: wp(3),
                                                     borderBottomWidth: 1,
                                                     borderBottomColor: '#f1f2f6',
                                                     backgroundColor: formData.members.includes(emp.id) ? '#f3e5f5' : 'white'
@@ -422,25 +422,25 @@ const TeamManagementScreen = () => {
                                             >
                                                 {/* Checkbox */}
                                                 <View style={{
-                                                    width: 20,
-                                                    height: 20,
-                                                    borderRadius: 4,
+                                                    width: wp(5),
+                                                    height: wp(5),
+                                                    borderRadius: normalize(4),
                                                     borderWidth: 2,
                                                     borderColor: formData.members.includes(emp.id) ? '#48327d' : '#cbd5e1',
                                                     backgroundColor: formData.members.includes(emp.id) ? '#48327d' : 'white',
-                                                    marginRight: 12,
+                                                    marginRight: wp(3),
                                                     justifyContent: 'center',
                                                     alignItems: 'center'
                                                 }}>
                                                     {formData.members.includes(emp.id) && (
-                                                        <Text style={{ color: 'white', fontSize: 12, fontWeight: 'bold' }}>✓</Text>
+                                                        <Text style={{ color: 'white', fontSize: normalize(12), fontWeight: 'bold' }}>✓</Text>
                                                     )}
                                                 </View>
 
                                                 {/* Employee Info */}
                                                 <View style={{ flex: 1 }}>
                                                     <Text style={{
-                                                        fontSize: 14,
+                                                        fontSize: normalize(14),
                                                         fontWeight: '600',
                                                         color: '#2d3436'
                                                     }}>
@@ -589,7 +589,7 @@ const TeamManagementScreen = () => {
                                                         key={emp.id}
                                                         disabled={isAdded}
                                                         style={{
-                                                            padding: 16,
+                                                            padding: wp(4),
                                                             borderBottomWidth: 1,
                                                             borderBottomColor: '#f1f2f6',
                                                             backgroundColor: isAdded ? '#f8f9fa' : (selectedEmployeeToAdd === emp.id ? '#f3e5f5' : 'white'),
@@ -602,11 +602,11 @@ const TeamManagementScreen = () => {
                                                             setPickerModalOpen(false);
                                                         }}
                                                     >
-                                                        <Text style={{ color: isAdded ? '#b2bec3' : '#2d3436', fontWeight: '500' }}>
+                                                        <Text style={{ color: isAdded ? '#b2bec3' : '#2d3436', fontWeight: '500', fontSize: normalize(14) }}>
                                                             {emp.first_name} {emp.last_name} ({emp.role})
                                                         </Text>
                                                         {isAdded && (
-                                                            <Text style={{ fontSize: 12, color: '#b2bec3', fontStyle: 'italic' }}>Added</Text>
+                                                            <Text style={{ fontSize: normalize(12), color: '#b2bec3', fontStyle: 'italic' }}>Added</Text>
                                                         )}
                                                     </TouchableOpacity>
                                                 );
@@ -618,21 +618,21 @@ const TeamManagementScreen = () => {
 
                         {/* Current Members List */}
                         {/* Current Members List */}
-                        <View style={{ marginTop: 20, flexShrink: 1 }}>
-                            <Text style={[styles.inputLabel, { marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 11 }]}>
+                        <View style={{ marginTop: hp(2.5), flexShrink: 1 }}>
+                            <Text style={[styles.inputLabel, { marginBottom: hp(1.2), textTransform: 'uppercase', letterSpacing: 0.5, fontSize: normalize(11) }]}>
                                 CURRENT MEMBERS ({selectedTeamMembers.length})
                             </Text>
 
                             {selectedTeamMembers.length === 0 ? (
                                 <View style={styles.emptyMemberList}>
-                                    <Text style={{ color: '#a0aec0', textAlign: 'center' }}>No members in this team yet.</Text>
+                                    <Text style={{ color: '#a0aec0', textAlign: 'center', fontSize: normalize(14) }}>No members in this team yet.</Text>
                                 </View>
                             ) : (
-                                <ScrollView style={{ maxHeight: hp(40) }} showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: 20 }}>
-                                    <View style={{ gap: 10 }}>
+                                <ScrollView style={{ maxHeight: hp(40) }} showsVerticalScrollIndicator={true} contentContainerStyle={{ paddingBottom: hp(2.5) }}>
+                                    <View style={{ gap: hp(1.2) }}>
                                         {selectedTeamMembers.map(member => (
                                             <View key={member.id} style={styles.memberItem}>
-                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(2.5), flex: 1 }}>
                                                     <View style={styles.memberAvatar}>
                                                         <Text style={styles.memberAvatarText}>{member.name?.[0]}</Text>
                                                     </View>
@@ -654,17 +654,17 @@ const TeamManagementScreen = () => {
                             )}
                         </View>
 
-                        <View style={{ marginTop: 20, paddingTop: 20, borderTopWidth: 1, borderTopColor: '#f1f2f6', alignItems: 'flex-end' }}>
+                        <View style={{ marginTop: hp(2.5), paddingTop: hp(2.5), borderTopWidth: 1, borderTopColor: '#f1f2f6', alignItems: 'flex-end' }}>
                             <TouchableOpacity
                                 onPress={() => setMemberModalOpen(false)}
                                 style={{
                                     backgroundColor: '#f1f2f6',
-                                    paddingHorizontal: 24,
-                                    paddingVertical: 12,
-                                    borderRadius: 8,
+                                    paddingHorizontal: wp(6),
+                                    paddingVertical: hp(1.5),
+                                    borderRadius: normalize(8),
                                 }}
                             >
-                                <Text style={{ color: '#636e72', fontWeight: 'bold' }}>Done</Text>
+                                <Text style={{ color: '#636e72', fontWeight: 'bold', fontSize: normalize(14) }}>Done</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

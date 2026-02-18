@@ -59,7 +59,7 @@ const TeamHeader = React.memo(({ teams, selectedTeamId, searchTerm, setSearchTer
             )}
 
             <View style={styles.searchContainer}>
-                <SearchIcon color="#94a3b8" size={16} style={styles.searchIcon} />
+                <SearchIcon color="#94a3b8" size={normalize(16)} style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchInput}
                     placeholder="Search members..."
@@ -111,7 +111,7 @@ const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMe
                         style={styles.actionIconBtn}
                         onPress={() => handleEditMemberClick(item)}
                     >
-                        <EditIcon color="#3b82f6" size={18} strokeWidth={2.5} />
+                        <EditIcon color="#3b82f6" size={normalize(18)} strokeWidth={2.5} />
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.actionIconBtn}
@@ -121,7 +121,7 @@ const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMe
                         {isRemovingMember === item.id ? (
                             <ActivityIndicator size="small" color="#ef4444" />
                         ) : (
-                            <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
+                            <TrashIcon color="#ef4444" size={normalize(18)} strokeWidth={2.5} />
                         )}
                     </TouchableOpacity>
                 </View>
@@ -141,7 +141,7 @@ const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMe
             <View style={[styles.detailItem, { flex: 1.5 }]}>
                 <Text style={styles.detailLabel}>LOCATION</Text>
                 <View style={styles.statusRow}>
-                    <MapPinIcon size={12} color="#64748b" />
+                    <MapPinIcon size={normalize(12)} color="#64748b" />
                     <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
                         {item.location || 'Not Specified'}
                     </Text>
@@ -151,7 +151,7 @@ const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMe
 
         <View style={styles.cardFooter}>
             <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <MailIcon size={14} color="#64748b" style={{ marginRight: 4 }} />
+                <MailIcon size={normalize(14)} color="#64748b" style={{ marginRight: wp(1) }} />
                 <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
                     {item.email || 'No email provided'}
                 </Text>
@@ -326,7 +326,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
         return (
             <View style={styles.centered}>
                 <ActivityIndicator size="large" color="#6366f1" />
-                <Text style={{ marginTop: 10, color: '#64748b', fontWeight: '500' }}>Syncing team...</Text>
+                <Text style={{ marginTop: hp(1.2), color: '#64748b', fontWeight: '500' }}>Syncing team...</Text>
             </View>
         );
     }

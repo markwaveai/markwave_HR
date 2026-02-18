@@ -157,10 +157,10 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
         <View style={styles.container}>
 
             {loading ? (
-                <ActivityIndicator size="large" color="#48327d" style={{ marginTop: 20 }} />
+                <ActivityIndicator size="large" color="#48327d" style={{ marginTop: hp(2.5) }} />
             ) : (
                 <ScrollView
-                    contentContainerStyle={{ paddingBottom: 100 }}
+                    contentContainerStyle={{ paddingBottom: hp(12) }}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />}
                 >
                     {requests.length === 0 ? (
@@ -202,28 +202,28 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
                         <ScrollView
                             style={styles.formContainer}
                             showsVerticalScrollIndicator={false}
-                            contentContainerStyle={{ paddingBottom: 40 }}
+                            contentContainerStyle={{ paddingBottom: hp(5) }}
                         >
-                            <View style={{ flexDirection: 'row', gap: 10 }}>
+                            <View style={{ flexDirection: 'row', gap: wp(2.5) }}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.inputLabel}>FROM DATE *</Text>
                                     <TouchableOpacity style={styles.dateInput} onPress={() => openDatePicker('from')}>
                                         <Text style={[styles.dateText, !fromDate && { color: '#b2bec3' }]}>{fromDate || 'Select'}</Text>
-                                        <CalendarIcon color="#64748b" size={18} />
+                                        <CalendarIcon color="#64748b" size={normalize(18)} />
                                     </TouchableOpacity>
                                 </View>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.inputLabel}>TO DATE *</Text>
                                     <TouchableOpacity style={styles.dateInput} onPress={() => openDatePicker('to')}>
                                         <Text style={[styles.dateText, !toDate && { color: '#b2bec3' }]}>{toDate || 'Select'}</Text>
-                                        <CalendarIcon color="#64748b" size={18} />
+                                        <CalendarIcon color="#64748b" size={normalize(18)} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
 
                             <Text style={styles.inputLabel}>REASON *</Text>
                             <TextInput
-                                style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                style={[styles.input, { height: hp(10), textAlignVertical: 'top' }]}
                                 value={reason}
                                 onChangeText={setReason}
                                 placeholder="Why do you need to work from home?"
@@ -232,16 +232,16 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
 
                             {/* Notify To */}
                             <Text style={styles.inputLabel}>NOTIFY TO *</Text>
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8, padding: 8, backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8, minHeight: 40 }}>
-                                {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: 12 }}>Select recipients...</Text>}
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: wp(1.5), marginBottom: hp(1), padding: wp(2), backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8), minHeight: hp(5) }}>
+                                {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: normalize(12) }}>Select recipients...</Text>}
                                 {notifyTo.map(p => (
-                                    <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4 }}>
-                                        <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>{p}</Text>
-                                        <Text style={{ color: 'white', fontSize: 10 }}>✕</Text>
+                                    <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: normalize(4), paddingHorizontal: wp(1.5), paddingVertical: hp(0.5) }}>
+                                        <Text style={{ color: 'white', fontSize: normalize(10), fontWeight: 'bold', marginRight: wp(1) }}>{p}</Text>
+                                        <Text style={{ color: 'white', fontSize: normalize(10) }}>✕</Text>
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: wp(1.5) }}>
                                 {(() => {
                                     const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
                                     const leads = leadStr.split(',').map((s: string) => s.trim()).filter((name: string) => name && name !== 'Team Lead');
@@ -271,9 +271,9 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
                                                 onPress={() => {
                                                     setNotifyTo([...notifyTo, name]);
                                                 }}
-                                                style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
+                                                style={{ backgroundColor: '#f1f2f6', paddingHorizontal: wp(2), paddingVertical: hp(0.5), borderRadius: normalize(4) }}
                                             >
-                                                <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
+                                                <Text style={{ fontSize: normalize(10), fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
                                             </TouchableOpacity>
                                         ));
                                 })()}

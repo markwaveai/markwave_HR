@@ -978,7 +978,7 @@ const styles = StyleSheet.create({
     holidayNav: { flexDirection: 'row', alignItems: 'flex-end', gap: wp(2.5), paddingBottom: hp(0.6) },
     navArrow: { fontSize: normalize(24), color: '#48327d', fontWeight: '300' },
     disabledArrow: { opacity: 0.3 },
-    holidayDecoration: { position: 'absolute', bottom: -40, right: -40, width: normalize(160), height: normalize(160), backgroundColor: 'rgba(142, 120, 176, 0.05)', borderRadius: normalize(80), zIndex: 0 },
+    holidayDecoration: { position: 'absolute', bottom: hp(-5), right: wp(-10), width: normalize(160), height: normalize(160), backgroundColor: 'rgba(142, 120, 176, 0.05)', borderRadius: normalize(80), zIndex: 0 },
     balanceGridContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: hp(1.2), gap: wp(3) },
     chartItem: { alignItems: 'center', width: '22%', marginBottom: hp(1.2) },
     chartLabel: { fontSize: normalize(8), fontWeight: 'bold', color: '#2d3436', marginTop: hp(0.5), textAlign: 'center' },

@@ -344,7 +344,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                     <Text style={styles.headerTitle}>Leave & Attendance</Text>
                     <Text style={styles.headerSubtitle}>{!user?.is_admin ? 'View your leave balance' : 'Manage your time off'}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
+                <View style={{ flexDirection: 'row', gap: wp(1.5) }}>
                     <Pressable
                         onPress={() => {
                             setActiveTab('leave');
@@ -353,7 +353,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                         style={({ pressed }) => [
                             styles.addButton,
                             pressed && { opacity: 0.7 },
-                            { paddingHorizontal: 12 }
+                            { paddingHorizontal: wp(3) }
                         ]}
                     >
                         <Text style={styles.addButtonText}>+ LEAVE</Text>
@@ -366,7 +366,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                         style={({ pressed }) => [
                             styles.addButton,
                             pressed && { opacity: 0.7 },
-                            { paddingHorizontal: 12, backgroundColor: '#636e72' }
+                            { paddingHorizontal: wp(3), backgroundColor: '#636e72' }
                         ]}
                     >
                         <Text style={styles.addButtonText}>+ WFH</Text>
@@ -378,15 +378,15 @@ const LeaveScreen = ({ user }: { user: any }) => {
             <View style={{ flexDirection: 'row', backgroundColor: 'white', borderBottomWidth: 1, borderBottomColor: '#e2e8f0' }}>
                 <TouchableOpacity
                     onPress={() => setActiveTab('leave')}
-                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'leave' ? '#48327d' : 'transparent' }}
+                    style={{ flex: 1, paddingVertical: hp(1.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'leave' ? '#48327d' : 'transparent' }}
                 >
-                    <Text style={{ color: activeTab === 'leave' ? '#48327d' : '#636e72', fontWeight: 'bold' }}>LEAVES</Text>
+                    <Text style={{ color: activeTab === 'leave' ? '#48327d' : '#636e72', fontWeight: 'bold', fontSize: normalize(14) }}>LEAVES</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                     onPress={() => setActiveTab('wfh')}
-                    style={{ flex: 1, paddingVertical: 12, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'wfh' ? '#48327d' : 'transparent' }}
+                    style={{ flex: 1, paddingVertical: hp(1.5), alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'wfh' ? '#48327d' : 'transparent' }}
                 >
-                    <Text style={{ color: activeTab === 'wfh' ? '#48327d' : '#636e72', fontWeight: 'bold' }}>WFH</Text>
+                    <Text style={{ color: activeTab === 'wfh' ? '#48327d' : '#636e72', fontWeight: 'bold', fontSize: normalize(14) }}>WFH</Text>
                 </TouchableOpacity>
             </View>
 
@@ -400,7 +400,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 ) : (
                     <>
                         <ScrollView
-                            contentContainerStyle={{ paddingBottom: 100 }}
+                            contentContainerStyle={{ paddingBottom: hp(12) }}
                             style={styles.scrollContainer}
                             refreshControl={
                                 <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#48327d']} />
@@ -455,7 +455,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
                                     <ScrollView
                                         style={styles.formContainer}
-                                        contentContainerStyle={{ paddingBottom: 40 }}
+                                        contentContainerStyle={{ paddingBottom: hp(5) }}
                                     >
                                         {/* Leave Type Dropdown */}
                                         <Text style={styles.inputLabel}>LEAVE TYPE *</Text>
@@ -469,7 +469,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                         </TouchableOpacity>
 
                                         {/* Dates */}
-                                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                                        <View style={{ flexDirection: 'row', gap: wp(2.5) }}>
                                             <View style={{ flex: 1 }}>
                                                 <Text style={styles.inputLabel}>FROM DATE *</Text>
                                                 <TouchableOpacity
@@ -479,7 +479,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                                     <Text style={[styles.dateText, !fromDate && { color: '#b2bec3' }]}>
                                                         {fromDate || 'Select Date'}
                                                     </Text>
-                                                    <CalendarIcon color="#64748b" size={18} />
+                                                    <CalendarIcon color="#64748b" size={normalize(18)} />
                                                 </TouchableOpacity>
                                             </View>
                                             <View style={{ flex: 1 }}>
@@ -491,7 +491,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                                     <Text style={[styles.dateText, !toDate && { color: '#b2bec3' }]}>
                                                         {toDate || 'Select Date'}
                                                     </Text>
-                                                    <CalendarIcon color="#64748b" size={18} />
+                                                    <CalendarIcon color="#64748b" size={normalize(18)} />
                                                 </TouchableOpacity>
                                             </View>
                                         </View>
@@ -544,7 +544,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                         {/* Reason */}
                                         <Text style={styles.inputLabel}>REASON FOR LEAVE *</Text>
                                         <TextInput
-                                            style={[styles.input, { height: 80, textAlignVertical: 'top' }]}
+                                            style={[styles.input, { height: hp(10), textAlignVertical: 'top' }]}
                                             value={reason}
                                             onChangeText={setReason}
                                             placeholder="Briefly describe the reason..."
@@ -553,16 +553,16 @@ const LeaveScreen = ({ user }: { user: any }) => {
 
                                         {/* Notify To */}
                                         <Text style={styles.inputLabel}>NOTIFY TO *</Text>
-                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8, padding: 8, backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: 8 }}>
-                                            {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: 12 }}>Select notification recipients...</Text>}
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: wp(1.5), marginBottom: hp(1), padding: wp(2), backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#dfe6e9', borderRadius: normalize(8) }}>
+                                            {notifyTo.length === 0 && <Text style={{ color: '#b2bec3', fontSize: normalize(12) }}>Select notification recipients...</Text>}
                                             {notifyTo.map(p => (
-                                                <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 4 }}>
-                                                    <Text style={{ color: 'white', fontSize: 10, fontWeight: 'bold', marginRight: 4 }}>{p}</Text>
-                                                    <Text style={{ color: 'white', fontSize: 10 }}>✕</Text>
+                                                <TouchableOpacity key={p} onPress={() => setNotifyTo(notifyTo.filter(x => x !== p))} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#48327d', borderRadius: normalize(4), paddingHorizontal: wp(1.5), paddingVertical: hp(0.5) }}>
+                                                    <Text style={{ color: 'white', fontSize: normalize(10), fontWeight: 'bold', marginRight: wp(1) }}>{p}</Text>
+                                                    <Text style={{ color: 'white', fontSize: normalize(10) }}>✕</Text>
                                                 </TouchableOpacity>
                                             ))}
                                         </View>
-                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: wp(1.5) }}>
                                             {(() => {
                                                 // Reverse priority: profile is fresh from getProfile, user might be stale from session
                                                 const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
@@ -594,10 +594,10 @@ const LeaveScreen = ({ user }: { user: any }) => {
                                                             onPress={() => {
                                                                 setNotifyTo([...notifyTo, name]);
                                                             }}
-                                                            style={{ backgroundColor: '#f1f2f6', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 }}
+                                                            style={{ backgroundColor: '#f1f2f6', paddingHorizontal: wp(2), paddingVertical: hp(0.5), borderRadius: normalize(4) }}
                                                             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                                                         >
-                                                            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
+                                                            <Text style={{ fontSize: normalize(10), fontWeight: 'bold', color: '#48327d' }}>+ {name}</Text>
                                                         </TouchableOpacity>
                                                     ));
                                             })()}
