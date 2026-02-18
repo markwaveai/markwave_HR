@@ -35,6 +35,12 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
     const changeMonth = (increment: number) => {
         const newDate = new Date(currentDate);
         newDate.setMonth(newDate.getMonth() + increment);
+
+        // Prevent navigating to previous months (before today's month)
+        const today = new Date();
+        const minMonthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+        if (newDate < minMonthDate && increment < 0) return;
+
         setCurrentDate(newDate);
     };
 
@@ -103,9 +109,21 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({ visible, onClose, o
                 <View style={styles.container}>
                     {/* Header */}
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => changeMonth(-1)} style={styles.navBtn}>
-                            <Text style={styles.navText}>{'<'}</Text>
-                        </TouchableOpacity>
+                        {(() => {
+                            const today = new Date();
+                            const isCurrentMonth = currentDate.getMonth() === today.getMonth() &&
+                                currentDate.getFullYear() === today.getFullYear();
+
+                            return (
+                                <TouchableOpacity
+                                    onPress={() => !isCurrentMonth && changeMonth(-1)}
+                                    style={[styles.navBtn, isCurrentMonth && styles.disabledNavBtn]}
+                                    disabled={isCurrentMonth}
+                                >
+                                    <Text style={[styles.navText, isCurrentMonth && styles.disabledNavText]}>{'<'}</Text>
+                                </TouchableOpacity>
+                            );
+                        })()}
                         <Text style={styles.monthTitle}>
                             {months[currentDate.getMonth()]} {currentDate.getFullYear()}
                         </Text>
@@ -224,6 +242,12 @@ const styles = StyleSheet.create({
     disabledDayText: {
         color: '#cbd5e1',
         textDecorationLine: 'line-through'
+    },
+    disabledNavBtn: {
+        opacity: 0.3
+    },
+    disabledNavText: {
+        color: '#b2bec3'
     },
     closeButton: {
         marginTop: 15,

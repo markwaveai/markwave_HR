@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { teamApi } from '../services/api';
 import { normalize, wp, hp } from '../utils/responsive';
-import { SearchIcon, UserIcon, PlusIcon, TrashIcon } from '../components/Icons';
+import { SearchIcon, UserIcon, PlusIcon, TrashIcon, EditIcon } from '../components/Icons';
 
 interface Employee {
     id: number;
@@ -34,6 +34,7 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
 
     // Dropdown State
     const [isRolePickerVisible, setIsRolePickerVisible] = useState(false);
@@ -101,6 +102,18 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
             return;
         }
 
+        // Validate First Name (Alphabets + Spaces only)
+        if (!/^[A-Za-z\s]+$/.test(formData.firstName)) {
+            Alert.alert('Validation Error', 'First Name must contain only alphabets.');
+            return;
+        }
+
+        // Validate Last Name (Alphabets + Spaces only, if provided)
+        if (formData.lastName && !/^[A-Za-z\s]+$/.test(formData.lastName)) {
+            Alert.alert('Validation Error', 'Last Name must contain only alphabets.');
+            return;
+        }
+
         // Validate contact number (exactly 10 digits)
         if (formData.contact.length !== 10 || !/^\d+$/.test(formData.contact)) {
             Alert.alert('Validation Error', 'Contact number must be exactly 10 digits.');
@@ -134,9 +147,15 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
             };
 
 
-            await teamApi.addEmployee(payload);
-            Alert.alert('Success', 'Employee added successfully!');
+            if (editingEmployee) {
+                await teamApi.updateMember(editingEmployee.id.toString(), payload);
+                Alert.alert('Success', 'Employee updated successfully!');
+            } else {
+                await teamApi.addEmployee(payload);
+                Alert.alert('Success', 'Employee added successfully!');
+            }
             setIsModalVisible(false);
+            setEditingEmployee(null);
             setFormData({ employeeId: '', firstName: '', lastName: '', email: '', role: '', contact: '', aadhar: '', location: '' });
             fetchEmployees();
         } catch (error: any) {
@@ -184,6 +203,21 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
         );
     };
 
+    const handleEdit = (emp: Employee) => {
+        setEditingEmployee(emp);
+        setFormData({
+            employeeId: emp.employee_id || '',
+            firstName: emp.first_name || '',
+            lastName: emp.last_name || '',
+            email: emp.email || '',
+            role: emp.role || '',
+            contact: emp.contact || '',
+            aadhar: emp.aadhar || '',
+            location: emp.location || ''
+        });
+        setIsModalVisible(true);
+    };
+
     const renderHeader = () => (
         <View style={styles.tableHeaderRow}>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.id }]}>EMP ID</Text>
@@ -194,7 +228,7 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
             <Text style={[styles.headerCell, { width: COL_WIDTHS.email }]}>EMAIL</Text>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.aadhar }]}>AADHAR</Text>
             <Text style={[styles.headerCell, { width: COL_WIDTHS.loc }]}>LOCATION</Text>
-            <Text style={[styles.headerCell, { width: wp(12), textAlign: 'center' }]}>ACT</Text>
+            <Text style={[styles.headerCell, { width: wp(26), textAlign: 'center' }]}>ACTION / STATUS</Text>
         </View>
     );
 
@@ -210,7 +244,10 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
             <Text style={[styles.cell, { width: COL_WIDTHS.email, color: '#636e72' }]}>{item.email}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.aadhar, color: '#636e72' }]}>{item.aadhar || '-'}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.loc, color: '#636e72' }]}>{item.location || '-'}</Text>
-            <View style={[styles.cell, { width: wp(12), alignItems: 'center', justifyContent: 'center' }]}>
+            <View style={[styles.cell, { width: wp(26), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: wp(3) }]}>
+                <TouchableOpacity onPress={() => handleEdit(item)}>
+                    <EditIcon color="#48327d" size={normalize(18)} />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => handleDelete(item.id, item.first_name)}>
                     <TrashIcon color="#ef4444" size={normalize(18)} />
                 </TouchableOpacity>
@@ -309,9 +346,9 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
                                     <UserIcon color="#48327d" size={normalize(24)} />
                                     <PlusIcon color="#48327d" size={normalize(16)} style={{ marginLeft: -6, marginTop: -8 }} />
                                 </View>
-                                <Text style={styles.modalTitle}>Register New Employee</Text>
+                                <Text style={styles.modalTitle}>{editingEmployee ? 'Edit Employee Details' : 'Register New Employee'}</Text>
                             </View>
-                            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+                            <TouchableOpacity onPress={() => { setIsModalVisible(false); setEditingEmployee(null); }}>
                                 <Text style={styles.closeText}>✕</Text>
                             </TouchableOpacity>
                         </View>
@@ -336,7 +373,11 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
                                         placeholder="Enter First Name"
                                         placeholderTextColor="#94a3b8"
                                         value={formData.firstName}
-                                        onChangeText={(t) => setFormData({ ...formData, firstName: t })}
+                                        onChangeText={(t) => {
+                                            if (t === '' || /^[A-Za-z\s]+$/.test(t)) {
+                                                setFormData({ ...formData, firstName: t });
+                                            }
+                                        }}
                                     />
                                 </View>
                                 <View style={{ flex: 1 }}>
@@ -346,7 +387,11 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
                                         placeholder="Enter Last Name"
                                         placeholderTextColor="#94a3b8"
                                         value={formData.lastName}
-                                        onChangeText={(t) => setFormData({ ...formData, lastName: t })}
+                                        onChangeText={(t) => {
+                                            if (t === '' || /^[A-Za-z\s]+$/.test(t)) {
+                                                setFormData({ ...formData, lastName: t });
+                                            }
+                                        }}
                                     />
                                 </View>
                             </View>
@@ -574,7 +619,7 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
                                 disabled={!(formData.employeeId && formData.firstName && formData.email && formData.contact && formData.aadhar && formData.location) || isSubmitting}
                             >
                                 <Text style={styles.submitButtonText}>
-                                    {isSubmitting ? 'Saving...' : 'Register Employee'}
+                                    {isSubmitting ? 'Saving...' : editingEmployee ? 'Update Details' : 'Register Employee'}
                                 </Text>
                             </TouchableOpacity>
                         </ScrollView>

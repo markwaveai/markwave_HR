@@ -62,10 +62,17 @@ function MyTeam({ user }) {
 
 
     const filteredMembers = teamMembers
-        .filter(member =>
-            (member.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (member.role?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-        )
+        .filter(member => {
+            const query = searchTerm.toLowerCase();
+            const fullName = `${member.first_name || ''} ${member.last_name || ''}`.toLowerCase();
+            return (
+                (member.name?.toLowerCase() || '').includes(query) ||
+                (member.first_name?.toLowerCase() || '').includes(query) ||
+                (member.last_name?.toLowerCase() || '').includes(query) ||
+                fullName.includes(query) ||
+                (member.role?.toLowerCase() || '').includes(query)
+            );
+        })
         .sort((a, b) => {
             // Priority 1: The actual Team Manager (is_manager flag from backend)
             if (a.is_manager && !b.is_manager) return -1;

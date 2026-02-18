@@ -22,6 +22,147 @@ interface MyTeamScreenProps {
     user: any;
 }
 
+const TeamHeader = React.memo(({ teams, selectedTeamId, searchTerm, setSearchTerm, stats, isManager, setIsTeamSelectorVisible, setIsAddModalVisible, user }: any) => {
+    const currentTeam = teams.find((t: any) => t.id === selectedTeamId);
+    return (
+        <View style={styles.headerContainer}>
+            <View style={styles.titleRow}>
+                <View style={styles.titleContent}>
+                    <Text style={styles.pageTitle}>My Team</Text>
+                    <Text style={styles.teamLeadSubtitle}>
+                        {currentTeam?.manager_name ? `Team ${currentTeam.manager_name}` : (currentTeam ? `Team ${currentTeam.name}` : (user?.team_lead_name ? `Team ${user.team_lead_name}` : 'My Team Members'))}
+                    </Text>
+                </View>
+                {isManager && (
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={() => setIsAddModalVisible(true)}
+                    >
+                        <Text style={styles.addButtonText}>Add Member</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
+
+            {teams.length > 1 && (
+                <View style={styles.selectorContainer}>
+                    <Text style={styles.selectorLabel}>TEAM</Text>
+                    <TouchableOpacity
+                        style={styles.dropdownButton}
+                        onPress={() => setIsTeamSelectorVisible(true)}
+                    >
+                        <Text style={styles.dropdownButtonText}>
+                            {teams.find((t: any) => t.id === selectedTeamId)?.name || 'Select Team'}
+                        </Text>
+                        <Text style={styles.dropdownArrow}>▼</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            <View style={styles.searchContainer}>
+                <SearchIcon color="#94a3b8" size={16} style={styles.searchIcon} />
+                <TextInput
+                    style={styles.searchInput}
+                    placeholder="Search members..."
+                    value={searchTerm}
+                    onChangeText={setSearchTerm}
+                    placeholderTextColor="#94a3b8"
+                />
+            </View>
+
+            <View style={styles.statsGrid}>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Total Members</Text>
+                    <Text style={[styles.statValue, { color: '#1e293b' }]}>{stats?.total || 0}</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Active Now</Text>
+                    <View style={styles.activeRow}>
+                        <Text style={[styles.statValue, { color: '#10b981' }]}>{stats?.active || 0}</Text>
+                        <Text style={styles.onlineBadge}>Online</Text>
+                    </View>
+                </View>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>On Leave</Text>
+                    <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats?.onLeave || 0}</Text>
+                </View>
+                <View style={styles.statCard}>
+                    <Text style={styles.statLabel}>Remote</Text>
+                    <Text style={[styles.statValue, { color: '#3b82f6' }]}>{stats?.remote || 0}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
+const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMemberClick, handleDeleteMember }: any) => (
+    <View style={styles.card}>
+        <View style={styles.cardHeaderRow}>
+            <View style={styles.memberInfo}>
+                <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">
+                    {item.name}
+                </Text>
+                <Text style={styles.memberRole} numberOfLines={1} ellipsizeMode="tail">
+                    {item.role}
+                </Text>
+            </View>
+            {isManager && (
+                <View style={styles.actionButtonsContainer}>
+                    <TouchableOpacity
+                        style={styles.actionIconBtn}
+                        onPress={() => handleEditMemberClick(item)}
+                    >
+                        <EditIcon color="#3b82f6" size={18} strokeWidth={2.5} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.actionIconBtn}
+                        onPress={() => handleDeleteMember(item)}
+                        disabled={isRemovingMember === item.id}
+                    >
+                        {isRemovingMember === item.id ? (
+                            <ActivityIndicator size="small" color="#ef4444" />
+                        ) : (
+                            <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
+                        )}
+                    </TouchableOpacity>
+                </View>
+            )}
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.cardDetailsRow}>
+            <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>STATUS</Text>
+                <View style={styles.statusRow}>
+                    <View style={[styles.statusDot, { backgroundColor: item.status === 'Active' ? '#10b981' : '#f59e0b' }]} />
+                    <Text style={styles.detailValue}>{item.status}</Text>
+                </View>
+            </View>
+            <View style={[styles.detailItem, { flex: 1.5 }]}>
+                <Text style={styles.detailLabel}>LOCATION</Text>
+                <View style={styles.statusRow}>
+                    <MapPinIcon size={12} color="#64748b" />
+                    <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
+                        {item.location || 'Not Specified'}
+                    </Text>
+                </View>
+            </View>
+        </View>
+
+        <View style={styles.cardFooter}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <MailIcon size={14} color="#64748b" style={{ marginRight: 4 }} />
+                <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
+                    {item.email || 'No email provided'}
+                </Text>
+            </View>
+            <TouchableOpacity style={styles.viewProfileBtn}>
+                <Text style={styles.viewProfileText}>View Profile</Text>
+            </TouchableOpacity>
+        </View>
+    </View >
+));
+
 const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const [teamMembers, setTeamMembers] = useState<any[]>([]);
     const [stats, setStats] = useState<any>(null);
@@ -168,159 +309,18 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
 
     const filteredMembers = teamMembers.filter(member => {
         const searchLower = searchTerm.toLowerCase();
+        const fullName = `${member.first_name || ''} ${member.last_name || ''}`.toLowerCase();
         return (
             (member.name?.toLowerCase() || '').includes(searchLower) ||
+            (member.first_name?.toLowerCase() || '').includes(searchLower) ||
+            (member.last_name?.toLowerCase() || '').includes(searchLower) ||
+            fullName.includes(searchLower) ||
             (member.role?.toLowerCase() || '').includes(searchLower) ||
             (member.email?.toLowerCase() || '').includes(searchLower) ||
             (member.location?.toLowerCase() || '').includes(searchLower) ||
             (member.employee_id?.toLowerCase() || '').includes(searchLower)
         );
     });
-
-    const renderHeader = () => {
-        const currentTeam = teams.find(t => t.id === selectedTeamId);
-
-        return (
-            <View style={styles.headerContainer}>
-                <View style={styles.titleRow}>
-                    <View style={styles.titleContent}>
-                        <Text style={styles.pageTitle}>Team</Text>
-                        <Text style={styles.teamLeadSubtitle}>
-                            {currentTeam?.manager_name ? `Team ${currentTeam.manager_name}` : (currentTeam ? `Team ${currentTeam.name}` : (user?.team_lead_name ? `Team ${user.team_lead_name}` : 'My Team Members'))}
-                        </Text>
-                    </View>
-                    {isManager && (
-                        <TouchableOpacity
-                            style={styles.addButton}
-                            onPress={() => setIsAddModalVisible(true)}
-                        >
-                            <Text style={styles.addButtonText}>Add Member</Text>
-                        </TouchableOpacity>
-                    )}
-                </View>
-
-                {/* Team Selector Dropdown if multiple teams */}
-                {teams.length > 1 && (
-                    <View style={styles.selectorContainer}>
-                        <Text style={styles.selectorLabel}>TEAM</Text>
-                        <TouchableOpacity
-                            style={styles.dropdownButton}
-                            onPress={() => setIsTeamSelectorVisible(true)}
-                        >
-                            <Text style={styles.dropdownButtonText}>
-                                {teams.find(t => t.id === selectedTeamId)?.name || 'Select Team'}
-                            </Text>
-                            <Text style={styles.dropdownArrow}>▼</Text>
-                        </TouchableOpacity>
-                    </View>
-                )}
-
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <SearchIcon color="#94a3b8" size={16} style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search members..."
-                        value={searchTerm}
-                        onChangeText={setSearchTerm}
-                        placeholderTextColor="#94a3b8"
-                    />
-                </View>
-
-                {/* Stats Grid */}
-                <View style={styles.statsGrid}>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statLabel}>Total Members</Text>
-                        <Text style={[styles.statValue, { color: '#1e293b' }]}>{stats?.total || 0}</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statLabel}>Active Now</Text>
-                        <View style={styles.activeRow}>
-                            <Text style={[styles.statValue, { color: '#10b981' }]}>{stats?.active || 0}</Text>
-                            <Text style={styles.onlineBadge}>Online</Text>
-                        </View>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statLabel}>On Leave</Text>
-                        <Text style={[styles.statValue, { color: '#f59e0b' }]}>{stats?.onLeave || 0}</Text>
-                    </View>
-                    <View style={styles.statCard}>
-                        <Text style={styles.statLabel}>Remote</Text>
-                        <Text style={[styles.statValue, { color: '#3b82f6' }]}>{stats?.remote || 0}</Text>
-                    </View>
-                </View>
-            </View>
-        );
-    };
-
-    const renderMemberCard = ({ item }: { item: any }) => (
-        <View style={styles.card}>
-            <View style={styles.cardHeaderRow}>
-                <View style={styles.memberInfo}>
-                    <Text style={styles.memberName} numberOfLines={1} ellipsizeMode="tail">
-                        {item.name}
-                    </Text>
-                    <Text style={styles.memberRole} numberOfLines={1} ellipsizeMode="tail">
-                        {item.role}
-                    </Text>
-                </View>
-                {isManager && (
-                    <View style={styles.actionButtonsContainer}>
-                        <TouchableOpacity
-                            style={styles.actionIconBtn}
-                            onPress={() => handleEditMemberClick(item)}
-                        >
-                            <EditIcon color="#3b82f6" size={18} strokeWidth={2.5} />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.actionIconBtn}
-                            onPress={() => handleDeleteMember(item)}
-                            disabled={isRemovingMember === item.id}
-                        >
-                            {isRemovingMember === item.id ? (
-                                <ActivityIndicator size="small" color="#ef4444" />
-                            ) : (
-                                <TrashIcon color="#ef4444" size={18} strokeWidth={2.5} />
-                            )}
-                        </TouchableOpacity>
-                    </View>
-                )}
-            </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.cardDetailsRow}>
-                <View style={styles.detailItem}>
-                    <Text style={styles.detailLabel}>STATUS</Text>
-                    <View style={styles.statusRow}>
-                        <View style={[styles.statusDot, { backgroundColor: item.status === 'Active' ? '#10b981' : '#f59e0b' }]} />
-                        <Text style={styles.detailValue}>{item.status}</Text>
-                    </View>
-                </View>
-                <View style={[styles.detailItem, { flex: 1.5 }]}>
-                    <Text style={styles.detailLabel}>LOCATION</Text>
-                    <View style={styles.statusRow}>
-                        <MapPinIcon size={12} color="#64748b" />
-                        <Text style={styles.detailValue} numberOfLines={1} ellipsizeMode="tail">
-                            {item.location || 'Not Specified'}
-                        </Text>
-                    </View>
-                </View>
-            </View>
-
-            <View style={styles.cardFooter}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    <MailIcon size={14} color="#64748b" style={{ marginRight: 4 }} />
-                    <Text style={styles.emailText} numberOfLines={1} ellipsizeMode="middle">
-                        {item.email || 'No email provided'}
-                    </Text>
-                </View>
-                <TouchableOpacity style={styles.viewProfileBtn}>
-                    <Text style={styles.viewProfileText}>View Profile</Text>
-                </TouchableOpacity>
-            </View>
-        </View >
-    );
 
     if (loading) {
         return (
@@ -332,12 +332,32 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <FlatList
                 data={filteredMembers}
                 keyExtractor={item => item.id.toString()}
-                renderItem={renderMemberCard}
-                ListHeaderComponent={renderHeader}
+                renderItem={({ item }) => (
+                    <MemberCard
+                        item={item}
+                        isManager={isManager}
+                        isRemovingMember={isRemovingMember}
+                        handleEditMemberClick={handleEditMemberClick}
+                        handleDeleteMember={handleDeleteMember}
+                    />
+                )}
+                ListHeaderComponent={
+                    <TeamHeader
+                        teams={teams}
+                        selectedTeamId={selectedTeamId}
+                        searchTerm={searchTerm}
+                        setSearchTerm={setSearchTerm}
+                        stats={stats}
+                        isManager={isManager}
+                        setIsTeamSelectorVisible={setIsTeamSelectorVisible}
+                        setIsAddModalVisible={setIsAddModalVisible}
+                        user={user}
+                    />
+                }
                 contentContainerStyle={styles.listContent}
                 showsVerticalScrollIndicator={false}
             />
@@ -503,7 +523,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                     </View>
                 </TouchableOpacity>
             </Modal>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -511,6 +531,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: '#F8F9FA',
+        paddingTop: Platform.OS === 'ios' ? hp(2) : hp(1),
     },
     listContent: {
         padding: wp(4),

@@ -28,6 +28,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     const [loginMethod, setLoginMethod] = useState<'phone' | 'email'>('phone');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [resendTimer, setResendTimer] = useState(0);
 
     // Animations
     const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -39,6 +41,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             useNativeDriver: true,
         }).start();
     }, []);
+
+    useEffect(() => {
+        let interval: any;
+        if (step === 'otp' && resendTimer > 0) {
+            interval = setInterval(() => {
+                setResendTimer((prev) => prev - 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [step, resendTimer]);
 
     const handleSendOTP = async () => {
         const trimmedPhone = phone.trim();
@@ -59,11 +71,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
         // Validate email (must contain @)
         if (loginMethod === 'email') {
-            if (!email) {
+            const trimmedEmail = email.trim();
+            if (!trimmedEmail) {
                 setError('Please enter email address');
                 return;
             }
-            if (!email.includes('@')) {
+            if (!trimmedEmail.includes('@')) {
                 setError('Please enter a valid email address');
                 return;
             }
@@ -76,13 +89,43 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
             if (loginMethod === 'phone') {
                 await authApi.sendOTP(trimmedPhone);
             } else {
-                await authApi.sendEmailOTP(email);
+                await authApi.sendEmailOTP(email.trim());
             }
             setStep('otp');
+            setError('');
+            setSuccessMessage('');
+            setResendTimer(30); // Start 30s timer
         } catch (err) {
             console.error('Send OTP Error:', err);
             const errorMessage = err instanceof Error ? err.message : String(err);
             setError(errorMessage || 'Failed to send OTP');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleResendOTP = async () => {
+        if (resendTimer > 0 || isLoading) return;
+
+        setError('');
+        setSuccessMessage('');
+        setIsLoading(true);
+        try {
+            if (loginMethod === 'phone') {
+                await authApi.sendOTP(phone.trim());
+            } else {
+                await authApi.sendEmailOTP(email.trim());
+            }
+            setResendTimer(30);
+            setOtp(''); // Clear OTP on resend
+            setSuccessMessage('OTP resent successfully');
+
+            // Clear success message after 5 seconds
+            setTimeout(() => setSuccessMessage(''), 5000);
+        } catch (err) {
+            console.error('Resend OTP Error:', err);
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            setError(errorMessage || 'Failed to resend OTP');
         } finally {
             setIsLoading(false);
         }
@@ -200,13 +243,31 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                                 keyboardType="number-pad"
                                 maxLength={6}
                             />
-                            <TouchableOpacity onPress={() => setStep('phone')} style={styles.changeLink}>
-                                <Text style={styles.changeLinkText}>
-                                    Change {loginMethod === 'phone' ? 'mobile number' : 'email'}?
-                                </Text>
-                            </TouchableOpacity>
+                            <View style={styles.otpFooter}>
+                                <TouchableOpacity onPress={() => setStep('phone')} style={styles.changeLink}>
+                                    <Text style={styles.changeLinkText}>
+                                        Change {loginMethod === 'phone' ? 'mobile number' : 'email'}?
+                                    </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    onPress={handleResendOTP}
+                                    disabled={resendTimer > 0 || isLoading}
+                                    style={styles.resendLink}
+                                >
+                                    <Text style={[styles.resendLinkText, resendTimer > 0 && styles.resendLinkDisabled]}>
+                                        {isLoading ? 'Sending...' : (resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend OTP')}
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     )}
+
+                    {successMessage ? (
+                        <View style={styles.successContainer}>
+                            <Text style={styles.successText}>{successMessage}</Text>
+                        </View>
+                    ) : null}
 
                     {error ? (
                         <View style={styles.errorContainer}>
@@ -358,6 +419,24 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         fontSize: normalize(12),
     },
+    otpFooter: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: hp(1.5),
+    },
+    resendLink: {
+        padding: wp(1),
+    },
+    resendLinkText: {
+        color: '#48327d',
+        fontWeight: '700',
+        fontSize: normalize(12),
+    },
+    resendLinkDisabled: {
+        color: '#b2bec3',
+        fontWeight: '500',
+    },
     errorContainer: {
         backgroundColor: '#fff0f0',
         padding: wp(3),
@@ -413,6 +492,19 @@ const styles = StyleSheet.create({
         marginTop: hp(0.5),
         fontWeight: '500',
         marginLeft: wp(1),
+    },
+    successContainer: {
+        backgroundColor: '#f0fdf4',
+        padding: wp(3),
+        borderRadius: normalize(8),
+        borderWidth: 1,
+        borderColor: '#bbf7d0',
+    },
+    successText: {
+        color: '#16a34a',
+        fontSize: normalize(13),
+        textAlign: 'center',
+        fontWeight: '500',
     }
 });
 

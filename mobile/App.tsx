@@ -42,7 +42,7 @@ const storage = {
   }
 };
 
-LogBox.ignoreAllLogs(); // Hide all warnings from the UI
+// LogBox.ignoreAllLogs(); // Hide all warnings from the UI
 import EmployeeListScreen from './src/screens/EmployeeListScreen';
 import MyTeamScreen from './src/screens/MyTeamScreen';
 import HomeScreen from './src/screens/HomeScreen';
@@ -229,7 +229,7 @@ function App() {
       {!isLoggedIn ? (
         <LoginScreen onLogin={handleLogin} />
       ) : (
-        <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+        <SafeAreaView style={styles.container}>
           <Modal
             animationType="fade"
             transparent={true}
@@ -318,23 +318,43 @@ function App() {
             </TouchableOpacity>
           </Modal>
 
+          {/* Header in natural flow (not absolute) */}
           <View style={styles.header}>
             <TouchableOpacity
-              onPress={() => setIsDrawerVisible(true)}
-              style={{ padding: 8, flexDirection: 'row', alignItems: 'center' }}
+              onPress={() => {
+                console.log('Hamburger clicked');
+                setIsDrawerVisible(true);
+              }}
+              style={styles.menuButton}
+              hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
             >
-              <MenuIcon color="#48327d" size={26} />
+              <MenuIcon color="#48327d" size={28} />
             </TouchableOpacity>
 
-            <Text style={{ fontSize: 16, fontWeight: '800', color: '#48327d', letterSpacing: 0.5 }}>MARKWAVE HR</Text>
+            <Text style={styles.headerTitle}>MARKWAVE HR</Text>
 
-            <View>
-              <TouchableOpacity onPress={() => setIsProfileModalVisible(true)}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{getInitials()}</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity onPress={() => setIsProfileModalVisible(true)} style={styles.profileButton}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{getInitials()}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.mainContent}>
+            {activeTab === 'Home' && (
+              <View style={{ flex: 1 }}>
+
+                <HomeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />
+              </View>
+            )}
+            {activeTab === 'Team' && <MyTeamScreen user={appUser} />}
+            {activeTab === 'Me' && <MeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
+            {activeTab === 'Menu' && <LeaveScreen user={appUser} />}
+            {activeTab === 'Employees' && <EmployeeListScreen user={appUser} />}
+            {activeTab === 'AdminLeave' && <AdminLeaveScreen />}
+            {activeTab === 'Teams' && <TeamManagementScreen />}
+            {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
+            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}
           </View>
 
           <ProfileModal
@@ -376,20 +396,6 @@ function App() {
               </View>
             </View>
           </Modal>
-
-          <View style={{ flex: 1 }}>
-            {activeTab === 'Home' && <HomeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
-            {activeTab === 'Team' && <MyTeamScreen user={appUser} />}
-            {activeTab === 'Me' && <MeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
-            {activeTab === 'Menu' && <LeaveScreen user={appUser} />}
-            {activeTab === 'Employees' && <EmployeeListScreen user={appUser} />}
-            {activeTab === 'AdminLeave' && <AdminLeaveScreen />}
-            {activeTab === 'Teams' && <TeamManagementScreen />}
-            {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
-            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}
-          </View>
-
-
         </SafeAreaView>
       )}
     </SafeAreaProvider>
@@ -408,21 +414,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   header: {
+    height: 60,
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'android' ? 40 : 15, // Increased for visibility
-    paddingBottom: 15,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderBottomWidth: 2, // Thicker
-    borderBottomColor: '#48327d', // Purple border instead of light gray
+    borderBottomWidth: 1.5,
+    borderBottomColor: '#f1f5f9',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 8, // Higher elevation
+    shadowRadius: 4,
+    elevation: 4,
     zIndex: 100,
+  },
+  headerTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#48327d',
+    letterSpacing: 0.5
+  },
+  menuButton: {
+    padding: 15,
+    marginLeft: -15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100000,
+  },
+  profileButton: {
+    padding: 10,
+    marginRight: -10,
+    zIndex: 100000,
+  },
+  mainContent: {
+    flex: 1,
   },
   greetingText: {
     fontSize: 14,

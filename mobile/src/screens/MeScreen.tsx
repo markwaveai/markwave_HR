@@ -200,8 +200,8 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
         try {
             if (!refreshing) setLoading(true);
             const [history, status, stats] = await Promise.all([
-                attendanceApi.getHistory(user.id),
-                attendanceApi.getStatus(user.id),
+                attendanceApi.getHistory(user.employee_id || user.id),
+                attendanceApi.getStatus(user.employee_id || user.id),
                 teamApi.getStats(user.team_ids || user.team_id, statsDuration)
             ]);
             setLogs(history);
@@ -291,7 +291,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
 
                         try {
                             await attendanceApi.clock({
-                                employee_id: user.id,
+                                employee_id: user.employee_id || user.id,
                                 location: finalLocation,
                                 type: nextType
                             });
@@ -309,7 +309,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                         const fallbackLocation = `Location unavailable (Error: ${error.message})`;
 
                         attendanceApi.clock({
-                            employee_id: user.id,
+                            employee_id: user.employee_id || user.id,
                             location: fallbackLocation,
                             type: nextType
                         }).then(() => {
@@ -332,7 +332,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 const finalLocation = "Office";
 
                 await attendanceApi.clock({
-                    employee_id: user.id,
+                    employee_id: user.employee_id || user.id,
                     location: finalLocation,
                     type: nextType
                 });
@@ -583,7 +583,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
 
     const activeDayLog = weekLogs[selectedDayIndex];
     const activeTiming = calculateStats(activeDayLog);
-    const todayStr = toLocalDateString(new Date());
+    const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
     const renderBreakModal = () => {
         if (!activeBreakLog) return null;
@@ -879,7 +879,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                                                     {s.totalBreakMins > 0 ? <View style={styles.breakItemContainer}><View style={styles.infoSquare}><Text style={styles.infoIconText}>i</Text></View><Text style={styles.breakDurationText}>{s.totalBreakMins}m</Text></View> : <Text style={styles.dashText}>-</Text>}
                                                 </TouchableOpacity>
                                                 <View style={[styles.cell, { width: COL_WIDTHS.inOut }]}>
-                                                    {log.checkOut === '-' && log.checkIn !== '-' && !isTodayVal ? (
+                                                    {(log.is_active === false && log.checkOut === '-' && log.checkIn !== '-' && !isTodayVal) ? (
                                                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                                             <View style={styles.missedCheckOutBadge}><Text style={styles.missedCheckOutText}>MISSED</Text></View>
                                                             <TouchableOpacity onPress={() => { setActiveRegularizeLog(log); setRegularizeModalVisible(true); }}><MoreVerticalIcon size={16} color="#1e293b" /></TouchableOpacity>

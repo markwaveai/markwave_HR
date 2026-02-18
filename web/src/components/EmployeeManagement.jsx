@@ -120,6 +120,24 @@ function EmployeeManagement() {
             return;
         }
 
+        // Validate First Name (Alphabets + Spaces only)
+        if (!/^[A-Za-z\s]+$/.test(formData.firstName)) {
+            const err = 'First Name must contain only alphabets.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
+            setIsSubmitting(false);
+            return;
+        }
+
+        // Validate Last Name (Alphabets + Spaces only, if provided)
+        if (formData.lastName && !/^[A-Za-z\s]+$/.test(formData.lastName)) {
+            const err = 'Last Name must contain only alphabets.';
+            alert(err);
+            setMessage({ type: 'error', text: err });
+            setIsSubmitting(false);
+            return;
+        }
+
         if (formData.contact.length !== 10 || !/^\d+$/.test(formData.contact)) {
             const err = 'Contact number must be exactly 10 digits.';
             alert(err);
@@ -392,7 +410,7 @@ function EmployeeManagement() {
                                 <th className="px-6 py-4 text-center">Email</th>
                                 <th className="px-6 py-4 text-center">Aadhar</th>
                                 <th className="px-6 py-4 text-center">Location</th>
-                                <th className="px-6 py-4 text-center min-w-[100px]">Actions</th>
+                                <th className="px-6 py-4 text-center min-w-[120px]">Action / Status</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#f1f2f6] text-xs">

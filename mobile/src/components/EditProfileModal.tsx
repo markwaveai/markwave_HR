@@ -43,7 +43,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose, u
     };
 
     const validateEmail = (email: string): boolean => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
         return emailRegex.test(email);
     };
 
@@ -165,7 +165,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose, u
                                     <TextInput
                                         style={styles.input}
                                         value={formData.contact}
-                                        onChangeText={(t) => handleChange('contact', t)}
+                                        onChangeText={(t) => handleChange('contact', t.replace(/[^0-9]/g, ''))}
                                         keyboardType="phone-pad"
                                         maxLength={10}
                                         placeholder="Phone"
@@ -206,7 +206,7 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose, u
                                     <TextInput
                                         style={styles.input}
                                         value={formData.aadhar}
-                                        onChangeText={(t) => handleChange('aadhar', t)}
+                                        onChangeText={(t) => handleChange('aadhar', t.replace(/[^0-9]/g, ''))}
                                         keyboardType="numeric"
                                         maxLength={12}
                                         placeholder="Aadhar Number"

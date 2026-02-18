@@ -168,11 +168,122 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
         
         # Send individual emails to each selected recipient (no CC)
         for recipient_email in recipient_emails:
-            send_email_via_api(recipient_email, subject, body)
+            success, result = send_email_via_api(recipient_email, subject, body)
+            if success:
+                print(f"Successfully sent leave request notification to {recipient_email}")
+            else:
+                print(f"Failed to send leave request notification to {recipient_email}: {result}")
     except Exception as e:
         print(f"Error in background notification task: {str(e)}")
+
+def notify_employee_status_update(leave_request_id):
+    try:
+        from .utils import send_email_via_api
+        from core.models import Leaves
+        
+        # Fetch fresh object inside the thread to avoid lazy loading issues
+        leave_request = Leaves.objects.get(pk=leave_request_id)
+        employee = leave_request.employee
+        
+        print(f"Starting status update notification for Leave ID {leave_request_id}, Employee: {employee.first_name} {employee.last_name}")
+        
+        if not employee.email:
+            print(f"Skipping notification: No email found for employee {employee.first_name} {employee.last_name}")
+            return
+
+        status_text = leave_request.status
+        color = "#10b981" if status_text == 'Approved' else "#ef4444"
+        
+        leave_display_names = {
+            'cl': 'Casual Leave',
+            'sl': 'Sick Leave',
+            'el': 'Earned Leave',
+            'scl': 'Special Casual Leave',
+            'bl': 'Bereavement Leave',
+            'pl': 'Paternity Leave',
+            'll': 'Long Leave',
+            'co': 'Comp Off'
+        }
+        leave_name = leave_display_names.get(leave_request.type, str(leave_request.type).upper())
+        
+        # Parse dates from strings if they are not already date objects
+        from_date = leave_request.from_date
+        to_date = leave_request.to_date
+        
+        # In the model, these are CharFields ('YYYY-MM-DD')
+        if isinstance(from_date, str):
+            try:
+                from_date = datetime.datetime.strptime(from_date, '%Y-%m-%d')
+            except:
+                pass
+        if isinstance(to_date, str):
+            try:
+                to_date = datetime.datetime.strptime(to_date, '%Y-%m-%d')
+            except:
+                pass
+
+        subject = f"Leave Request {status_text} - {leave_name}"
+        
+        # Helper to format date if it's a date object
+        def fmt_date(d):
+            if hasattr(d, 'strftime'):
+                return d.strftime('%d-%m-%Y')
+            return str(d)
+
+        body = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden;">
+        <tr>
+            <td style="background-color: {color}; padding: 30px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">Leave Request {status_text}</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 30px;">
+                <p style="font-size: 16px; color: #333333; margin: 0 0 10px 0;">Hello {employee.first_name},</p>
+                <p style="font-size: 15px; color: #333333; margin: 0 0 25px 0;">
+                    Your leave request has been <strong>{status_text.lower()}</strong>.
+                </p>
+                
+                <table width="100%" cellpadding="10" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; margin: 20px 0;">
+                    <tr>
+                        <td style="color: #666666; font-size: 13px; font-weight: bold;">TYPE:</td>
+                        <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">{leave_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #666666; font-size: 13px; font-weight: bold;">PERIOD:</td>
+                        <td style="color: #333333; font-size: 14px; font-weight: bold; text-align: right;">
+                            {fmt_date(from_date)} to {fmt_date(to_date)}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color: #666666; font-size: 13px; font-weight: bold;">STATUS:</td>
+                        <td style="color: {color}; font-size: 14px; font-weight: bold; text-align: right;">{status_text.upper()}</td>
+                    </tr>
+                </table>
+                
+                <p style="font-size: 12px; color: #999999; text-align: center; margin: 20px 0 0 0; padding-top: 20px; border-top: 1px solid #eeeeee;">
+                    This is an automated notification from the Markwave HR Portal.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+        success, result = send_email_via_api(employee.email, subject, body)
+        if success:
+            print(f"Successfully sent leave status update to {employee.email}")
+        else:
+            print(f"Failed to send leave status update to {employee.email}: {result}")
     except Exception as e:
-        print(f"Error in background notification task: {str(e)}")
+        print(f"Error sending employee leave notification: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 @api_view(['POST'])
 def apply_leave(request):
@@ -325,6 +436,9 @@ def email_leave_action(request, request_id, action):
             
         leave_request.save()
         
+        # Notify employee in background
+        threading.Thread(target=notify_employee_status_update, args=(leave_request.id,)).start()
+        
         html_response = f"""
         <!DOCTYPE html>
         <html>
@@ -431,6 +545,9 @@ def leave_action(request, request_id):
         
     leave_request.status = 'Approved' if action == 'Approve' else 'Rejected'
     leave_request.save()
+    
+    # Notify employee in background
+    threading.Thread(target=notify_employee_status_update, args=(leave_request.id,)).start()
     
     return Response({'message': f'Leave request {action}d successfully'})
 

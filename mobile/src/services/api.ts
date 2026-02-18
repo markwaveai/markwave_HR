@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../config';
 
 const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
     const url = `${API_BASE_URL}${endpoint}`;
 
     try {

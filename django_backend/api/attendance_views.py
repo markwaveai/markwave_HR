@@ -125,7 +125,7 @@ def clock(request):
     if is_on_leave:
         return Response({'error': 'Cannot clock in/out while on approved leave.'}, status=status.HTTP_400_BAD_REQUEST)
 
-    last_log_today = AttendanceLogs.objects.filter(employee_id=employee_id, date=current_date_str).order_by('-timestamp').first()
+    last_log_today = AttendanceLogs.objects.filter(employee=employee, date=current_date_str).order_by('-timestamp').first()
     
     if not clock_type:
         if not last_log_today or last_log_today.type == 'OUT':
@@ -169,18 +169,22 @@ def clock(request):
         attendance_summary.check_out = '-'
 
     elif clock_type == 'OUT':
-        if attendance_summary.check_in and attendance_summary.check_in != '-':
-            attendance_summary.check_out = current_time_str
+        # Update summary check_out time
+        attendance_summary.check_out = current_time_str
         
-        if attendance_summary.check_in:
-            first_log = AttendanceLogs.objects.filter(employee=employee, date=current_date_str, type='IN').order_by('timestamp').first()
-            if first_log:
-                total_duration_minutes = (india_time - first_log.timestamp).total_seconds() / 60
-                break_mins = attendance_summary.break_minutes or 0
-                effective_minutes = max(0, total_duration_minutes - break_mins)
-                eff_h = int(effective_minutes // 60)
-                eff_m = int(effective_minutes % 60)
-                attendance_summary.worked_hours = f"{eff_h}h {eff_m}m"
+        # Recalculate working hours
+        first_log = AttendanceLogs.objects.filter(employee=employee, date=current_date_str, type='IN').order_by('timestamp').first()
+        if first_log:
+            # If summary check_in was missing, populate it from the first log
+            if not attendance_summary.check_in or attendance_summary.check_in == '-':
+                attendance_summary.check_in = first_log.timestamp.strftime('%I:%M %p')
+
+            total_duration_minutes = (india_time - first_log.timestamp).total_seconds() / 60
+            break_mins = attendance_summary.break_minutes or 0
+            effective_minutes = max(0, total_duration_minutes - break_mins)
+            eff_h = int(effective_minutes // 60)
+            eff_m = int(effective_minutes % 60)
+            attendance_summary.worked_hours = f"{eff_h}h {eff_m}m"
 
     attendance_summary.save()
     
@@ -267,7 +271,7 @@ def get_status(request, employee_id):
         if summary:
             if summary.check_in and summary.check_in != '-' and (not summary.check_out or summary.check_out == '-'):
                 att_status = 'IN'
-        # Fallback to logs if summary doesn't exist yet (though clock-in should create it)
+        # Fallback to logs if summary doesn't exist yet
         elif last_log and last_log.type == 'IN' and last_log.date == current_date_str:
             att_status = 'IN'
             
@@ -553,7 +557,9 @@ def get_history(request, employee_id):
 
             india_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
             today_str = india_now.strftime('%Y-%m-%d')
-            is_active = (log.date == today_str) and (punches.last().type == 'IN' if punches.exists() else False)
+            
+            # Simple, robust active check: is it today and is check_out missing/placeholder?
+            is_active = (log.date == today_str) and (not log.check_out or log.check_out == '-')
 
             # Override status if leave exists for this date
             display_status = leave_type if leave_type else log.status
@@ -563,8 +569,8 @@ def get_history(request, employee_id):
                 'status': display_status,
                 'leaveType': leave_type, 
                 'checkIn': log.check_in or '-',
-                # If active, check_out must be '-' to trigger 'Active'/'Missed' status on frontend
-                'checkOut': '-' if is_active else (log.check_out or '-'),
+                'checkOut': log.check_out or '-',
+                'is_active': is_active, # Informative for frontend
                 'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
                 'breakMinutes': calculated_break_mins if punches.exists() else (log.break_minutes or 0),
                 'isHoliday': is_holiday_combined,

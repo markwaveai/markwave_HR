@@ -95,7 +95,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
     console.log('Is admin check:', isAdmin, 'Role:', user?.role, 'is_admin flag:', user?.is_admin);
 
-    const fetchDashboardData = async () => {
+    const fetchDashboardData = async (showAlerts = false) => {
         try {
             const errors: { [key: string]: string } = {};
             const [statusData, statsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
@@ -112,7 +112,9 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 leaveApi.getBalance(user.id).catch((err) => {
                     console.error('❌ Balance API Error:', err);
                     errors.balance = err.message || 'Failed to load leave balance';
-                    Alert.alert('Error Loading Leave Balance', err.message || 'Could not fetch leave balance. Please check your connection.');
+                    if (showAlerts) {
+                        Alert.alert('Error Loading Leave Balance', err.message || 'Could not fetch leave balance. Please check your connection.');
+                    }
                     return null;
                 }),
                 adminApi.getDashboardStats().catch((err) => {
@@ -123,7 +125,9 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 attendanceApi.getHolidays().catch((err) => {
                     console.error('❌ Holidays API Error:', err);
                     errors.holidays = err.message || 'Failed to load holidays';
-                    Alert.alert('Error Loading Holidays', err.message || 'Could not fetch holidays. Please check your connection.');
+                    if (showAlerts) {
+                        Alert.alert('Error Loading Holidays', err.message || 'Could not fetch holidays. Please check your connection.');
+                    }
                     return [];
                 }),
                 !isAdmin ? leaveApi.getLeaves(user.id).catch((err) => {
@@ -180,11 +184,11 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         }
     };
 
-    const fetchData = async (isRefresh = false) => {
+    const fetchData = async (isRefresh = false, IsInitial = false) => {
         if (isRefresh) setRefreshing(true);
 
-        // Fetch critical data first, don't wait for feed if not refreshing
-        await fetchDashboardData();
+        // Fetch critical data first
+        await fetchDashboardData(isRefresh || IsInitial);
 
         // Then fetch feed
         fetchFeedData();
@@ -245,7 +249,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     };
 
     useEffect(() => {
-        fetchData();
+        fetchData(false, true);
         // Location will be fetched only when user clicks check-in button
         const interval = setInterval(() => fetchData(), 30000);
         return () => clearInterval(interval);
