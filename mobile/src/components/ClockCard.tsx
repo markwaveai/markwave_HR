@@ -10,6 +10,7 @@ interface ClockCardProps {
     handleClockAction: () => void;
     canClock?: boolean;
     disabledReason?: string | null;
+    onRetry?: () => void;
 }
 
 
@@ -21,11 +22,13 @@ const ClockCard: React.FC<ClockCardProps> = ({
     locationState,
     handleClockAction,
     canClock = true,
-    disabledReason
+    disabledReason,
+    onRetry
 }) => {
     const lowerReason = disabledReason?.toLowerCase() || '';
     const isOnLeave = lowerReason.includes('leave');
     const isAbsent = lowerReason.includes('absent');
+    const isError = disabledReason === 'Status check failed' || lowerReason.includes('error') || lowerReason.includes('create an account');
 
     // Format date similar to web: "Mon, 09 Feb, 2026"
     const dateStr = currentTime.toLocaleDateString('en-US', {
@@ -44,14 +47,21 @@ const ClockCard: React.FC<ClockCardProps> = ({
     const secondStr = currentTime.getSeconds().toString().padStart(2, '0');
     const ampmStr = isPM ? 'PM' : 'AM';
 
+    // Button is disabled if:
+    // 1. Location is currently loading
+    // 2. User is Absent (Absent status blocks clocking)
+    // 3. User cannot clock AND is not on Leave AND is not in Error state
+    //    (Being on Leave acts as an override to allow clocking even if canClock is false)
+    const isButtonDisabled = isLoadingLocation || isAbsent || (!canClock && !isError && !isOnLeave);
+
     return (
         <View style={styles.card}>
             {/* Header: Date and Status Badge */}
             <View style={styles.header}>
                 <Text style={styles.dateText}>Time Today - {dateStr}</Text>
                 {disabledReason && (
-                    <View style={styles.badge}>
-                        <Text style={styles.badgeText}>{disabledReason.toUpperCase()}</Text>
+                    <View style={[styles.badge, isError && { backgroundColor: '#fee2e2' }]}>
+                        <Text style={[styles.badgeText, isError && { color: '#ef4444' }]}>{disabledReason.toUpperCase()}</Text>
                     </View>
                 )}
             </View>
@@ -77,17 +87,18 @@ const ClockCard: React.FC<ClockCardProps> = ({
                     <TouchableOpacity
                         style={[
                             styles.button,
-                            (isOnLeave || isAbsent || !canClock || isLoadingLocation) && styles.buttonDisabled
+                            isButtonDisabled && styles.buttonDisabled,
+                            isError && { backgroundColor: '#fffbe6' }
                         ]}
-                        onPress={handleClockAction}
-                        disabled={isOnLeave || isAbsent || !canClock || isLoadingLocation}
+                        onPress={isError && onRetry ? onRetry : handleClockAction}
+                        disabled={isButtonDisabled}
                         activeOpacity={0.8}
                     >
-                        {isLoadingLocation || (isClockedIn === null && !isOnLeave && !isAbsent) ? (
+                        {isLoadingLocation || (isClockedIn === null && !isOnLeave && !isAbsent && !isError) ? (
                             <ActivityIndicator size="small" color="#8e78b0" />
                         ) : (
-                            <Text style={styles.buttonText}>
-                                {isClockedIn ? 'Check-Out' : 'Check-In'}
+                            <Text style={[styles.buttonText, isError && { color: '#d97706' }]}>
+                                {isError ? 'RETRY' : isClockedIn ? 'Check-Out' : 'Check-In'}
                             </Text>
                         )}
                     </TouchableOpacity>

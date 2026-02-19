@@ -139,6 +139,12 @@ const AdminLeaveManagement = () => {
                                                 }`}>
                                                 {leave.type.toUpperCase()}
                                             </span>
+                                            {leave.is_overridden && (
+                                                <div className="mt-2 text-[10px] flex items-center justify-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded border border-amber-200" title="Employee checked in during this leave">
+                                                    <AlertCircle size={10} />
+                                                    Checked In
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="text-[#2d3436] font-medium text-xs">
@@ -161,22 +167,40 @@ const AdminLeaveManagement = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button
-                                                    onClick={() => initiateAction(leave, 'Approve')}
-                                                    disabled={actionLoading === leave.id}
-                                                    className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 transition-colors"
-                                                    title="Approve"
-                                                >
-                                                    <CheckCircle size={18} />
-                                                </button>
-                                                <button
-                                                    onClick={() => initiateAction(leave, 'Reject')}
-                                                    disabled={actionLoading === leave.id}
-                                                    className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 transition-colors"
-                                                    title="Reject"
-                                                >
-                                                    <XCircle size={18} />
-                                                </button>
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {leave.status === 'Pending' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => initiateAction(leave, 'Approve')}
+                                                                disabled={actionLoading === leave.id}
+                                                                className="p-1.5 bg-green-50 text-green-600 rounded hover:bg-green-100 disabled:opacity-50 transition-colors"
+                                                                title="Approve"
+                                                            >
+                                                                <CheckCircle size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => initiateAction(leave, 'Reject')}
+                                                                disabled={actionLoading === leave.id}
+                                                                className="p-1.5 bg-red-50 text-red-600 rounded hover:bg-red-100 disabled:opacity-50 transition-colors"
+                                                                title="Reject"
+                                                            >
+                                                                <XCircle size={18} />
+                                                            </button>
+                                                        </>
+                                                    )}
+
+                                                    {/* For Overridden (Approved) Leaves, show Cancel option */}
+                                                    {(leave.status === 'Approved' || leave.is_overridden) && (
+                                                        <button
+                                                            onClick={() => initiateAction(leave, 'Cancel')}
+                                                            disabled={actionLoading === leave.id}
+                                                            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                            title="Cancel Leave"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>

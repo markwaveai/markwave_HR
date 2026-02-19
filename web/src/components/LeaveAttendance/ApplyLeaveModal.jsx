@@ -204,7 +204,12 @@ const ApplyLeaveModal = ({
                                 type="date"
                                 className="w-full bg-[#f8fafc] border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-sm text-[#2d3436] outline-none focus:border-[#48327d] transition-colors"
                                 value={fromDate}
-                                min={new Date().toISOString().split('T')[0]}
+                                min={(() => {
+                                    const now = new Date();
+                                    const year = now.getFullYear();
+                                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                                    return `${year}-${month}-01`;
+                                })()}
                                 onChange={(e) => setFromDate(e.target.value)}
                                 required
                             />
@@ -299,22 +304,28 @@ const ApplyLeaveModal = ({
 
                                 const suggestions = [];
 
+                                const addSuggestion = (val) => {
+                                    if (!val) return;
+                                    if (typeof val === 'string' && val.includes(',')) {
+                                        val.split(',').forEach(s => {
+                                            const trimmed = s.trim();
+                                            if (trimmed) suggestions.push(trimmed);
+                                        });
+                                    } else {
+                                        const trimmed = typeof val === 'string' ? val.trim() : val;
+                                        if (trimmed) suggestions.push(trimmed);
+                                    }
+                                };
+
                                 // Add all Team Leads
                                 if (teamLeads.length > 0) {
-                                    teamLeads.forEach(lead => {
-                                        if (lead) suggestions.push(lead);
-                                    });
+                                    teamLeads.forEach(lead => addSuggestion(lead));
                                 } else if (teamLeadName) {
-                                    // Fallback for single legacy string (could be comma separated now too)
-                                    if (teamLeadName.includes(',')) {
-                                        teamLeadName.split(',').forEach(s => suggestions.push(s.trim()));
-                                    } else {
-                                        suggestions.push(teamLeadName);
-                                    }
+                                    addSuggestion(teamLeadName);
                                 }
 
-                                if (pmName) suggestions.push(pmName);
-                                if (advisorName) suggestions.push(advisorName);
+                                addSuggestion(pmName);
+                                addSuggestion(advisorName);
 
                                 return suggestions.filter(name => {
                                     if (!name) return false;
@@ -322,9 +333,9 @@ const ApplyLeaveModal = ({
                                     if (notifyTo.includes(name)) return false;
 
                                     // Filter out own name (Self-Notification prevention)
-                                    const normalize = (str) => (str || '').toLowerCase().trim();
-                                    const currentUserName = user ? normalize(`${user.first_name || ''} ${user.last_name || ''}`) : '';
-                                    if (normalize(name) === currentUserName) return false;
+                                    // const normalize = (str) => (str || '').toLowerCase().trim();
+                                    // const currentUserName = user ? normalize(`${user.first_name || ''} ${user.last_name || ''}`) : '';
+                                    // if (normalize(name) === currentUserName) return false;
 
                                     // Also filter out generic "Team Lead" string if the user IS a manager, 
                                     // presumably they know who to report to (PM/Advisor) or the backend provided a real name.

@@ -121,7 +121,12 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                                 <input
                                     type="date"
                                     value={fromDate}
-                                    min={new Date().toISOString().split('T')[0]}
+                                    min={(() => {
+                                        const now = new Date();
+                                        const year = now.getFullYear();
+                                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                                        return `${year}-${month}-01`;
+                                    })()}
                                     onChange={(e) => setFromDate(e.target.value)}
                                     className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500/20 focus:border-[#48327d] outline-none transition-all text-sm font-medium"
                                 />
@@ -174,28 +179,51 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                                 const teamLeads = profile?.team_leads || user?.team_leads || [];
                                 let teamLeadName = profile?.team_lead_name || user?.team_lead_name;
 
+                                // Fallback to "Team Lead" only if we really have no name from backend
                                 if (!teamLeadName && teamLeads.length === 0) {
                                     teamLeadName = "Team Lead";
                                 }
 
+                                const pmName = profile?.project_manager_name;
+                                const advisorName = profile?.advisor_name;
+
                                 const suggestions = [];
-                                if (teamLeads.length > 0) {
-                                    teamLeads.forEach(lead => lead && suggestions.push(lead));
-                                } else if (teamLeadName) {
-                                    if (teamLeadName.includes(',')) {
-                                        teamLeadName.split(',').forEach(s => suggestions.push(s.trim()));
+
+                                const addSuggestion = (val) => {
+                                    if (!val) return;
+                                    if (typeof val === 'string' && val.includes(',')) {
+                                        val.split(',').forEach(s => {
+                                            const trimmed = s.trim();
+                                            if (trimmed) suggestions.push(trimmed);
+                                        });
                                     } else {
-                                        suggestions.push(teamLeadName);
+                                        const trimmed = typeof val === 'string' ? val.trim() : val;
+                                        if (trimmed) suggestions.push(trimmed);
                                     }
+                                };
+
+                                if (teamLeads.length > 0) {
+                                    teamLeads.forEach(lead => addSuggestion(lead));
+                                } else if (teamLeadName) {
+                                    addSuggestion(teamLeadName);
                                 }
 
-                                if (profile?.project_manager_name) {
-                                    const managers = profile.project_manager_name.split(',').map(m => m.trim()).filter(Boolean);
-                                    suggestions.push(...managers);
-                                }
+                                addSuggestion(pmName);
+                                addSuggestion(advisorName);
+
+                                // Filter out own name (Self-Notification prevention)
+                                // Only filter if not debugging self
+                                const normalize = (str) => (str || '').toLowerCase().trim();
+                                const currentUserName = user ? normalize(`${user.first_name || ''} ${user.last_name || ''}`) : '';
 
                                 return [...new Set(suggestions)]
-                                    .filter(name => name && !notifyTo.includes(name))
+                                    .filter(name => {
+                                        if (!name) return false;
+                                        if (notifyTo.includes(name)) return false;
+                                        // Optional: Filter self if not desired
+                                        // if (normalize(name) === currentUserName) return false;
+                                        return true;
+                                    })
                                     .map(name => (
                                         <button
                                             key={name}

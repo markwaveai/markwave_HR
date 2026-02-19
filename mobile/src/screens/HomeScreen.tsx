@@ -91,6 +91,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const [absenteeFilter, setAbsenteeFilter] = useState('All Status');
     const [isStatusDropdownVisible, setIsStatusDropdownVisible] = useState(false);
     const [apiErrors, setApiErrors] = useState<{ [key: string]: string }>({});
+    const isFetchingRef = React.useRef(false);
 
     const isAdmin = user?.is_admin === true ||
         ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations'].includes(user?.role);
@@ -98,80 +99,68 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     console.log('Is admin check:', isAdmin, 'Role:', user?.role, 'is_admin flag:', user?.is_admin);
 
     const fetchDashboardData = async (showAlerts = false) => {
-        try {
-            const errors: { [key: string]: string } = {};
+        // Trigger both fetches in parallel
+        // We don't await secondary data to block status, but we await both to clear 'refreshing' state if this was a refresh.
+        // Actually, let's treat them semi-independently to allow UI to update progressively.
 
-            // Critical Data: Clock status is essential for the main CTA
-            const statusData = await attendanceApi.getStatus(user.id).catch((err) => {
-                console.error('❌ Status API Error:', err);
-                errors.status = err.message || 'Failed to load status';
-                return { status: 'OUT', can_clock: false, disabled_reason: 'Status check failed' };
-            });
-
+        // 1. Status Fetch (Critical)
+        const statusPromise = attendanceApi.getStatus(user.id, { retries: 2, timeout: 15000 }).then(statusData => {
             setIsClockedIn(statusData.status === 'IN');
             setCanClock(statusData.can_clock !== false);
             setDisabledReason(statusData.disabled_reason || null);
+        }).catch(err => {
+            console.log('⚠️ Status API Error (handled):', err.message);
+            // On failure, we set error state to show retry button
+            setIsClockedIn(false);
+            setCanClock(false);
+            setDisabledReason('Status check failed');
+        });
 
-            // Secondary Data: Dashboard cards and stats
-            const [statsData, balanceData, adminStatsData, holidayData, historyData, attHistoryData] = await Promise.all([
-                attendanceApi.getPersonalStats(user.id).catch((err) => {
-                    console.error('❌ Stats API Error:', err);
-                    errors.stats = err.message || 'Failed to load stats';
-                    return null;
-                }),
-                leaveApi.getBalance(user.id).catch((err) => {
-                    console.error('❌ Balance API Error:', err);
-                    errors.balance = err.message || 'Failed to load leave balance';
-                    // Silent failure in background - console only
-                    return null;
-                }),
-                adminApi.getDashboardStats().catch((err) => {
-                    console.error('❌ Admin Stats API Error:', err);
-                    errors.adminStats = err.message || 'Failed to load dashboard stats';
-                    return null;
-                }),
-                attendanceApi.getHolidays().catch((err) => {
-                    console.error('❌ Holidays API Error:', err);
-                    errors.holidays = err.message || 'Failed to load holidays';
-                    // Silent failure in background - console only
-                    return [];
-                }),
-                !isAdmin ? leaveApi.getLeaves(user.id).catch((err) => {
-                    console.error('❌ Leaves API Error:', err);
-                    errors.leaves = err.message || 'Failed to load leave history';
-                    return [];
-                }) : Promise.resolve([]),
-                attendanceApi.getHistory(user.id).catch((err) => {
-                    console.error('❌ History API Error:', err);
-                    errors.history = err.message || 'Failed to load attendance history';
-                    return [];
+        // 2. Secondary Data Fetch - Progressive Loading
+        // We fire these independently so one slow request doesn't block the others.
+        const secondaryPromise = (async () => {
+            const loadStats = attendanceApi.getPersonalStats(user.id)
+                .then(data => setPersonalStats(data))
+                .catch(err => setApiErrors(prev => ({ ...prev, stats: err.message || 'Failed' })));
+
+            const loadBalance = leaveApi.getBalance(user.id)
+                .then(data => setLeaveBalance(data))
+                .catch(err => setApiErrors(prev => ({ ...prev, balance: err.message || 'Failed' })));
+
+            const loadAdminStats = adminApi.getDashboardStats()
+                .then(data => setDashboardStats(data))
+                .catch(err => setApiErrors(prev => ({ ...prev, adminStats: err.message || 'Failed' })));
+
+            const loadHolidays = attendanceApi.getHolidays()
+                .then(data => setHolidays(data || []))
+                .catch(err => setApiErrors(prev => ({ ...prev, holidays: err.message || 'Failed' })));
+
+            const loadLeaves = !isAdmin ? leaveApi.getLeaves(user.id)
+                .then(data => setLeaveHistory(data || []))
+                .catch(err => setApiErrors(prev => ({ ...prev, leaves: err.message || 'Failed' })))
+                : Promise.resolve();
+
+            const loadHistory = attendanceApi.getHistory(user.id)
+                .then(attHistoryData => {
+                    // History logic for missed checkout
+                    if (attHistoryData && Array.isArray(attHistoryData)) {
+                        const today = new Date().toISOString().split('T')[0];
+                        const missed = attHistoryData.find((log: any) => {
+                            if (log.date === today) return false;
+                            const hasIncomplete = log.logs?.some((session: any) => session.in && !session.out);
+                            return hasIncomplete || (log.status === 'Present' && log.checkOut === '-');
+                        });
+                        setMissedCheckoutDate(missed ? missed.date : null);
+                    }
                 })
-            ]);
+                .catch(err => setApiErrors(prev => ({ ...prev, history: err.message || 'Failed' })));
 
-            setApiErrors(errors);
+            // We await all of them ONLY to know when to stop the global refreshing spinner (if active)
+            await Promise.allSettled([loadStats, loadBalance, loadAdminStats, loadHolidays, loadLeaves, loadHistory]);
+        })();
 
-            console.log('Personal Stats Data:', JSON.stringify(statsData, null, 2));
-            console.log('Leave Balance Data:', JSON.stringify(balanceData, null, 2));
-            console.log('Holidays Data:', holidayData);
-            setPersonalStats(statsData);
-            setLeaveBalance(balanceData);
-            setDashboardStats(adminStatsData);
-            setHolidays(holidayData || []);
-            setLeaveHistory(historyData || []);
-
-            if (attHistoryData && Array.isArray(attHistoryData)) {
-                const today = new Date().toISOString().split('T')[0];
-                const missed = attHistoryData.find((log: any) => {
-                    if (log.date === today) return false;
-                    const hasIncomplete = log.logs?.some((session: any) => session.in && !session.out);
-                    return hasIncomplete || (log.status === 'Present' && log.checkOut === '-');
-                });
-                if (missed) setMissedCheckoutDate(missed.date);
-                else setMissedCheckoutDate(null);
-            }
-        } catch (error) {
-            console.log("Failed to fetch dashboard data:", error);
-        }
+        // Await both just to know when "fetching" is truly done, mostly for Pull-To-Refresh
+        await Promise.all([statusPromise, secondaryPromise]);
     };
 
     const fetchFeedData = async () => {
@@ -186,16 +175,28 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         }
     };
 
+
     const fetchData = async (isRefresh = false, IsInitial = false) => {
+        if (isFetchingRef.current && !isRefresh) {
+            console.log('Skipping fetch - already in progress');
+            return;
+        }
+
+        isFetchingRef.current = true;
         if (isRefresh) setRefreshing(true);
 
-        // Fetch critical data first
-        await fetchDashboardData(isRefresh || IsInitial);
+        try {
+            // Fetch critical data first
+            await fetchDashboardData(isRefresh || IsInitial);
 
-        // Then fetch feed
-        fetchFeedData();
-
-        if (isRefresh) setRefreshing(false);
+            // Then fetch feed
+            await fetchFeedData();
+        } catch (e) {
+            console.log('Fetch data global error:', e);
+        } finally {
+            isFetchingRef.current = false;
+            if (isRefresh) setRefreshing(false);
+        }
     };
 
     const onRefresh = useCallback(() => {
@@ -465,6 +466,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     handleClockAction={handleClockAction}
                     canClock={canClock}
                     disabledReason={disabledReason}
+                    onRetry={() => fetchDashboardData(true)}
                 />
 
                 {/* Dashboard Stats - Employee Overview */}

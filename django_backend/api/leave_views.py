@@ -306,7 +306,7 @@ def apply_leave(request):
         if not employee:
             return Response({'error': f'Employee with ID {employee_id} not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        from core.models import LeaveType, EmployeeLeaveBalance, Holidays
+        from core.models import LeaveType, EmployeeLeaveBalance, Holidays, WorkFromHome
         from datetime import datetime
         
         current_year = datetime.now().year
@@ -344,6 +344,17 @@ def apply_leave(request):
 
         if existing_overlap:
             return Response({'error': 'Leave already applied for this date range'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for overlapping WFH requests (Mutual Exclusivity)
+        existing_wfh_overlap = WorkFromHome.objects.filter(
+            employee=employee,
+            status__in=['Pending', 'Approved'],
+            from_date__lte=to_date,
+            to_date__gte=from_date
+        ).exists()
+
+        if existing_wfh_overlap:
+             return Response({'error': 'You have already applied for Work From Home for this date range. Please cancel it first.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check eligibility based on tenure
         leave_code_upper = leave_type.upper()
@@ -550,7 +561,9 @@ def get_pending_leaves(request):
     # Roles treated as admin — their leaves are auto-approved and must not appear here
 
     # Exclude leaves submitted by admin-equivalent role employees
-    leaves = Leaves.objects.filter(status='Pending').exclude(
+    leaves = Leaves.objects.filter(
+        Q(status='Pending') | Q(status='Approved', is_overridden=True)
+    ).exclude(
         employee__role__in=[
             r for role in ADMIN_ROLES
             for r in [role, role.title(), role.upper()]
@@ -570,10 +583,16 @@ def leave_action(request, request_id):
     
     print(f"DEBUG: leave_action called for ID {request_id}, action {action}")
     
-    if action not in ['Approve', 'Reject']:
+    if action not in ['Approve', 'Reject', 'Cancel']:
         return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
         
-    leave_request.status = 'Approved' if action == 'Approve' else 'Rejected'
+    if action == 'Approve':
+        leave_request.status = 'Approved'
+    elif action == 'Reject':
+        leave_request.status = 'Rejected'
+    elif action == 'Cancel':
+        leave_request.status = 'Cancelled'
+
     leave_request.save()
     
     # Notify employee in background

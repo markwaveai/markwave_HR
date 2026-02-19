@@ -28,7 +28,7 @@ const EmployeeOverviewCard: React.FC<EmployeeOverviewCardProps> = ({ stats, onSh
                 >
                     <Text style={styles.statLabel}>TOTAL EMPLOYEES</Text>
                     <Text style={styles.totalValue}>{total}</Text>
-                    <Text style={styles.hintText}>Tap to view all</Text>
+
                 </TouchableOpacity>
 
                 <View style={styles.statDivider} />

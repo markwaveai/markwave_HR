@@ -6,6 +6,12 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
     const isOnLeave = disabledReason?.toLowerCase() === 'on leave' || disabledReason?.toLowerCase() === 'leave';
     const isAbsent = disabledReason?.toLowerCase() === 'absent';
 
+    // Button is disabled if:
+    // 1. Location is currently loading
+    // 2. User cannot clock AND is not on Leave
+    //    (Being on Leave acts as an override to allow clocking even if canClock is false)
+    const isButtonDisabled = isLoadingLocation || (!canClock && !isOnLeave);
+
     return (
         <div className={`rounded-xl p-3 mm:p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between transition-all duration-300 ${isAbsent ? 'bg-[#6366f1]' : 'bg-[#6366f1]'}`}>
             <div className="flex justify-between items-center mb-4 opacity-90">
@@ -39,9 +45,9 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
 
                 <div className="flex gap-2">
                     <button
-                        className={`bg-white text-[#4f46e5] px-3 mm:px-4 py-2 rounded-md font-semibold text-xs mm:text-sm transition-all shadow-sm ${(isOnLeave || !canClock || isLoadingLocation) ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90 active:scale-95'}`}
+                        className={`bg-white text-[#4f46e5] px-3 mm:px-4 py-2 rounded-md font-semibold text-xs mm:text-sm transition-all shadow-sm ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90 active:scale-95'}`}
                         onClick={handleClockAction}
-                        disabled={isOnLeave || !canClock || isLoadingLocation}
+                        disabled={isButtonDisabled}
                     >
                         {isLoadingLocation || (isClockedIn === null && !isOnLeave) ? (
                             <LoadingSpinner size={16} color="border-[#4f46e5]" />

@@ -238,34 +238,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
             return;
         }
 
-        // Check if dates are in previous months
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
 
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-
-        const fromDateOnly = new Date(start);
-        fromDateOnly.setHours(0, 0, 0, 0);
-
-        const toDateOnly = new Date(end);
-        toDateOnly.setHours(0, 0, 0, 0);
-
-        // Check if fromDate is in a previous month (or previous year)
-        const isFromPreviousMonth = fromDateOnly.getFullYear() < currentYear ||
-            (fromDateOnly.getFullYear() === currentYear && fromDateOnly.getMonth() < currentMonth);
-
-        // Check if toDate is in a previous month
-        const isToPreviousMonth = toDateOnly.getFullYear() < currentYear ||
-            (toDateOnly.getFullYear() === currentYear && toDateOnly.getMonth() < currentMonth);
-
-        if (isFromPreviousMonth || isToPreviousMonth) {
-            const isAdmin = profile?.is_admin || ['Admin', 'Administrator', 'Project Manager'].includes(profile?.role);
-            if (!isAdmin) {
-                Alert.alert("Notice", "Leave requests for previous months are not allowed. Please select a date in the current month or future.");
-                return;
-            }
-        }
 
 
 
@@ -308,7 +281,8 @@ const LeaveScreen = ({ user }: { user: any }) => {
             fetchLeaves();
         } catch (error) {
             const msg = error instanceof Error ? error.message : "Failed to apply leave";
-            Alert.alert("Error", msg);
+            console.log("Submit Error:", msg);
+            Alert.alert("API Error", msg + "\n(This error is coming from the server)");
         } finally {
             setIsSubmitting(false);
         }
@@ -370,7 +344,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                 <View style={{ flexDirection: 'row', gap: wp(1.5) }}>
                     <Pressable
                         onPress={() => {
-                            Alert.alert("Debug", "User Leave Button Clicked");
+
                             setActiveTab('leave');
                             setIsModalVisible(true);
                         }}

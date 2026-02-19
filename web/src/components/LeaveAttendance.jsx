@@ -178,8 +178,11 @@ function LeaveAttendance({ user }) {
         const endDateOnly = new Date(end);
         endDateOnly.setHours(0, 0, 0, 0);
 
-        if (startDateOnly < today || endDateOnly < today) {
-            setToast({ message: "Leave requests for past dates are not allowed. Please select today or a future date.", type: 'error' });
+        const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        startOfCurrentMonth.setHours(0, 0, 0, 0);
+
+        if (startDateOnly < startOfCurrentMonth || endDateOnly < startOfCurrentMonth) {
+            setToast({ message: "Leave requests for previous months are not allowed. Please select a date in the current month or future.", type: 'error' });
             return;
         }
 
@@ -316,12 +319,7 @@ function LeaveAttendance({ user }) {
                         >
                             Leave Logs
                         </button>
-                        <button
-                            onClick={() => setActiveTab('attendance')}
-                            className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'attendance' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
-                        >
-                            Attendance Logs
-                        </button>
+                        {/* Attendance Logs tab removed */}
                         <button
                             onClick={() => setActiveTab('wfh')}
                             className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'wfh' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
@@ -333,7 +331,7 @@ function LeaveAttendance({ user }) {
                     {activeTab === 'leaves' ? (
                         <LeaveHistoryTable
                             history={history}
-                            onViewFullHistory={() => setActiveTab('attendance')}
+                        // onViewFullHistory removed as Attendance Logs tab is gone
                         />
                     ) : activeTab === 'attendance' ? (
                         <AttendanceHistoryTable

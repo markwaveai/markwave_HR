@@ -1,50 +1,77 @@
 import { API_BASE_URL } from '../config';
 
-const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
-    const url = `${API_BASE_URL}${endpoint}`;
+const apiFetch = async (endpoint: string, options: RequestInit & { retries?: number; timeout?: number } = {}) => {
+    const { retries = 2, timeout = 20000, ...fetchOptions } = options; // Default 20s timeout
 
-    try {
-        const response = await fetch(url, {
-            ...options,
-            signal: controller.signal,
-            headers: {
-                'Content-Type': 'application/json',
-                ...options.headers,
-            },
-        });
+    const attemptFetch = async (attempt: number): Promise<any> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
+        const url = `${API_BASE_URL}${endpoint}`;
 
-        clearTimeout(timeoutId);
+        try {
+            const response = await fetch(url, {
+                ...fetchOptions,
+                signal: controller.signal,
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...fetchOptions.headers,
+                },
+            });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.log(`API Error (${response.status}) [${url}]:`, errorText);
+            clearTimeout(timeoutId);
 
-            let errorData: any = {};
-            try {
-                errorData = JSON.parse(errorText);
-            } catch (e) {
-                // Not JSON
+            if (!response.ok) {
+                // If 5xx error, we might want to retry. If 4xx, probably not (except 408 or 429).
+                // For now, let's retry strictly on network errors or 5xx if we wanted, 
+                // but standard catch block handles network errors.
+                // Let's treat non-2xx as usual error, but if it's 5xx we could technically retry.
+                // For safety, we'll return error here and let the catch block handle retries if we throw custom.
+
+                const errorText = await response.text();
+                // console.log(`API Error (${response.status}) [${url}]:`, errorText);
+
+                let errorData: any = {};
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    // Not JSON
+                }
+
+                // @ts-ignore
+                const msg = errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}`;
+                const error: any = new Error(msg);
+                error.response = { data: errorData, status: response.status };
+
+                // If 500+, throw to trigger catch for potential retry? 
+                // Currently original logic throws here.
+                throw error;
             }
 
-            // @ts-ignore
-            const msg = errorData.error || errorData.detail || `API Error: ${response.status} ${response.statusText}`;
-            const error: any = new Error(msg);
-            error.response = { data: errorData, status: response.status };
+            return response.json();
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+
+            const isAbort = error.name === 'AbortError';
+            const isNetworkError = error.message === 'Network request failed';
+
+            // Log the attempt failure
+            if (attempt < retries) {
+                const delay = 2000 * (attempt + 1); // Linear backoff: 2s, 4s...
+                console.log(`Retrying [${url}] (Attempt ${attempt + 1}/${retries})... Error: ${error.message}`);
+                await new Promise(resolve => setTimeout(() => resolve(true), delay));
+                return attemptFetch(attempt + 1);
+            }
+
+            if (isAbort) {
+                console.log(`Request timed out [${url}] after ${timeout}ms`);
+                throw new Error('Request timed out. Please check your connection.');
+            }
+            console.log(`Fetch error [${url}]:`, error instanceof Error ? error.message : JSON.stringify(error));
             throw error;
         }
+    };
 
-        return response.json();
-    } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') {
-            console.log(`Request timed out [${url}]`);
-            throw new Error('Request timed out. Please check your connection.');
-        }
-        console.log(`Fetch error [${url}]:`, error instanceof Error ? error.message : JSON.stringify(error));
-        throw error;
-    }
+    return attemptFetch(0);
 };
 
 export const authApi = {
@@ -126,7 +153,7 @@ export const teamApi = {
 
 export const attendanceApi = {
     getHistory: (employeeId: string) => apiFetch(`/attendance/history/${employeeId}/?_t=${new Date().getTime()}`),
-    getStatus: (employeeId: string) => apiFetch(`/attendance/status/${employeeId}/?_t=${new Date().getTime()}`),
+    getStatus: (employeeId: string, options?: any) => apiFetch(`/attendance/status/${employeeId}/?_t=${new Date().getTime()}`, options),
     clock: (data: any) => apiFetch('/attendance/clock/', {
         method: 'POST',
         body: JSON.stringify(data)

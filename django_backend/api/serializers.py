@@ -60,7 +60,7 @@ class LeavesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Leaves
-        fields = ['id', 'employee', 'employee_id', 'employee_name', 'type', 'fromDate', 'toDate', 'days', 'from_session', 'to_session', 'reason', 'status', 'applied_on']
+        fields = ['id', 'employee', 'employee_id', 'employee_name', 'type', 'fromDate', 'toDate', 'days', 'from_session', 'to_session', 'reason', 'status', 'applied_on', 'is_overridden']
 
     def get_employee_name(self, obj):
         return f"{obj.employee.first_name} {obj.employee.last_name}"

@@ -2,7 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.http import HttpResponse
-from core.models import WorkFromHome, Employees, Holidays
+from core.models import WorkFromHome, Employees, Holidays, Leaves
 from .serializers import WorkFromHomeSerializer
 from django.db.models import Q
 import datetime
@@ -227,6 +227,17 @@ def apply_wfh(request):
                     continue
 
             current_date += datetime.timedelta(days=1)
+
+        # Check for overlapping Leave requests (Mutual Exclusivity)
+        existing_leave_overlap = Leaves.objects.filter(
+            employee=employee,
+            status__in=['Pending', 'Approved'],
+            from_date__lte=to_date,
+            to_date__gte=from_date
+        ).exists()
+
+        if existing_leave_overlap:
+             return Response({'error': 'You have already applied for Leave for this date range. Please cancel it first.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
         # Roles treated as admin (must match frontend App.tsx isAdmin logic)

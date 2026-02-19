@@ -64,6 +64,7 @@ class Leaves(models.Model):
     from_session = models.CharField(max_length=20, blank=True, null=True)
     to_session = models.CharField(max_length=20, blank=True, null=True)
     status = models.CharField(max_length=20, blank=True, null=True)
+    is_overridden = models.BooleanField(default=False)
     created_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
