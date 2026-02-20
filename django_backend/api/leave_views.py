@@ -609,62 +609,68 @@ def leave_action(request, request_id):
 
 @api_view(['GET'])
 def get_leave_balance(request, employee_id):
-    from core.models import LeaveType, EmployeeLeaveBalance
-    from datetime import datetime
-    
-    employee = Employees.objects.filter(employee_id=employee_id).first()
-    if not employee and str(employee_id).isdigit():
-        employee = Employees.objects.filter(pk=employee_id).first()
-    
-    if not employee:
-        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+    try:
+        from core.models import LeaveType, EmployeeLeaveBalance
+        from datetime import datetime
+        
+        employee = Employees.objects.filter(employee_id=employee_id).first()
+        if not employee and str(employee_id).isdigit():
+            employee = Employees.objects.filter(pk=employee_id).first()
+        
+        if not employee:
+            return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    current_year = datetime.now().year
-    
-    # Get all leave balances for this employee for current year
-    balances = EmployeeLeaveBalance.objects.filter(
-        employee=employee,
-        year=current_year
-    ).select_related('leave_type')
-    
-    # Calculate used leaves from Leaves table
-    used_leaves = Leaves.objects.filter(
-        employee=employee,
-        status__in=['Pending', 'Approved']
-    )
-    
-    usage = {}
-    for leave in used_leaves:
-        leave_code = leave.type.lower()
-        usage[leave_code] = usage.get(leave_code, 0) + leave.days
-    
-    # Build response with only allocated leave types (allocated_days > 0)
-    result = {}
-    total_allocated = 0
-    total_used = 0
-    
-    for balance in balances:
-        try:
-            if not balance.leave_type or not balance.leave_type.code:
+        current_year = datetime.now().year
+        
+        # Get all leave balances for this employee for current year
+        balances = EmployeeLeaveBalance.objects.filter(
+            employee=employee,
+            year=current_year
+        ).select_related('leave_type')
+        
+        # Calculate used leaves from Leaves table
+        used_leaves = Leaves.objects.filter(
+            employee=employee,
+            status__in=['Pending', 'Approved']
+        )
+        
+        usage = {}
+        for leave in used_leaves:
+            if leave.type:
+                leave_code = leave.type.lower()
+                usage[leave_code] = usage.get(leave_code, 0) + leave.days
+        
+        # Build response with only allocated leave types (allocated_days > 0)
+        result = {}
+        total_allocated = 0
+        total_used = 0
+        
+        for balance in balances:
+            try:
+                if not balance.leave_type or not balance.leave_type.code:
+                    continue
+                    
+                code = balance.leave_type.code.lower()
+                allocated = balance.allocated_days or 0
+                
+                # Only include leave types with actual allocation
+                if allocated > 0:
+                    used = usage.get(code, 0)
+                    remaining = max(0, allocated - used)
+                    
+                    result[code] = remaining
+                    total_allocated += allocated
+                    total_used += used
+            except Exception as e:
+                print(f"Error processing balance record {balance.id}: {e}")
                 continue
-                
-            code = balance.leave_type.code.lower()
-            allocated = balance.allocated_days or 0
-            
-            # Only include leave types with actual allocation
-            if allocated > 0:
-                used = usage.get(code, 0)
-                remaining = max(0, allocated - used)
-                
-                result[code] = remaining
-                total_allocated += allocated
-                total_used += used
-        except Exception as e:
-            print(f"Error processing balance record {balance.id}: {e}")
-            continue
-    
-    # Only add total if there are any leaves
-    if total_allocated > 0:
-        result['total'] = max(0, total_allocated - total_used)
-    
-    return Response(result)
+        
+        # Only add total if there are any leaves
+        if total_allocated > 0:
+            result['total'] = max(0, total_allocated - total_used)
+        
+        return Response(result)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return Response({'error': f"Internal Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
