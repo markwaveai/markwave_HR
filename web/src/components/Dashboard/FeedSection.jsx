@@ -173,8 +173,12 @@ const FeedSection = ({ user }) => {
                 <div className="bg-white rounded-xl p-4 shadow-sm border border-[#e2e8f0]">
                     {/* ... textarea section ... */}
                     <div className="flex gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 flex items-center justify-center text-[#6366f1] font-bold shrink-0">
-                            {user?.first_name?.[0].toUpperCase()}
+                        <div className="w-10 h-10 rounded-full bg-[#6366f1]/10 flex items-center justify-center text-[#6366f1] font-bold shrink-0 overflow-hidden">
+                            {user?.profile_picture ? (
+                                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                            ) : (
+                                user?.first_name?.[0].toUpperCase()
+                            )}
                         </div>
                         <div className="flex-1">
                             <textarea
@@ -358,8 +362,12 @@ const FeedSection = ({ user }) => {
                                         })}
                                     </div>
                                     <div className="flex gap-3 items-center bg-white rounded-2xl p-2 pr-4 border border-[#e2e8f0] focus-within:border-[#6366f1] transition-colors shadow-sm">
-                                        <div className="w-8 h-8 rounded-full bg-[#6366f1]/10 flex items-center justify-center text-[#6366f1] text-[10px] font-bold shrink-0">
-                                            {user?.first_name?.[0].toUpperCase()}
+                                        <div className="w-8 h-8 rounded-full bg-[#6366f1]/10 flex items-center justify-center text-[#6366f1] text-[10px] font-bold shrink-0 overflow-hidden">
+                                            {user?.profile_picture ? (
+                                                <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                                            ) : (
+                                                user?.first_name?.[0].toUpperCase()
+                                            )}
                                         </div>
                                         <input
                                             type="text"

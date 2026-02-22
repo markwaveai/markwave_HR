@@ -47,6 +47,7 @@ class Employees(models.Model):
     # team = models.ForeignKey('Teams', models.DO_NOTHING, blank=True, null=True)
     teams = models.ManyToManyField('Teams', blank=True, related_name='members')
     joining_date = models.DateField(null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
 
     class Meta:
         managed = True

@@ -154,16 +154,19 @@ const RegularizeModal: React.FC<RegularizeModalProps> = ({ visible, onClose, dat
                         </View>
 
                         <TouchableOpacity
-                            style={styles.submitBtn}
+                            style={[
+                                styles.submitBtn,
+                                (!hour || !minute || !reason.trim()) ? { backgroundColor: '#d1d5db', elevation: 0 } : {}
+                            ]}
                             onPress={handleSubmit}
-                            disabled={isLoading}
+                            disabled={isLoading || !hour || !minute || !reason.trim()}
                         >
                             {isLoading ? (
                                 <ActivityIndicator color="white" />
                             ) : (
                                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                                    <CheckCircleIcon color="white" size={20} style={{ marginRight: 8 }} />
-                                    <Text style={styles.submitBtnText}>Submit Request</Text>
+                                    <CheckCircleIcon color={(!hour || !minute || !reason.trim()) ? '#9ca3af' : 'white'} size={20} style={{ marginRight: 8 }} />
+                                    <Text style={[styles.submitBtnText, (!hour || !minute || !reason.trim()) ? { color: '#6b7280' } : {}]}>Submit Request</Text>
                                 </View>
                             )}
                         </TouchableOpacity>

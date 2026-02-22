@@ -1,4 +1,0 @@
-OTP_DEBUG: True
-PERISKOPE_URL: https://api.periskope.app/v1/message/send
-PERISKOPE_API_KEY: eyJhb... (Length: 432)
-PERISKOPE_SENDER_PHONE: 919247534762

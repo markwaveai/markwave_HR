@@ -130,11 +130,14 @@ const RegularizationModal = ({ isOpen, onClose, log, user, onSuccess }) => {
                     <div className="pt-2">
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-[#48327d] hover:bg-[#3b2a66] text-white font-bold py-3.5 rounded-lg shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            disabled={loading || !reason.trim()}
+                            className={`w-full font-bold py-3.5 rounded-lg transition-all active:scale-[0.98] flex items-center justify-center gap-2 ${loading || !reason.trim()
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none active:scale-100'
+                                    : 'bg-[#48327d] hover:bg-[#3b2a66] text-white shadow-md'
+                                }`}
                         >
                             {loading ? (
-                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin" />
                             ) : (
                                 <>
                                     <CheckCircle2 size={16} />

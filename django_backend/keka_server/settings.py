@@ -102,7 +102,7 @@ else:
             'USER': os.getenv('POSTGRES_USER'),
             'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
             'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'PORT': os.getenv('DB_PORT', '5433'),
             'CONN_MAX_AGE': int(os.getenv('DATABASE_CONN_MAX_AGE', 600)),
             'CONN_HEALTH_CHECKS': True,
         }
@@ -144,6 +144,8 @@ USE_TZ = False
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # CORS configuration
 CORS_ALLOW_ALL_ORIGINS = True

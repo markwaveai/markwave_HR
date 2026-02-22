@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { normalize, wp, hp } from '../utils/responsive';
 
 const ProfileScreen = ({ user, onBack }: { user: any, onBack?: () => void }) => {
@@ -18,7 +18,11 @@ const ProfileScreen = ({ user, onBack }: { user: any, onBack?: () => void }) => 
                     </TouchableOpacity>
                 )}
                 <View style={styles.avatarLarge}>
-                    <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
+                    {user.profile_picture ? (
+                        <Image source={{ uri: user.profile_picture }} style={styles.avatarImage} />
+                    ) : (
+                        <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
+                    )}
                 </View>
                 <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
                 <Text style={styles.role}>{user.role || user.designation}</Text>
@@ -54,6 +58,11 @@ const styles = StyleSheet.create({
         fontSize: normalize(36),
         fontWeight: 'bold',
         color: 'white',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: wp(12.5),
     },
     name: {
         fontSize: normalize(24),

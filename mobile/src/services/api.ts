@@ -99,7 +99,30 @@ export const authApi = {
     updateProfile: (employeeId: string, data: any) => apiFetch(`/team/members/${employeeId}/`, {
         method: 'PUT',
         body: JSON.stringify(data)
-    })
+    }),
+    updateProfilePicture: (employeeId: string, imageUri: string, mimeType: string, fileName: string) => {
+        const formData = new FormData();
+        formData.append('profile_picture', {
+            uri: imageUri,
+            type: mimeType,
+            name: fileName,
+        } as any);
+
+        return fetch(`${API_BASE_URL}/team/members/${employeeId}/`, {
+            method: 'PATCH',
+            body: formData,
+            headers: {
+                // Do not set Content-Type here; fetch will automatically 
+                // set it to multipart/form-data with the correct boundary
+            }
+        }).then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Image upload failed');
+            }
+            return res.json();
+        });
+    }
 };
 
 export const leaveApi = {

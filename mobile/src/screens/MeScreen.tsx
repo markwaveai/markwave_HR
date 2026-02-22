@@ -770,32 +770,30 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 </View>
             </View>
 
-            <View style={styles.tableHeader}>
+            <View style={[styles.tableHeader, { zIndex: 30 }]}>
                 <Text style={styles.sectionTitle}>Attendance Logs</Text>
-                <View style={styles.filterTabs}>
+                <View style={[styles.filterTabs, { position: 'relative', zIndex: 40 }]}>
                     <TouchableOpacity onPress={() => setFilterType('30Days')} style={[styles.filterTab, filterType === '30Days' && styles.filterTabActive]}><Text style={[styles.filterTabText, filterType === '30Days' && styles.filterTabTextActive]}>LAST 30 DAYS</Text></TouchableOpacity>
-                    <TouchableOpacity onPress={() => setFilterType('Month')} style={[styles.filterTab, filterType === 'Month' && styles.filterTabActive]}><Text style={[styles.filterTabText, filterType === 'Month' && styles.filterTabTextActive]}>SELECT MONTH</Text></TouchableOpacity>
-                </View>
-            </View>
 
-
-
-            <View style={styles.mainTabsContainer}>
-                <TouchableOpacity style={[styles.mainTab, activeTab === 'Log' && styles.mainTabActive]} onPress={() => setActiveTab('Log')}><Text style={[styles.mainTabText, activeTab === 'Log' && styles.mainTabTextActive]}>ATTENDANCE LOG</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.mainTab, activeTab === 'Requests' && styles.mainTabActive]} onPress={() => setActiveTab('Requests')}><Text style={[styles.mainTabText, activeTab === 'Requests' && styles.mainTabTextActive]}>REQUESTS</Text></TouchableOpacity>
-            </View>
-
-            {activeTab === 'Log' && filterType === 'Month' && (
-                <View style={[styles.monthSelectorContainer, { zIndex: 20 }]}>
                     <TouchableOpacity
-                        style={styles.monthDropdownButton}
-                        onPress={() => setShowMonthDropdown(!showMonthDropdown)}
+                        onPress={() => {
+                            if (filterType !== 'Month') {
+                                setFilterType('Month');
+                            } else {
+                                setShowMonthDropdown(!showMonthDropdown);
+                            }
+                        }}
+                        style={[styles.filterTab, filterType === 'Month' && styles.filterTabActive, { flexDirection: 'row', alignItems: 'center', gap: wp(1) }]}
                     >
-                        <Text style={styles.monthDropdownText}>{MONTHS[selectedMonth]}</Text>
-                        <ChevronDownIcon size={normalize(16)} color="#48327d" />
+                        <Text style={[styles.filterTabText, filterType === 'Month' && styles.filterTabTextActive]}>
+                            {filterType === 'Month' ? MONTHS[selectedMonth] : 'SELECT MONTH'}
+                        </Text>
+                        {filterType === 'Month' && <ChevronDownIcon size={normalize(12)} color="#48327d" />}
                     </TouchableOpacity>
-                    {showMonthDropdown && (
-                        <View style={styles.monthDropdownMenu}>
+
+                    {/* Month Dropdown absolute relative to the tabs */}
+                    {filterType === 'Month' && showMonthDropdown && (
+                        <View style={[styles.monthDropdownMenu, { top: hp(4), right: 0, left: 'auto', minWidth: wp(28) }]}>
                             {MONTHS.map((m, idx) => {
                                 const currentMonth = new Date().getMonth();
                                 if (idx > currentMonth) return null;
@@ -815,7 +813,16 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                         </View>
                     )}
                 </View>
-            )}
+            </View>
+
+
+
+            <View style={styles.mainTabsContainer}>
+                <TouchableOpacity style={[styles.mainTab, activeTab === 'Log' && styles.mainTabActive]} onPress={() => setActiveTab('Log')}><Text style={[styles.mainTabText, activeTab === 'Log' && styles.mainTabTextActive]}>ATTENDANCE LOG</Text></TouchableOpacity>
+                <TouchableOpacity style={[styles.mainTab, activeTab === 'Requests' && styles.mainTabActive]} onPress={() => setActiveTab('Requests')}><Text style={[styles.mainTabText, activeTab === 'Requests' && styles.mainTabTextActive]}>REQUESTS</Text></TouchableOpacity>
+            </View>
+
+
 
             {activeTab === 'Log' && (
                 <View style={styles.tableCard}>

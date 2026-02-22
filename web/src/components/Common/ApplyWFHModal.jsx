@@ -90,6 +90,8 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
         }
     };
 
+    const isSubmitButtonDisabled = isSubmitting || !fromDate || !toDate || !reason.trim() || notifyTo.length === 0;
+
     return (
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e293b]/60 backdrop-blur-sm ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}>
             <div className={`bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden transform ${isClosing ? 'animate-modal-out' : 'animate-modal-in'}`}>
@@ -248,12 +250,14 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting}
-                            className={`px-8 py-2.5 bg-[#48327d] text-white rounded-xl font-bold text-sm shadow-lg shadow-purple-100 hover:bg-[#3d2a6a] transition-all flex items-center gap-2 active:scale-95 ${isSubmitting ? 'opacity-70 cursor-not-allowed active:scale-100' : ''}`}
+                            disabled={isSubmitButtonDisabled}
+                            className={`px-8 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 transform active:scale-95 ${isSubmitButtonDisabled
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none active:scale-100'
+                                : 'bg-[#48327d] text-white shadow-lg shadow-purple-100 hover:bg-[#3d2a6a]'}`}
                         >
                             {isSubmitting ? (
                                 <>
-                                    <LoadingSpinner size={16} color="border-white" />
+                                    <LoadingSpinner size={16} color="border-gray-500" />
                                     <span>Submitting...</span>
                                 </>
                             ) : (

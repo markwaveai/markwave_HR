@@ -48,7 +48,23 @@ export const authApi = {
     verifyEmailOTP: (email, otp) => apiFetch('/auth/verify-email-otp/', {
         method: 'POST',
         body: JSON.stringify({ email, otp })
-    })
+    }),
+    updateProfilePicture: (employeeId, file) => {
+        const formData = new FormData();
+        formData.append('profile_picture', file);
+
+        return fetch(`${API_BASE_URL}/team/members/${employeeId}/`, {
+            method: 'PATCH',
+            body: formData,
+            // fetch will automatically set Content-Type: multipart/form-data
+        }).then(async res => {
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Image upload failed');
+            }
+            return res.json();
+        });
+    }
 };
 
 export const leaveApi = {

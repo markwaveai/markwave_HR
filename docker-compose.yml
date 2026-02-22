@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:  
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:5433:5433"
   django:
     build: ./django_backend
     container_name: keka_django
@@ -22,7 +22,7 @@ services:
     env_file:
       - /opt/hr_markwave/.env
     depends_on:
-      - postgres
+      - postgresvssw1
 
   frontend:
     build: ./web

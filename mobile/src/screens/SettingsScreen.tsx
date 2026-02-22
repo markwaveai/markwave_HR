@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
+import { launchImageLibrary, launchCamera } from 'react-native-image-picker';
 import { MailIcon, PhoneIcon, MapPinIcon, IdCardIcon, BriefcaseIcon, UsersIcon, CalendarIcon, UserIcon } from '../components/Icons';
 import { authApi } from '../services/api';
 import { fallbackEmployees } from '../data/fallbackEmployees';
@@ -45,6 +46,56 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
 
         fetchFullProfile();
     }, [initialUser]);
+
+    const handleUploadProfilePicture = () => {
+        Alert.alert(
+            "Upload Profile Photo",
+            "Choose an option",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Take Photo",
+                    onPress: async () => {
+                        const result = await launchCamera({ mediaType: 'photo', quality: 0.8 });
+                        processImageResult(result);
+                    }
+                },
+                {
+                    text: "Choose from Gallery",
+                    onPress: async () => {
+                        const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.8 });
+                        processImageResult(result);
+                    }
+                }
+            ]
+        );
+    };
+
+    const processImageResult = async (result: any) => {
+        if (result.didCancel || !result.assets || result.assets.length === 0) return;
+        const asset = result.assets[0];
+
+        try {
+            setLoading(true);
+            const idToFetch = user.employee_id || user.id.toString();
+            const response = await authApi.updateProfilePicture(
+                idToFetch,
+                asset.uri,
+                asset.type || 'image/jpeg',
+                asset.fileName || `avatar_${idToFetch}.jpg`
+            );
+
+            // Re-fetch profile to get updated image URL
+            const updatedProfile = await authApi.getProfile(idToFetch);
+            setUser(updatedProfile);
+            Alert.alert("Success", "Profile picture updated successfully!");
+        } catch (error: any) {
+            console.error("Failed to upload image:", error);
+            Alert.alert("Error", error.message || "Failed to update profile picture. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
     if (!user && loading) {
         return (
@@ -99,10 +150,17 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                     </TouchableOpacity>
                 )}
                 <View style={styles.headerContent}>
-                    <View style={styles.avatarLarge}>
-                        <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
+                    <TouchableOpacity style={styles.avatarLarge} onPress={handleUploadProfilePicture}>
+                        {user.profile_picture ? (
+                            <Image source={{ uri: user.profile_picture }} style={styles.avatarImage} />
+                        ) : (
+                            <Text style={styles.avatarTextLarge}>{getInitials()}</Text>
+                        )}
                         <View style={styles.statusDot} />
-                    </View>
+                        <View style={styles.editBadge}>
+                            <Text style={styles.editBadgeText}>✏️</Text>
+                        </View>
+                    </TouchableOpacity>
                     <View style={styles.headerNameContainer}>
                         <Text style={styles.name} numberOfLines={2}>{user.first_name} {user.last_name}</Text>
                         <View style={styles.headerSubInfo}>
@@ -300,6 +358,25 @@ const styles = StyleSheet.create({
         fontSize: normalize(24),
         fontWeight: 'bold',
         color: 'white',
+    },
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+        borderRadius: normalize(16),
+    },
+    editBadge: {
+        position: 'absolute',
+        bottom: -5,
+        left: -5,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        borderRadius: 12,
+        padding: 4,
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        elevation: 2,
+    },
+    editBadgeText: {
+        fontSize: normalize(8),
     },
     statusDot: {
         position: 'absolute',

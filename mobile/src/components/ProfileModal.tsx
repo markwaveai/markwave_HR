@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Image } from 'react-native';
 import { BriefcaseIcon, MailIcon, CloseIcon, LogOutIcon } from './Icons';
 
 interface ProfileModalProps {
@@ -45,7 +45,11 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ visible, onClose, onLogout,
 
                     <View style={styles.header}>
                         <View style={styles.avatar}>
-                            <Text style={styles.avatarText}>{getInitials()}</Text>
+                            {user.profile_picture ? (
+                                <Image source={{ uri: user.profile_picture }} style={{ width: '100%', height: '100%', borderRadius: 24 }} />
+                            ) : (
+                                <Text style={styles.avatarText}>{getInitials()}</Text>
+                            )}
                         </View>
                         <Text style={styles.name}>{user.first_name} {user.last_name}</Text>
                         <View style={styles.idBadge}>

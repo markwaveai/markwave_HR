@@ -60,6 +60,35 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
         return holidays.some(h => (h.raw_date || h.date) === dateStr);
     };
 
+    const isSubmitDisabled = () => {
+        if (isSubmitting) return true;
+        if (!fromDate || !toDate || !reason.trim() || notifyTo.length === 0) return true;
+
+        let hasRestrictedDays = false;
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+
+        if (start <= end) {
+            let current = new Date(start);
+            while (current <= end) {
+                const yyyy = current.getFullYear();
+                const mm = String(current.getMonth() + 1).padStart(2, '0');
+                const dd = String(current.getDate()).padStart(2, '0');
+                const dateStr = `${yyyy}-${mm}-${dd}`;
+
+                if (isDateDisabled(dateStr)) {
+                    hasRestrictedDays = true;
+                    break;
+                }
+                current.setDate(current.getDate() + 1);
+            }
+        }
+
+        if (hasRestrictedDays) return true;
+
+        return false;
+    };
+
     const handleApply = async () => {
         if (!fromDate) {
             Alert.alert("Validation", "From Date is required");
@@ -286,10 +315,12 @@ const WorkFromHomeScreen = ({ user, isModalVisible, setIsModalVisible }: { user:
 
                             <TouchableOpacity
                                 onPress={handleApply}
-                                style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
-                                disabled={isSubmitting}
+                                style={[styles.submitBtn, isSubmitDisabled() ? { backgroundColor: '#d1d5db', elevation: 0 } : {}]}
+                                disabled={isSubmitDisabled()}
                             >
-                                <Text style={styles.submitBtnText}>{isSubmitting ? 'Submitting...' : 'Submit Request'}</Text>
+                                <Text style={[styles.submitBtnText, isSubmitDisabled() ? { color: '#6b7280' } : {}]}>
+                                    {isSubmitting ? 'Submitting...' : 'Submit Request'}
+                                </Text>
                             </TouchableOpacity>
                         </ScrollView>
                     </View>

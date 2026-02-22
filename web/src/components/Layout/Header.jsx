@@ -201,9 +201,13 @@ function Header({ user, isSidebarOpen, onMenuClick, onLogout }) {
 
                 <div
                     onClick={() => setShowProfile(!showProfile)}
-                    className="w-8 h-8 mm:w-9 mm:h-9 bg-gradient-to-br from-[#3498db] to-[#2980b9] rounded-full flex items-center justify-center text-white font-bold text-xs mm:text-sm border-2 border-white/50 cursor-pointer shrink-0 hover:scale-105 transition-all shadow-lg active:scale-95"
+                    className="w-8 h-8 mm:w-9 mm:h-9 bg-gradient-to-br from-[#3498db] to-[#2980b9] rounded-full flex items-center justify-center text-white font-bold text-xs mm:text-sm border-2 border-white/50 cursor-pointer shrink-0 hover:scale-105 transition-all shadow-lg active:scale-95 overflow-hidden"
                 >
-                    {getUserInitials()}
+                    {user?.profile_picture ? (
+                        <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                        getUserInitials()
+                    )}
                 </div>
 
                 {/* Profile Dialog Dropdown */}
@@ -222,8 +226,12 @@ function Header({ user, isSidebarOpen, onMenuClick, onLogout }) {
                             </button>
 
                             <div className="flex flex-col items-center text-center">
-                                <div className="w-16 h-16 bg-gradient-to-br from-[#48327d] to-[#6c5ce7] rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg mb-3 ring-4 ring-purple-50">
-                                    {getUserInitials()}
+                                <div className="w-16 h-16 bg-gradient-to-br from-[#48327d] to-[#6c5ce7] rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-lg mb-3 ring-4 ring-purple-50 overflow-hidden">
+                                    {user?.profile_picture ? (
+                                        <img src={user.profile_picture} alt="Profile" className="w-full h-full object-cover" />
+                                    ) : (
+                                        getUserInitials()
+                                    )}
                                 </div>
                                 <h3 className="font-black text-[#1e293b] text-lg leading-tight truncate w-full px-2">
                                     {user?.first_name} {user?.last_name}
