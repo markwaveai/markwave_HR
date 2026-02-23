@@ -7,7 +7,7 @@ class LeaveOverrideRequestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LeaveOverrideRequest
-        fields = ['id', 'leave', 'employee', 'employee_id', 'employee_name', 'date', 'check_in', 'check_out', 'status', 'created_at']
+        fields = ['id', 'leave', 'employee', 'employee_id', 'employee_name', 'date', 'check_in', 'check_out', 'location_in', 'location_out', 'status', 'created_at']
 
     def get_employee_name(self, obj):
         return f"{obj.employee.first_name} {obj.employee.last_name}"

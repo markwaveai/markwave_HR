@@ -155,7 +155,7 @@ function App() {
           <Route path="/team" element={<MyTeam user={user} />} />
           <Route path="/leaves" element={<LeaveAttendance user={user} />} />
           <Route path="/employee-management" element={<EmployeeManagement user={user} />} />
-          <Route path="/settings" element={<Settings user={user} />} />
+          <Route path="/settings" element={<Settings user={user} onUserUpdate={setUser} />} />
           <Route path="/admin-leaves" element={<AdminLeaveManagement user={user} />} />
           <Route path="/team-management" element={<TeamManagement user={user} />} />
         </Route>

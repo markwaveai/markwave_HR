@@ -120,7 +120,7 @@ const ClockCard: React.FC<ClockCardProps> = ({
                 </View>
             </View>
 
-            {!isOnLeave && !isAbsent && (locationState || isLoadingLocation) && (
+            {(locationState || isLoadingLocation) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
                     <MapPinIcon size={12} color="white" style={{ marginRight: 4, opacity: 0.8 }} />
                     <Text style={styles.locationText} numberOfLines={3}>

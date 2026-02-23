@@ -329,10 +329,22 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                         <Text style={styles.employeeName}>{leave.employee_name}</Text>
                                         <Text style={styles.employeeId}>ID: {leave.employee_id}</Text>
                                     </View>
-                                    <View style={[styles.typeBadge, { backgroundColor: getStatusColor(leave.type) + '20' }]}>
-                                        <Text style={[styles.typeText, { color: getStatusColor(leave.type) }]}>
-                                            {leave.type.toUpperCase()}
-                                        </Text>
+                                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                                        <View style={[styles.typeBadge, { backgroundColor: getStatusColor(leave.type) + '20' }]}>
+                                            <Text style={[styles.typeText, { color: getStatusColor(leave.type) }]}>
+                                                {leave.type.toUpperCase()}
+                                            </Text>
+                                        </View>
+                                        {leave.is_overridden && (
+                                            <View style={[styles.typeBadge, { backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1 }]}>
+                                                <Text style={[styles.typeText, { color: '#d97706' }]}>Checked In</Text>
+                                            </View>
+                                        )}
+                                        {leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending') && (
+                                            <View style={[styles.typeBadge, { backgroundColor: '#faf5ff', borderColor: '#e9d5ff', borderWidth: 1 }]}>
+                                                <Text style={[styles.typeText, { color: '#9333ea' }]}>Pending Override</Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </View>
 
@@ -347,22 +359,53 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                     {leave.reason}
                                 </Text>
 
-                                <View style={styles.actionsRow}>
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, styles.rejectButton]}
-                                        onPress={() => handleAction(leave.id, 'Reject')}
-                                        disabled={actionLoading === leave.id}
-                                    >
-                                        <Text style={styles.rejectButtonText}>Reject</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, styles.approveButton]}
-                                        onPress={() => handleAction(leave.id, 'Approve')}
-                                        disabled={actionLoading === leave.id}
-                                    >
-                                        <Text style={styles.approveButtonText}>Approve</Text>
-                                    </TouchableOpacity>
-                                </View>
+                                {leave.status === 'Pending' && (
+                                    <View style={styles.actionsRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.rejectButton]}
+                                            onPress={() => handleAction(leave.id, 'Reject')}
+                                            disabled={actionLoading === leave.id}
+                                        >
+                                            <Text style={styles.rejectButtonText}>Reject</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, styles.approveButton]}
+                                            onPress={() => handleAction(leave.id, 'Approve')}
+                                            disabled={actionLoading === leave.id}
+                                        >
+                                            <Text style={styles.approveButtonText}>Approve</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
+                                {(leave.status === 'Approved' || leave.is_overridden) && (
+                                    <View style={styles.actionsRow}>
+                                        {leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending') && (
+                                            <>
+                                                <TouchableOpacity
+                                                    style={[styles.actionButton, { backgroundColor: '#f1f5f9' }]}
+                                                    onPress={() => handleAction(leave.id, 'RejectOverride')}
+                                                    disabled={actionLoading === leave.id}
+                                                >
+                                                    <Text style={[styles.rejectButtonText, { color: '#475569' }]}>Reject Over...</Text>
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[styles.actionButton, { backgroundColor: '#9333ea' }]}
+                                                    onPress={() => handleAction(leave.id, 'ApproveOverride')}
+                                                    disabled={actionLoading === leave.id}
+                                                >
+                                                    <Text style={[styles.approveButtonText, { color: 'white' }]}>Approve Over...</Text>
+                                                </TouchableOpacity>
+                                            </>
+                                        )}
+                                        <TouchableOpacity
+                                            style={[styles.actionButton, { backgroundColor: '#fee2e2' }]} // light red background for cancel
+                                            onPress={() => handleAction(leave.id, 'Cancel')}
+                                            disabled={actionLoading === leave.id}
+                                        >
+                                            <Text style={[styles.rejectButtonText, { color: '#e74c3c' }]}>Cancel Leave</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </View>
                         ))
                     )}

@@ -60,7 +60,7 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
                 </div>
             </div>
 
-            {locationState && !isOnLeave && !isAbsent && (
+            {locationState && (
                 <div className="text-[10px] mt-2 opacity-80 font-medium flex items-center gap-1">
                     <MapPin size={10} strokeWidth={2.5} />
                     <span>{locationState}</span>

@@ -77,7 +77,8 @@ def login(request):
                 'is_manager': Teams.objects.filter(manager=emp).exists(),
                 'is_admin': getattr(emp, 'is_admin', False),
                 'project_manager_name': manager_names,
-                'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
+                'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
+                'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
             }
         })
 
@@ -245,7 +246,8 @@ def verify_otp(request):
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
                         'is_admin': getattr(emp, 'is_admin', False),
                         'project_manager_name': manager_names,
-                        'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
+                        'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
+                        'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
                     }
                 })
         return Response({'error': 'User not found'}, status=404)
@@ -303,7 +305,8 @@ def get_profile(request, employee_id):
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': getattr(emp, 'is_admin', False),
             'project_manager_name': manager_names,
-            'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
+            'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
+            'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
         })
     except Exception as e:
         error_msg = str(e)
@@ -467,7 +470,8 @@ def verify_email_otp(request):
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
                 'is_admin': getattr(employee, 'is_admin', False),
                 'project_manager_name': manager_names,
-                'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
+                'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
+                'profile_picture': request.build_absolute_uri(employee.profile_picture.url) if employee.profile_picture else None
             }
         })
     except Exception as e:

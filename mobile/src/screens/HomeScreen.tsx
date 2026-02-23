@@ -269,6 +269,8 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
     useEffect(() => {
         fetchData(false, true);
+        // Also fetch location silently on load
+        updateLocation();
         const interval = setInterval(() => fetchData(), 60000); // Poll every 60 seconds
         return () => clearInterval(interval);
     }, [user.id]);

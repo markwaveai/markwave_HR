@@ -2,7 +2,7 @@ import requests
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regularization, Teams, Holidays
+from core.models import Employees, Attendance, AttendanceLogs, Leaves, Regularization, Teams, Holidays, LeaveOverrideRequest
 from datetime import datetime, timedelta
 from django.db.models import Q
 import pytz
@@ -73,7 +73,9 @@ def cancel_leave_for_date(leave_obj, target_date_str):
     """
     try:
         from api.leave_views import notify_employee_status_update
-        
+    except ImportError as e:
+        print(f"DEBUG: Failed to import notify_employee_status_update: {e}")
+        notify_employee_status_update = None
         target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         from_date = datetime.strptime(leave_obj.from_date, '%Y-%m-%d').date()
         to_date = datetime.strptime(leave_obj.to_date, '%Y-%m-%d').date()
@@ -88,7 +90,8 @@ def cancel_leave_for_date(leave_obj, target_date_str):
                 # leave_obj.days = 0 
                 leave_obj.save()
                 # Notify
-                threading.Thread(target=notify_employee_status_update, args=(leave_obj.id,)).start()
+                if notify_employee_status_update:
+                    threading.Thread(target=notify_employee_status_update, args=(leave_obj.id,)).start()
                 return
 
         # CASE 2: Multi-day Leave - SPLIT
@@ -256,12 +259,18 @@ def clock(request):
             date=current_date_str,
             defaults={'leave': conflicting_leave}
         )
+        # Ensure it points to the current active leave (fixes issue where old overrides pointing to cancelled leaves hide UI buttons)
+        if override_req.leave != conflicting_leave:
+            override_req.leave = conflicting_leave
+            override_req.save()
         
         if clock_type == 'IN' or not clock_type:
              if not override_req.check_in:
                  override_req.check_in = current_time_str
+                 override_req.location_in = location
         elif clock_type == 'OUT':
              override_req.check_out = current_time_str
+             override_req.location_out = location
         
         override_req.status = 'Pending'
         override_req.save()

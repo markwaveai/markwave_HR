@@ -96,6 +96,16 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose, u
         }
     };
 
+    const hasChanges = user && (
+        formData.first_name !== (user.first_name || '') ||
+        formData.last_name !== (user.last_name || '') ||
+        formData.email !== (user.email || '') ||
+        formData.contact !== (user.contact || user.phone || '') ||
+        formData.aadhar !== (user.aadhar ? user.aadhar.toString() : '') ||
+        formData.qualification !== (user.qualification || '') ||
+        formData.location !== (user.location || '')
+    );
+
     return (
         <Modal
             animationType="slide"
@@ -218,7 +228,14 @@ const EditProfileModal: React.FC<EditProfileModalProps> = ({ visible, onClose, u
                         </ScrollView>
 
                         <View style={styles.footer}>
-                            <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.saveButton,
+                                    (!hasChanges || loading) && styles.saveButtonDisabled
+                                ]}
+                                onPress={handleSave}
+                                disabled={!hasChanges || loading}
+                            >
                                 {loading ? (
                                     <ActivityIndicator color="white" size="small" />
                                 ) : (
@@ -311,6 +328,10 @@ const styles = StyleSheet.create({
         height: 56,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    saveButtonDisabled: {
+        backgroundColor: '#94a3b8',
+        opacity: 0.6,
     },
     saveButtonText: {
         color: 'white',

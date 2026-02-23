@@ -1,7 +1,8 @@
 import random
 import traceback
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.response import Response
 from core.models import Teams, Employees, Attendance, Leaves
 from .serializers import TeamsSerializer, EmployeesSerializer
@@ -173,7 +174,8 @@ def member_list(request):
             'status': 'Leave' if m.employee_id in on_leave_ids else ('Active' if attendance_map.get(m.employee_id) == 'Present' else 'Absent'),
             'location': m.location,
             'email': m.email,
-            'is_manager': m.employee_id == team_manager_id
+            'is_manager': m.employee_id == team_manager_id,
+            'profile_picture': request.build_absolute_uri(m.profile_picture.url) if m.profile_picture else None
         } for m in members])
 
     elif request.method == 'POST':
@@ -275,14 +277,18 @@ def designation_list(request):
     designations = Employees.objects.exclude(role__isnull=True).exclude(role='').values_list('role', flat=True).distinct().order_by('role')
     return Response([{'name': d} for d in designations])
 
-@api_view(['PUT', 'DELETE'])
+@api_view(['PUT', 'PATCH', 'DELETE'])
+@parser_classes([JSONParser, MultiPartParser, FormParser])
 def member_detail(request, pk):
     try:
-        employee = Employees.objects.get(pk=pk)
+        if str(pk).isdigit():
+            employee = Employees.objects.get(pk=pk)
+        else:
+            employee = Employees.objects.get(employee_id=pk)
     except Employees.DoesNotExist:
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.method == 'PUT':
+    if request.method in ['PUT', 'PATCH']:
         # Permission check: Only manager of the team or Admin can add/update
         acting_user_id = request.data.get('acting_user_id')
         new_team_id = request.data.get('team_id')
@@ -357,6 +363,9 @@ def member_detail(request, pk):
             if 'status' in data: employee.status = data['status']
             if 'qualification' in data: employee.qualification = data['qualification']
             
+            if 'profile_picture' in request.FILES:
+                employee.profile_picture = request.FILES['profile_picture']
+            
             # Update Team if provided
             # Update Team if provided
             if 'team_id' in data:
@@ -381,7 +390,8 @@ def member_detail(request, pk):
                           pass # Ignore if team doesn't exist
 
             employee.save()
-            return Response({'message': 'Employee updated successfully'})
+            serializer = EmployeesSerializer(employee, context={'request': request})
+            return Response({'message': 'Employee updated successfully', 'member': serializer.data})
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 

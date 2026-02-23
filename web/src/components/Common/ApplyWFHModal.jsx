@@ -18,6 +18,46 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
         }
     }, [isOpen, user?.id]);
 
+    // Auto-populate Notify To field
+    useEffect(() => {
+        if (!profile && !user) return;
+
+        const teamLeads = profile?.team_leads || user?.team_leads || [];
+        const teamLeadName = profile?.team_lead_name || user?.team_lead_name;
+        const pmName = profile?.project_manager_name;
+        const advisorName = profile?.advisor_name;
+
+        const names = new Set();
+
+        const addNames = (val) => {
+            if (!val) return;
+            if (Array.isArray(val)) {
+                val.forEach(v => v && names.add(v.trim()));
+            } else if (typeof val === 'string') {
+                val.split(',').forEach(s => {
+                    const trimmed = s.trim();
+                    if (trimmed && trimmed !== 'Team Lead') names.add(trimmed);
+                });
+            }
+        };
+
+        addNames(teamLeads);
+        addNames(teamLeadName);
+        addNames(pmName);
+        addNames(advisorName);
+
+        // Filter out own name
+        const currentUserName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+        if (currentUserName) {
+            names.delete(currentUserName);
+        }
+
+        const autoList = Array.from(names);
+        if (autoList.length > 0) {
+            setNotifyTo(autoList);
+        }
+    }, [profile, user]);
+
     if (!isOpen && !isClosing) return null;
 
     const handleClose = () => {

@@ -174,6 +174,8 @@ class LeaveOverrideRequest(models.Model):
     date = models.CharField(max_length=10)
     check_in = models.CharField(max_length=20, blank=True, null=True)
     check_out = models.CharField(max_length=20, blank=True, null=True)
+    location_in = models.TextField(blank=True, null=True)
+    location_out = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, default='Pending')  # Pending, Approved, Rejected, Cancelled
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -85,6 +85,40 @@ const LeaveScreen = ({ user }: { user: any }) => {
         attendanceApi.getHolidays().then(h => setHolidays(h)).catch(() => setHolidays([]));
     }, [EMPLOYEE_ID]);
 
+    // Auto-populate Notify To field
+    useEffect(() => {
+        if (!profile && !user) return;
+
+        const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
+        const pmStr = profile?.project_manager_name || '';
+        const advisorStr = profile?.advisor_name || '';
+
+        const names = new Set<string>();
+
+        const addNames = (val: string) => {
+            if (!val) return;
+            val.split(',').forEach(s => {
+                const trimmed = s.trim();
+                if (trimmed && trimmed !== 'Team Lead') names.add(trimmed);
+            });
+        };
+
+        addNames(leadStr);
+        addNames(pmStr);
+        addNames(advisorStr);
+
+        // Filter out own name
+        const currentUserName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
+        if (currentUserName) {
+            names.delete(currentUserName);
+        }
+
+        const autoList = Array.from(names);
+        if (autoList.length > 0) {
+            setNotifyTo(autoList);
+        }
+    }, [profile, user]);
+
     // Helper to check if date is Sunday or Holiday
     const isDateDisabled = (dateStr: string) => {
         if (!dateStr) return false;

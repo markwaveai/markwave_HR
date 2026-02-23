@@ -15,8 +15,26 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
     try:
         from .utils import send_email_via_api
         
-        # Parse notifyTo names and find emails - ONLY send to explicitly selected recipients
-        recipient_emails = []
+        # 1. Gather all automatic recipients based on hierarchy
+        recipient_emails = set()
+        
+        # Add Team Leads/Managers from employee's teams
+        for team in employee.teams.all():
+            if team.manager and team.manager.email:
+                recipient_emails.add(team.manager.email.strip())
+        
+        # Add all Admins/Managers from the system
+        admins = Employees.objects.filter(
+            Q(role__icontains='Admin') | 
+            Q(role__icontains='Manager') | 
+            Q(role__icontains='Founder')
+        ).exclude(email__isnull=True).exclude(email='')
+        
+        for admin in admins:
+            if admin.email:
+                recipient_emails.add(admin.email.strip())
+
+        # 2. Parse notifyTo names (if any were manually added)
         if notify_to_str:
             names = [n.strip() for n in notify_to_str.split(',') if n.strip()]
             for name in names:
@@ -27,18 +45,25 @@ def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_st
                         last_name__icontains=parts[-1]
                     ).first()
                     if target and target.email:
-                        recipient_emails.append(target.email)
+                        recipient_emails.add(target.email.strip())
                 elif len(parts) == 1:
                     target = Employees.objects.filter(
                         Q(first_name__icontains=parts[0]) | Q(last_name__icontains=parts[0])
                     ).first()
                     if target and target.email:
-                        recipient_emails.append(target.email)
+                        recipient_emails.add(target.email.strip())
 
-        # If no recipients were selected, don't send any email
+        # Filter out employee's own email if present
+        if employee.email:
+            recipient_emails.discard(employee.email.strip())
+
+        # If no recipients found, log and return
         if not recipient_emails:
-            print(f"No recipients selected for WFH notification for {employee.first_name} {employee.last_name}")
+            print(f"No recipients found for WFH notification for {employee.first_name} {employee.last_name}")
             return
+
+        recipient_emails = list(recipient_emails)
+        print(f"DEBUG: Sending WFH notification for {employee.employee_id} to {len(recipient_emails)} recipients: {recipient_emails}")
 
         subject = f"WFH Request - {employee.first_name} {employee.last_name} ({employee.employee_id})"
         
