@@ -153,6 +153,7 @@ class EmployeeLeaveBalance(models.Model):
         unique_together = (('employee', 'leave_type', 'year'),)
 
 
+
 class WorkFromHome(models.Model):
     employee = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id')
     from_date = models.CharField(max_length=10)
@@ -164,3 +165,20 @@ class WorkFromHome(models.Model):
     class Meta:
         managed = True
         db_table = 'core_wfh'
+
+
+class LeaveOverrideRequest(models.Model):
+    id = models.AutoField(primary_key=True)
+    leave = models.ForeignKey(Leaves, models.CASCADE, related_name='overrides')
+    employee = models.ForeignKey(Employees, models.DO_NOTHING, to_field='employee_id')
+    date = models.CharField(max_length=10)
+    check_in = models.CharField(max_length=20, blank=True, null=True)
+    check_out = models.CharField(max_length=20, blank=True, null=True)
+    status = models.CharField(max_length=20, default='Pending')  # Pending, Approved, Rejected, Cancelled
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'core_leaveoverriderequest'
+        unique_together = (('employee', 'date'),)
+

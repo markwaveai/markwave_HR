@@ -145,6 +145,12 @@ const AdminLeaveManagement = () => {
                                                     Checked In
                                                 </div>
                                             )}
+                                            {leave.overrides && leave.overrides.some(ov => ov.status === 'Pending') && (
+                                                <div className="mt-2 text-[10px] flex items-center justify-center gap-1 text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded border border-purple-200" title="Pending Leave Override Request">
+                                                    <AlertCircle size={10} />
+                                                    Pending Override
+                                                </div>
+                                            )}
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="text-[#2d3436] font-medium text-xs">
@@ -191,14 +197,36 @@ const AdminLeaveManagement = () => {
 
                                                     {/* For Overridden (Approved) Leaves, show Cancel option */}
                                                     {(leave.status === 'Approved' || leave.is_overridden) && (
-                                                        <button
-                                                            onClick={() => initiateAction(leave, 'Cancel')}
-                                                            disabled={actionLoading === leave.id}
-                                                            className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors text-xs font-bold"
-                                                            title="Cancel Leave"
-                                                        >
-                                                            Cancel
-                                                        </button>
+                                                        <div className="flex gap-2">
+                                                            {leave.overrides && leave.overrides.some(ov => ov.status === 'Pending') && (
+                                                                <>
+                                                                    <button
+                                                                        onClick={() => initiateAction(leave, 'ApproveOverride')}
+                                                                        disabled={actionLoading === leave.id}
+                                                                        className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                                        title="Approve Override"
+                                                                    >
+                                                                        Approve Override
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => initiateAction(leave, 'RejectOverride')}
+                                                                        disabled={actionLoading === leave.id}
+                                                                        className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                                        title="Reject Override"
+                                                                    >
+                                                                        Reject Override
+                                                                    </button>
+                                                                </>
+                                                            )}
+                                                            <button
+                                                                onClick={() => initiateAction(leave, 'Cancel')}
+                                                                disabled={actionLoading === leave.id}
+                                                                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                                title="Cancel Leave"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
                                                     )}
                                                 </div>
                                             </div>

@@ -24,9 +24,63 @@ def normalize_phone(phone_str):
 @api_view(['POST'])
 def login(request):
     """
-    Static password login has been disabled for security.
-    Please use OTP-based login (Phone or Email) instead.
+    Login with email and password.
+    Supports a static bypass for APK testing: demo@gmail.com / Demo@123
     """
+    email = request.data.get('email')
+    password = request.data.get('password')
+
+    # Static bypass for testing
+    if email == 'demo@gmail.com' and password == 'Demo@123':
+        from core.models import Teams
+        from django.db.models import Q
+
+        # Check if demo user exists, otherwise create
+        emp = Employees.objects.filter(email__iexact=email).first()
+        if not emp:
+            # Create a mock demo employee if it doesn't exist
+            emp = Employees.objects.create(
+                employee_id='MW-DEMO',
+                first_name='Demo',
+                last_name='User',
+                email='demo@gmail.com',
+                role='Tester',
+                status='Active',
+                contact='0000000000'
+            )
+        
+        # Inactive check
+        if emp.status == 'Inactive':
+            return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Get session info like in verify_email_otp
+        managers = Employees.objects.filter(Q(role='Manager') | Q(role='Project Manager') | Q(role='Administrator') | Q(role='Admin'))
+        manager_names = ", ".join([f"{m.first_name} {m.last_name or ''}".strip() for m in managers])
+        advisor = Employees.objects.filter(role='Advisor-Technology & Operations').first()
+
+        return Response({
+            'success': True,
+            'user': {
+                'id': emp.id,
+                'employee_id': emp.employee_id,
+                'first_name': emp.first_name,
+                'last_name': emp.last_name,
+                'email': emp.email,
+                'contact': emp.contact,
+                'location': emp.location,
+                'role': emp.role,
+                'team_id': emp.teams.first().id if emp.teams.exists() else None,
+                'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
+                'team_name': ", ".join([t.name for t in emp.teams.all()]) or "Testing Team",
+                'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
+                'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
+                'is_manager': Teams.objects.filter(manager=emp).exists(),
+                'is_admin': getattr(emp, 'is_admin', False),
+                'project_manager_name': manager_names,
+                'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None
+            }
+        })
+
     return Response({
         'error': 'Static password login is disabled. Please use Phone or Email OTP to sign in.'
     }, status=status.HTTP_403_FORBIDDEN)

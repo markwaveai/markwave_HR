@@ -10,8 +10,10 @@ interface ClockCardProps {
     handleClockAction: () => void;
     canClock?: boolean;
     disabledReason?: string | null;
+    isPendingOverride?: boolean;
     onRetry?: () => void;
 }
+
 
 
 
@@ -22,9 +24,11 @@ const ClockCard: React.FC<ClockCardProps> = ({
     locationState,
     handleClockAction,
     canClock = true,
+    isPendingOverride = false,
     disabledReason,
     onRetry
 }) => {
+
     const lowerReason = disabledReason?.toLowerCase() || '';
     const isOnLeave = lowerReason.includes('leave');
     const isAbsent = lowerReason.includes('absent');
@@ -59,11 +63,22 @@ const ClockCard: React.FC<ClockCardProps> = ({
             {/* Header: Date and Status Badge */}
             <View style={styles.header}>
                 <Text style={styles.dateText}>Time Today - {dateStr}</Text>
-                {disabledReason && (
-                    <View style={[styles.badge, isError && { backgroundColor: '#fee2e2' }]}>
-                        <Text style={[styles.badgeText, isError && { color: '#ef4444' }]}>{disabledReason.toUpperCase()}</Text>
+                {(disabledReason || isPendingOverride) && (
+                    <View style={[
+                        styles.badge,
+                        isError && { backgroundColor: '#fee2e2' },
+                        isPendingOverride && { backgroundColor: '#f5f3ff' }
+                    ]}>
+                        <Text style={[
+                            styles.badgeText,
+                            isError && { color: '#ef4444' },
+                            isPendingOverride && { color: '#7c3aed' }
+                        ]}>
+                            {isPendingOverride ? 'PENDING OVERRIDE' : disabledReason?.toUpperCase()}
+                        </Text>
                     </View>
                 )}
+
             </View>
 
             {/* Body: Time and Button */}

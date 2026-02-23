@@ -44,8 +44,9 @@ def notify_leave_override(employee, leave_obj, date_str):
         message = f"""
         <b>{employee.first_name} {employee.last_name} ({employee.employee_id})</b> has checked in on <b>{date_str}</b>.<br><br>
         This date falls under an <b>Approved Leave</b> ({leave_obj.type}).<br>
-        The system has marked the attendance as Present, but the Leave remains Approved.<br><br>
-        Please review and manually cancel the leave if necessary to adjust the leave balance.
+        A <b>Leave Override Request</b> has been created and is pending your approval.<br><br>
+        Please review the request in the Admin Leave Management panel to Approve, Reject, or Cancel the leave.
+
         """
         
         # Notify Managers
@@ -244,11 +245,27 @@ def clock(request):
         to_date__gte=current_date_str
     ).first()
     
+    is_pending_override = False
     if conflicting_leave:
-        print(f"DEBUG: Found conflicting leave {conflicting_leave.id} on {current_date_str}. Allowing Override.")
-        # DISABLED: Do not auto-cancel leave.
-        # cancel_leave_for_date(conflicting_leave, current_date_str)
+        print(f"DEBUG: Found conflicting leave {conflicting_leave.id} on {current_date_str}. Creating LeaveOverrideRequest.")
+        is_pending_override = True
         
+        # Create or update LeaveOverrideRequest
+        override_req, _ = LeaveOverrideRequest.objects.get_or_create(
+            employee=employee,
+            date=current_date_str,
+            defaults={'leave': conflicting_leave}
+        )
+        
+        if clock_type == 'IN' or not clock_type:
+             if not override_req.check_in:
+                 override_req.check_in = current_time_str
+        elif clock_type == 'OUT':
+             override_req.check_out = current_time_str
+        
+        override_req.status = 'Pending'
+        override_req.save()
+
         # Notify Admin/Manager if this is the first punch of the day to avoid spamming
         first_punch_check = AttendanceLogs.objects.filter(employee=employee, date=current_date_str).exists()
         if not first_punch_check:
@@ -277,19 +294,21 @@ def clock(request):
     )
     
     # Update Attendance Summary
+    target_status = 'Pending Override' if is_pending_override else 'Present'
     attendance_summary, created = Attendance.objects.get_or_create(
         employee=employee,
         date=current_date_str,
-        defaults={'status': 'Present', 'break_minutes': 0}
+        defaults={'status': target_status, 'break_minutes': 0}
     )
     
     if created:
         if Holidays.objects.filter(date=current_date_str).exists():
             attendance_summary.is_holiday = True
     
-    # If the record already existed but was marked as something else, update to 'Present'
-    if not created and attendance_summary.status in ['Week Off', 'Holiday', 'Absent', '-', None]:
-        attendance_summary.status = 'Present'
+    # If the record already existed but was marked as something else, update status
+    if not created and (attendance_summary.status in ['Week Off', 'Holiday', 'Absent', '-', None] or is_pending_override):
+        attendance_summary.status = target_status
+
     
     if clock_type == 'IN':
         if not attendance_summary.check_in:
@@ -382,8 +401,9 @@ def get_status(request, employee_id):
             disabled_reason = 'Holiday'
         elif is_on_leave:
             disabled_reason = 'On Leave'
-            can_clock = False
+            can_clock = True # ALLOW OVERRIDE
         elif is_weekend:
+
             disabled_reason = 'Week Off'
         else:
             # Check for absent status (no activity after 11 AM on working day)
@@ -409,8 +429,12 @@ def get_status(request, employee_id):
         elif last_log and last_log.type == 'IN' and last_log.date == current_date_str:
             att_status = 'IN'
             
+        is_pending_override = Attendance.objects.filter(employee=employee, date=current_date_str, status='Pending Override').exists()
+            
         return Response({
             'status': att_status,
+            'is_pending_override': is_pending_override,
+
             'check_in': summary.check_in if summary else '-',
             'check_out': summary.check_out if summary else '-',
             'break_minutes': summary.break_minutes if summary else 0,

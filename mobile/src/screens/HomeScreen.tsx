@@ -62,6 +62,8 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
 
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isClockedIn, setIsClockedIn] = useState<boolean | null>(null);
+    const [isPendingOverride, setIsPendingOverride] = useState(false);
+
     const [canClock, setCanClock] = useState(true);
     const [locationState, setLocationState] = useState<string | null>(null);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
@@ -106,8 +108,10 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
         // 1. Status Fetch (Critical)
         const statusPromise = attendanceApi.getStatus(user.id, { retries: 2, timeout: 15000 }).then(statusData => {
             setIsClockedIn(statusData.status === 'IN');
+            setIsPendingOverride(statusData.is_pending_override === true);
             setCanClock(statusData.can_clock !== false);
             setDisabledReason(statusData.disabled_reason || null);
+
         }).catch(err => {
             console.log('⚠️ Status API Error (handled):', err.message);
             // On failure, we set error state to show retry button
@@ -465,9 +469,11 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     locationState={locationState}
                     handleClockAction={handleClockAction}
                     canClock={canClock}
+                    isPendingOverride={isPendingOverride}
                     disabledReason={disabledReason}
                     onRetry={() => fetchDashboardData(true)}
                 />
+
 
                 {/* Dashboard Stats - Employee Overview */}
                 {dashboardStats && (

@@ -583,17 +583,53 @@ def leave_action(request, request_id):
     
     print(f"DEBUG: leave_action called for ID {request_id}, action {action}")
     
-    if action not in ['Approve', 'Reject', 'Cancel']:
+    if action not in ['Approve', 'Reject', 'Cancel', 'ApproveOverride', 'RejectOverride']:
         return Response({'error': 'Invalid action'}, status=status.HTTP_400_BAD_REQUEST)
         
+    from api.attendance_views import cancel_leave_for_date
+    from core.models import Attendance, LeaveOverrideRequest
+
     if action == 'Approve':
         leave_request.status = 'Approved'
     elif action == 'Reject':
         leave_request.status = 'Rejected'
     elif action == 'Cancel':
         leave_request.status = 'Cancelled'
+    elif action == 'ApproveOverride':
+        # 1. Find the override request for this leave (likely for today, or passed in data)
+        # For simplicity, we assume we want to approve all pending overrides for this leave
+        overrides = LeaveOverrideRequest.objects.filter(leave=leave_request, status='Pending')
+        for ovr in overrides:
+            # Mark attendance as Present
+            att = Attendance.objects.filter(employee=ovr.employee, date=ovr.date).first()
+            if att:
+                att.status = 'Present'
+                att.save()
+            
+            # Cancel/Split the leave for that date
+            cancel_leave_for_date(leave_request, ovr.date)
+            
+            # Mark override as Approved
+            ovr.status = 'Approved'
+            ovr.save()
+        return Response({'message': 'Leave override request approved successfully'})
+
+    elif action == 'RejectOverride':
+        overrides = LeaveOverrideRequest.objects.filter(leave=leave_request, status='Pending')
+        for ovr in overrides:
+            # Mark attendance back to 'On Leave' or '-'? 
+            # Reverting to 'On Leave' is safer if they are still on leave
+            att = Attendance.objects.filter(employee=ovr.employee, date=ovr.date).first()
+            if att:
+                att.status = 'On Leave'
+                att.save()
+            
+            ovr.status = 'Rejected'
+            ovr.save()
+        return Response({'message': 'Leave override request rejected successfully'})
 
     leave_request.save()
+
     
     # Notify employee in background
     try:
