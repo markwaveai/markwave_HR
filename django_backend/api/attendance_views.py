@@ -355,6 +355,19 @@ def clock(request):
 
 @api_view(['GET'])
 def get_status(request, employee_id):
+    if employee_id == 'MW-DEMO' or employee_id == '999':
+        return Response({
+            'status': 'OUT',
+            'is_pending_override': False,
+            'check_in': '-',
+            'check_out': '-',
+            'break_minutes': 0,
+            'worked_hours': '-',
+            'last_punch': None,
+            'can_clock': True,
+            'disabled_reason': None,
+            'server_time': datetime.utcnow().isoformat()
+        })
     try:
         # Lookup employee to handle both string employee_id and internal ID
         employee = Employees.objects.filter(employee_id=employee_id).first()
@@ -451,6 +464,21 @@ def get_status(request, employee_id):
 
 @api_view(['GET'])
 def get_personal_stats(request, employee_id):
+    if employee_id == 'MW-DEMO' or employee_id == '999':
+        return Response({
+            'avg_working_hours': '8h 30m',
+            'lastWeekDiff': '+0h 15m',
+            'shift_start': '09:30 AM',
+            'shift_end': '06:30 PM',
+            'week': {
+                'me': {'avg': '8h 30m', 'onTime': '100%'},
+                'team': {'avg': '8h 10m', 'onTime': '95%'}
+            },
+            'month': {
+                'me': {'avg': '8h 25m', 'onTime': '98%'},
+                'team': {'avg': '8h 15m', 'onTime': '92%'}
+            }
+        })
     employee = Employees.objects.filter(employee_id=employee_id).first()
     if not employee and str(employee_id).isdigit():
         employee = Employees.objects.filter(pk=employee_id).first()
@@ -620,6 +648,21 @@ def get_personal_stats(request, employee_id):
 
 @api_view(['GET'])
 def get_history(request, employee_id):
+    if employee_id == 'MW-DEMO' or employee_id == '999':
+        # Return few days of mock history
+        today = datetime.utcnow()
+        result = []
+        for i in range(5):
+            d = (today - timedelta(days=i)).strftime('%Y-%m-%d')
+            result.append({
+                'date': d,
+                'status': 'Present',
+                'checkIn': '09:30 AM',
+                'checkOut': '06:30 PM',
+                'worked_hours': '9h 00m',
+                'logs': [{'in': '09:30 AM', 'out': '06:30 PM'}]
+            })
+        return Response(result)
     employee = Employees.objects.filter(employee_id=employee_id).first()
     if not employee and str(employee_id).isdigit():
         employee = Employees.objects.filter(pk=employee_id).first()

@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 const ENV = __DEV__ ? 'local' : 'production';
 
 const URLS = {
-    local: 'https://hr.markwave.ai/api',
+    local: Platform.OS === 'android' ? 'http://10.0.2.2:8000/api' : 'http://localhost:8000/api',
     production: 'https://hr.markwave.ai/api'
 };
 

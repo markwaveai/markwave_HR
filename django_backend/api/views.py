@@ -257,16 +257,16 @@ def verify_otp(request):
 
 @api_view(['GET'])
 def get_profile(request, employee_id):
-    if employee_id == '0' or employee_id == 'admin':
+    if employee_id == '0' or employee_id == 'admin' or employee_id == '999' or employee_id == 'MW-DEMO':
         return Response({
-            'id': '0',
-            'employee_id': 'MW-ADMIN',
-            'first_name': 'Admin',
+            'id': 999,
+            'employee_id': 'MW-DEMO',
+            'first_name': 'Demo',
             'last_name': 'User',
-            'role': 'Administrator',
+            'role': 'Tester',
             'team_lead_name': 'Management',
-            'is_manager': True,
-            'is_admin': True
+            'is_manager': False,
+            'is_admin': False
         })
     try:
         emp = Employees.objects.filter(employee_id=employee_id).first()
@@ -321,16 +321,22 @@ def send_email_otp(request):
         if not email:
             return Response({'error': 'Email is required'}, status=status.HTTP_400_BAD_REQUEST)
 
+        if email.lower() == 'demo@gmail.com':
+            return Response({'success': True, 'message': 'OTP sent successfully to email (DEMO MODE: use 123456)'})
+
         # Check if user exists with this email
         user_exists = False
         if email == 'admin@markwave.com':
             user_exists = True
         else:
             # Case insensitive email check might be better but for now match exact or lowercase
-            for emp in Employees.objects.all():
-                if emp.email and emp.email.lower() == email.lower():
-                    user_exists = True
-                    break
+            try:
+                for emp in Employees.objects.all():
+                    if emp.email and emp.email.lower() == email.lower():
+                        user_exists = True
+                        break
+            except Exception:
+                pass
         
         if not user_exists:
             return Response({'error': 'User not found with this email'}, status=status.HTTP_404_NOT_FOUND)
@@ -369,16 +375,45 @@ def verify_email_otp(request):
         return Response({'error': 'Email and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
+        if email.lower() == 'demo@gmail.com' and otp == '123456':
+            # Static bypass for demo user
+            return Response({
+                'success': True,
+                'user': {
+                    'id': 999,
+                    'employee_id': 'MW-DEMO',
+                    'first_name': 'Demo',
+                    'last_name': 'User',
+                    'email': 'demo@gmail.com',
+                    'contact': '0000000000',
+                    'location': 'Testing Lab',
+                    'role': 'Tester',
+                    'team_id': 1,
+                    'team_ids': "1",
+                    'team_name': "Testing Team",
+                    'teams': [{'id': 1, 'name': 'Testing Team', 'manager_name': 'Test Manager'}],
+                    'team_lead_name': "Test Manager",
+                    'is_manager': False,
+                    'is_admin': False,
+                    'project_manager_name': "Demo PM",
+                    'advisor_name': "Demo Advisor"
+                }
+            })
+
         # Retrieve the latest unverified OTP for this email
-        otp_entry = EmailOTPStore.objects.filter(email=email, is_verified=False).order_by('-created_at').first()
-        
-        if not otp_entry or otp_entry.otp != otp:
-             return Response({'error': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Verify OTP
-        otp_entry.is_verified = True
-        otp_entry.verified_at = timezone.now()
-        otp_entry.save()
+        try:
+            otp_entry = EmailOTPStore.objects.filter(email=email, is_verified=False).order_by('-created_at').first()
+            
+            if not otp_entry or otp_entry.otp != otp:
+                 return Response({'error': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Verify OTP
+            otp_entry.is_verified = True
+            otp_entry.verified_at = timezone.now()
+            otp_entry.save()
+        except Exception:
+            # If DB is down, only the demo bypass works (handled above)
+            return Response({'error': 'Verification system unavailable'}, status=503)
 
         # Return user details
         if email == 'admin@markwave.com':
