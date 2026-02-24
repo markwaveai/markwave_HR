@@ -163,10 +163,9 @@ function App() {
         })
         .catch(err => setApiErrors(prev => ({ ...prev, balance: err.message || 'Failed' })));
 
-      const loadAdminStats = isAdminUser ? adminApi.getDashboardStats()
+      const loadAdminStats = adminApi.getDashboardStats()
         .then(data => setDashboardStats(data))
-        .catch(err => setApiErrors(prev => ({ ...prev, adminStats: err.message || 'Failed' })))
-        : Promise.resolve();
+        .catch(err => setApiErrors(prev => ({ ...prev, adminStats: err.message || 'Failed' })));
 
       const loadHolidays = attendanceApi.getHolidays()
         .then(data => setHolidays(data || []))
