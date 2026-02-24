@@ -54,7 +54,7 @@ export const authApi = {
         formData.append('profile_picture', file);
 
         return fetch(`${API_BASE_URL}/team/members/${employeeId}/`, {
-            method: 'PATCH',
+            method: 'POST',
             body: formData,
             // fetch will automatically set Content-Type: multipart/form-data
         }).then(async res => {

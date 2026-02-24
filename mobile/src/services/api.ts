@@ -66,6 +66,9 @@ const apiFetch = async (endpoint: string, options: RequestInit & { retries?: num
                 console.log(`Request timed out [${url}] after ${timeout}ms`);
                 throw new Error('Request timed out. Please check your connection.');
             }
+            if (isNetworkError) {
+                console.log(`Network failure [${url}]: Possible causes: Server down, invalid IP, or same-network restriction.`);
+            }
             console.log(`Fetch error [${url}]:`, error instanceof Error ? error.message : JSON.stringify(error));
             throw error;
         }
@@ -109,7 +112,7 @@ export const authApi = {
         } as any);
 
         return fetch(`${API_BASE_URL}/team/members/${employeeId}/`, {
-            method: 'PATCH',
+            method: 'POST',
             body: formData,
             headers: {
                 // Do not set Content-Type here; fetch will automatically 

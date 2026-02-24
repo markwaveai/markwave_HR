@@ -6,6 +6,8 @@ interface ClockCardProps {
     currentTime: Date;
     isClockedIn: boolean | null;
     isLoadingLocation: boolean;
+    isSilentLocationLoading?: boolean;
+    isClocking?: boolean;
     locationState: string | null;
     handleClockAction: () => void;
     canClock?: boolean;
@@ -21,6 +23,8 @@ const ClockCard: React.FC<ClockCardProps> = ({
     currentTime,
     isClockedIn,
     isLoadingLocation,
+    isSilentLocationLoading = false,
+    isClocking = false,
     locationState,
     handleClockAction,
     canClock = true,
@@ -52,11 +56,11 @@ const ClockCard: React.FC<ClockCardProps> = ({
     const ampmStr = isPM ? 'PM' : 'AM';
 
     // Button is disabled if:
-    // 1. Location is currently loading
+    // 1. Clocking action is in progress
     // 2. User is Absent (Absent status blocks clocking)
     // 3. User cannot clock AND is not on Leave AND is not in Error state
     //    (Being on Leave acts as an override to allow clocking even if canClock is false)
-    const isButtonDisabled = isLoadingLocation || isAbsent || (!canClock && !isError && !isOnLeave);
+    const isButtonDisabled = isClocking || isAbsent || (!canClock && !isError && !isOnLeave);
 
     return (
         <View style={styles.card}>
@@ -109,7 +113,7 @@ const ClockCard: React.FC<ClockCardProps> = ({
                         disabled={isButtonDisabled}
                         activeOpacity={0.8}
                     >
-                        {isLoadingLocation || (isClockedIn === null && !isOnLeave && !isAbsent && !isError) ? (
+                        {isClocking || (isClockedIn === null && !isOnLeave && !isAbsent && !isError) ? (
                             <ActivityIndicator size="small" color="#8e78b0" />
                         ) : (
                             <Text style={[styles.buttonText, isError && { color: '#d97706' }]}>
@@ -120,7 +124,7 @@ const ClockCard: React.FC<ClockCardProps> = ({
                 </View>
             </View>
 
-            {(locationState || isLoadingLocation) && (
+            {(locationState || (isLoadingLocation && !isSilentLocationLoading)) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
                     <MapPinIcon size={12} color="white" style={{ marginRight: 4, opacity: 0.8 }} />
                     <Text style={styles.locationText} numberOfLines={3}>

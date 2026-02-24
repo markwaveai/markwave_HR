@@ -46,13 +46,44 @@ import {
     ZapIcon,
 } from '../components/Icons';
 
+import { storage } from '../utils/storage';
 import LeaveBalanceCard from '../components/LeaveBalanceCard';
 
-const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabToSettings: (u: any) => void }) => {
+interface HomeScreenProps {
+    user: any;
+    setActiveTabToSettings: (u: any) => void;
+    attendanceState: {
+        isClockedIn: boolean | null;
+        isPendingOverride: boolean;
+        canClock: boolean;
+        disabledReason: string | null;
+        personalStats: any;
+        leaveBalance: any;
+        dashboardStats: any;
+        holidays: any[];
+        leaveHistory: any[];
+        apiErrors: { [key: string]: string };
+    };
+    onRefresh: () => void;
+}
+
+const HomeScreen = ({ user, setActiveTabToSettings, attendanceState, onRefresh }: HomeScreenProps) => {
+    const {
+        isClockedIn,
+        isPendingOverride,
+        canClock,
+        disabledReason,
+        personalStats,
+        leaveBalance,
+        dashboardStats,
+        holidays,
+        leaveHistory,
+        apiErrors
+    } = attendanceState;
     if (!user) {
         return (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#6366f1" />
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F5F7FA' }}>
+                <ActivityIndicator size="large" color="#48327d" />
             </View>
         );
     }
@@ -61,13 +92,10 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     console.log('User data:', JSON.stringify(user, null, 2));
 
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [isClockedIn, setIsClockedIn] = useState<boolean | null>(null);
-    const [isPendingOverride, setIsPendingOverride] = useState(false);
-
-    const [canClock, setCanClock] = useState(true);
     const [locationState, setLocationState] = useState<string | null>(null);
     const [isLoadingLocation, setIsLoadingLocation] = useState(false);
-    const [personalStats, setPersonalStats] = useState<any>(null);
+    const [isSilentLocationLoading, setIsSilentLocationLoading] = useState(false);
+    const [isClocking, setIsClocking] = useState(false);
     const [posts, setPosts] = useState<any[]>([]);
     const [isFeedLoading, setIsFeedLoading] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
@@ -78,93 +106,26 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     const [commentingOn, setCommentingOn] = useState<number | null>(null);
     const [newComment, setNewComment] = useState('');
     const [selectedImages, setSelectedImages] = useState<string[]>([]);
-    const [leaveBalance, setLeaveBalance] = useState<any>(null);
-    const [disabledReason, setDisabledReason] = useState<string | null>(null);
-    const [dashboardStats, setDashboardStats] = useState<any>(null);
-    const [isAbsenteesModalVisible, setIsAbsenteesModalVisible] = useState(false);
-    const [isAllLoginsModalVisible, setIsAllLoginsModalVisible] = useState(false);
     const [holidayIndex, setHolidayIndex] = useState(0);
-    const [holidays, setHolidays] = useState<any[]>([]);
-    const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
     const [statsDuration, setStatsDuration] = useState<'week' | 'month'>('week');
     const [isRegularizeModalVisible, setIsRegularizeModalVisible] = useState(false);
     const [missedCheckoutDate, setMissedCheckoutDate] = useState<string | null>(null);
+
     const [absenteeSearch, setAbsenteeSearch] = useState('');
     const [absenteeFilter, setAbsenteeFilter] = useState('All Status');
     const [isStatusDropdownVisible, setIsStatusDropdownVisible] = useState(false);
-    const [apiErrors, setApiErrors] = useState<{ [key: string]: string }>({});
+    const [isAbsenteesModalVisible, setIsAbsenteesModalVisible] = useState(false);
+    const [isAllLoginsModalVisible, setIsAllLoginsModalVisible] = useState(false);
+
     const isFetchingRef = React.useRef(false);
 
     const isAdmin = user?.is_admin === true ||
         ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations'].includes(user?.role);
 
-    console.log('Is admin check:', isAdmin, 'Role:', user?.role, 'is_admin flag:', user?.is_admin);
+    // Local caching removed, handled by App.tsx
 
-    const fetchDashboardData = async (showAlerts = false) => {
-        // Trigger both fetches in parallel
-        // We don't await secondary data to block status, but we await both to clear 'refreshing' state if this was a refresh.
-        // Actually, let's treat them semi-independently to allow UI to update progressively.
-
-        // 1. Status Fetch (Critical)
-        const statusPromise = attendanceApi.getStatus(user.id, { retries: 2, timeout: 15000 }).then(statusData => {
-            setIsClockedIn(statusData.status === 'IN');
-            setIsPendingOverride(statusData.is_pending_override === true);
-            setCanClock(statusData.can_clock !== false);
-            setDisabledReason(statusData.disabled_reason || null);
-
-        }).catch(err => {
-            console.log('⚠️ Status API Error (handled):', err.message);
-            // On failure, we set error state to show retry button
-            setIsClockedIn(false);
-            setCanClock(false);
-            setDisabledReason('Status check failed');
-        });
-
-        // 2. Secondary Data Fetch - Progressive Loading
-        // We fire these independently so one slow request doesn't block the others.
-        const secondaryPromise = (async () => {
-            const loadStats = attendanceApi.getPersonalStats(user.id)
-                .then(data => setPersonalStats(data))
-                .catch(err => setApiErrors(prev => ({ ...prev, stats: err.message || 'Failed' })));
-
-            const loadBalance = leaveApi.getBalance(user.id)
-                .then(data => setLeaveBalance(data))
-                .catch(err => setApiErrors(prev => ({ ...prev, balance: err.message || 'Failed' })));
-
-            const loadAdminStats = adminApi.getDashboardStats()
-                .then(data => setDashboardStats(data))
-                .catch(err => setApiErrors(prev => ({ ...prev, adminStats: err.message || 'Failed' })));
-
-            const loadHolidays = attendanceApi.getHolidays()
-                .then(data => setHolidays(data || []))
-                .catch(err => setApiErrors(prev => ({ ...prev, holidays: err.message || 'Failed' })));
-
-            const loadLeaves = !isAdmin ? leaveApi.getLeaves(user.id)
-                .then(data => setLeaveHistory(data || []))
-                .catch(err => setApiErrors(prev => ({ ...prev, leaves: err.message || 'Failed' })))
-                : Promise.resolve();
-
-            const loadHistory = attendanceApi.getHistory(user.id)
-                .then(attHistoryData => {
-                    // History logic for missed checkout
-                    if (attHistoryData && Array.isArray(attHistoryData)) {
-                        const today = new Date().toISOString().split('T')[0];
-                        const missed = attHistoryData.find((log: any) => {
-                            if (log.date === today) return false;
-                            const hasIncomplete = log.logs?.some((session: any) => session.in && !session.out);
-                            return hasIncomplete || (log.status === 'Present' && log.checkOut === '-');
-                        });
-                        setMissedCheckoutDate(missed ? missed.date : null);
-                    }
-                })
-                .catch(err => setApiErrors(prev => ({ ...prev, history: err.message || 'Failed' })));
-
-            // We await all of them ONLY to know when to stop the global refreshing spinner (if active)
-            await Promise.allSettled([loadStats, loadBalance, loadAdminStats, loadHolidays, loadLeaves, loadHistory]);
-        })();
-
-        // Await both just to know when "fetching" is truly done, mostly for Pull-To-Refresh
-        await Promise.all([statusPromise, secondaryPromise]);
+    const fetchDashboardData = async () => {
+        onRefresh();
     };
 
     const fetchFeedData = async () => {
@@ -180,35 +141,24 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     };
 
 
-    const fetchData = async (isRefresh = false, IsInitial = false) => {
-        if (isFetchingRef.current && !isRefresh) {
-            console.log('Skipping fetch - already in progress');
-            return;
-        }
+    const onRefreshInternal = useCallback(() => {
+        setRefreshing(true);
+        fetchGlobalDataLocal().finally(() => setRefreshing(false));
+    }, [user.id]);
 
+    const fetchGlobalDataLocal = async () => {
         isFetchingRef.current = true;
-        if (isRefresh) setRefreshing(true);
-
         try {
-            // Fetch critical data first
-            await fetchDashboardData(isRefresh || IsInitial);
-
-            // Then fetch feed
+            await fetchDashboardData();
             await fetchFeedData();
-        } catch (e) {
-            console.log('Fetch data global error:', e);
         } finally {
             isFetchingRef.current = false;
-            if (isRefresh) setRefreshing(false);
         }
     };
 
-    const onRefresh = useCallback(() => {
-        fetchData(true);
-    }, [user.id]);
-
-    const updateLocation = async (): Promise<string | null> => {
-        setIsLoadingLocation(true);
+    const updateLocation = async (silent = false): Promise<string | null> => {
+        if (!silent) setIsLoadingLocation(true);
+        else setIsSilentLocationLoading(true);
         try {
             let hasPermission = false;
             if (Platform.OS === 'android') {
@@ -225,7 +175,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     const timeout = setTimeout(() => {
                         console.log("Geolocation timeout occurred");
                         resolve("Location Timeout");
-                    }, 20000); // 20s safety timeout
+                    }, 10000); // Reduced to 10s safety timeout
 
                     Geolocation.getCurrentPosition(
                         async (position) => {
@@ -245,12 +195,12 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                         },
                         (error) => {
                             clearTimeout(timeout);
-                            console.log(error.code, error.message);
+                            console.log("Location Error:", error.code, error.message);
                             const errStr = "Location Error";
                             setLocationState(errStr);
                             resolve(errStr);
                         },
-                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
                     );
                 });
                 return finalLocation;
@@ -260,7 +210,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 return deniedStr;
             }
         } catch (err) {
-            console.warn(err);
+            console.log("updateLocation error:", err);
             return null;
         } finally {
             setIsLoadingLocation(false);
@@ -268,10 +218,10 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     };
 
     useEffect(() => {
-        fetchData(false, true);
+        fetchGlobalDataLocal();
         // Also fetch location silently on load
-        updateLocation();
-        const interval = setInterval(() => fetchData(), 60000); // Poll every 60 seconds
+        updateLocation(true);
+        const interval = setInterval(() => fetchGlobalDataLocal(), 60000); // Poll every 60 seconds
         return () => clearInterval(interval);
     }, [user.id]);
 
@@ -390,18 +340,18 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
     };
 
     const handleClockAction = async () => {
-        setIsLoadingLocation(true);
+        setIsClocking(true);
         let currentLocation = locationState;
 
         // Fetch location if we don't have it or if it's an error
         if (!currentLocation || currentLocation.includes('Error') || currentLocation.includes('Denied') || currentLocation.includes('Timeout')) {
-            currentLocation = await updateLocation();
+            currentLocation = await updateLocation(false); // Non-silent for manual action
         }
 
         // Check again with the NEWEST location value
         if (!currentLocation || currentLocation.includes('Error') || currentLocation.includes('Denied') || currentLocation.includes('Timeout')) {
             Alert.alert('Location Required', 'Please enable GPS and grant permission to clock in/out.');
-            setIsLoadingLocation(false);
+            setIsClocking(false);
             return;
         }
 
@@ -414,11 +364,11 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 type: nextType
             });
             // Await data refresh so UI updates before loading ends
-            await fetchDashboardData();
+            await onRefresh();
         } catch (error) {
             Alert.alert('Error', 'Failed to update attendance');
         } finally {
-            setIsLoadingLocation(false);
+            setIsClocking(false);
         }
     };
 
@@ -450,7 +400,7 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                 style={styles.container}
                 contentContainerStyle={{ paddingBottom: hp(12) }}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#6366f1']} />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefreshInternal} colors={['#6366f1']} />
                 }
             >
                 {/* Welcome Section */}
@@ -468,12 +418,14 @@ const HomeScreen = ({ user, setActiveTabToSettings }: { user: any; setActiveTabT
                     currentTime={currentTime}
                     isClockedIn={isClockedIn}
                     isLoadingLocation={isLoadingLocation}
+                    isSilentLocationLoading={isSilentLocationLoading}
+                    isClocking={isClocking}
                     locationState={locationState}
                     handleClockAction={handleClockAction}
                     canClock={canClock}
                     isPendingOverride={isPendingOverride}
                     disabledReason={disabledReason}
-                    onRetry={() => fetchDashboardData(true)}
+                    onRetry={() => onRefresh()}
                 />
 
 

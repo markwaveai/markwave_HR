@@ -13,34 +13,7 @@ import {
   LogBox,
   ActivityIndicator
 } from 'react-native';
-// Safety check for AsyncStorage native module
-const storage = {
-  getItem: async (key: string) => {
-    try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      return await AsyncStorage.getItem(key);
-    } catch (e) {
-      console.warn('AsyncStorage native module not found, using memory fallback');
-      return (globalThis as any)[`fallback_${key}`] || null;
-    }
-  },
-  setItem: async (key: string, value: string) => {
-    try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.setItem(key, value);
-    } catch (e) {
-      (globalThis as any)[`fallback_${key}`] = value;
-    }
-  },
-  removeItem: async (key: string) => {
-    try {
-      const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-      await AsyncStorage.removeItem(key);
-    } catch (e) {
-      delete (globalThis as any)[`fallback_${key}`];
-    }
-  }
-};
+import { storage } from './src/utils/storage';
 
 // LogBox.ignoreAllLogs(); // Hide all warnings from the UI
 import EmployeeListScreen from './src/screens/EmployeeListScreen';
@@ -57,7 +30,7 @@ import LoginScreen from './src/screens/LoginScreen';
 import TeamManagementScreen from './src/screens/TeamManagementScreen';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import ProfileModal from './src/components/ProfileModal';
-import { authApi } from './src/services/api';
+import { authApi, attendanceApi, leaveApi, adminApi } from './src/services/api';
 
 /* ... existing interfaces ... */
 
@@ -106,7 +79,22 @@ function App() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
 
-  // Load user session on mount
+  // Global Attendance/Dashboard State
+  const [isClockedIn, setIsClockedIn] = useState<boolean | null>(null);
+  const [isPendingOverride, setIsPendingOverride] = useState(false);
+  const [canClock, setCanClock] = useState(true);
+  const [disabledReason, setDisabledReason] = useState<string | null>(null);
+  const [personalStats, setPersonalStats] = useState<any>(null);
+  const [leaveBalance, setLeaveBalance] = useState<any>(null);
+  const [dashboardStats, setDashboardStats] = useState<any>(null);
+  const [holidays, setHolidays] = useState<any[]>([]);
+  const [leaveHistory, setLeaveHistory] = useState<any[]>([]);
+  const [apiErrors, setApiErrors] = useState<{ [key: string]: string }>({});
+
+  // Refresh lock to prevent concurrent fetches
+  const isRefreshingData = React.useRef(false);
+
+  // Load user session and cached dashboard stats on mount
   useEffect(() => {
     const loadSession = async () => {
       try {
@@ -115,6 +103,21 @@ function App() {
           const userData = JSON.parse(savedUser);
           setUser(userData);
           setIsLoggedIn(true);
+
+          // After setting user, try to load cached dashboard data
+          const cachedStatus = await storage.getItem(`attendance_status_${userData.id}`);
+          const cachedBalance = await storage.getItem(`leave_balance_${userData.id}`);
+          const cachedStats = await storage.getItem(`personal_stats_${userData.id}`);
+
+          if (cachedStatus) {
+            const statusData = JSON.parse(cachedStatus);
+            setIsClockedIn(statusData.status === 'IN');
+            setIsPendingOverride(statusData.is_pending_override === true);
+            setCanClock(statusData.can_clock !== false);
+            setDisabledReason(statusData.disabled_reason || null);
+          }
+          if (cachedBalance) setLeaveBalance(JSON.parse(cachedBalance));
+          if (cachedStats) setPersonalStats(JSON.parse(cachedStats));
         }
 
         // Restore last active tab if user is logged in
@@ -130,6 +133,57 @@ function App() {
     };
     loadSession();
   }, []);
+
+  const fetchGlobalData = async (userId: string, isAdminUser: boolean) => {
+    if (isRefreshingData.current) return;
+    isRefreshingData.current = true;
+
+    try {
+      console.log('Fetching global data for user:', userId);
+      // 1. Status (Critical)
+      const statusData = await attendanceApi.getStatus(userId, { retries: 2, timeout: 15000 });
+      setIsClockedIn(statusData.status === 'IN');
+      setIsPendingOverride(statusData.is_pending_override === true);
+      setCanClock(statusData.can_clock !== false);
+      setDisabledReason(statusData.disabled_reason || null);
+      storage.setItem(`attendance_status_${userId}`, JSON.stringify(statusData));
+
+      // 2. Parallel Secondary Data
+      const loadStats = attendanceApi.getPersonalStats(userId)
+        .then(data => {
+          setPersonalStats(data);
+          storage.setItem(`personal_stats_${userId}`, JSON.stringify(data));
+        })
+        .catch(err => setApiErrors(prev => ({ ...prev, stats: err.message || 'Failed' })));
+
+      const loadBalance = leaveApi.getBalance(userId)
+        .then(data => {
+          setLeaveBalance(data);
+          storage.setItem(`leave_balance_${userId}`, JSON.stringify(data));
+        })
+        .catch(err => setApiErrors(prev => ({ ...prev, balance: err.message || 'Failed' })));
+
+      const loadAdminStats = isAdminUser ? adminApi.getDashboardStats()
+        .then(data => setDashboardStats(data))
+        .catch(err => setApiErrors(prev => ({ ...prev, adminStats: err.message || 'Failed' })))
+        : Promise.resolve();
+
+      const loadHolidays = attendanceApi.getHolidays()
+        .then(data => setHolidays(data || []))
+        .catch(err => setApiErrors(prev => ({ ...prev, holidays: err.message || 'Failed' })));
+
+      const loadLeaves = !isAdminUser ? leaveApi.getLeaves(userId)
+        .then(data => setLeaveHistory(data || []))
+        .catch(err => setApiErrors(prev => ({ ...prev, leaves: err.message || 'Failed' })))
+        : Promise.resolve();
+
+      await Promise.allSettled([loadStats, loadBalance, loadAdminStats, loadHolidays, loadLeaves]);
+    } catch (e) {
+      console.log('Global data fetch failed:', e);
+    } finally {
+      isRefreshingData.current = false;
+    }
+  };
 
   // Save activeTab to storage whenever it changes
   useEffect(() => {
@@ -151,36 +205,38 @@ function App() {
     }
   };
 
-  // Refresh user profile in background when logged in
+  // Refresh user profile and global data in background when logged in
   useEffect(() => {
-    if (isLoggedIn && user?.employee_id) {
-      const refreshProfile = async () => {
+    if (isLoggedIn && user?.id) {
+      const refreshAll = async () => {
         try {
-          // Skip refresh for offline admin or incomplete sessions
-          if (user.employee_id === 'MW-ADMIN') return;
-
-          console.log('Refreshing user profile...', user.employee_id);
-          const profileData = await authApi.getProfile(user.employee_id);
-
-          if (profileData && (profileData.employee_id || profileData.id)) {
-            // profileData is the user object from get_profile view
-            const updatedUser = { ...user, ...profileData };
-
-            // Only update if there are changes to avoid unnecessary re-renders
-            if (JSON.stringify(updatedUser) !== JSON.stringify(user)) {
-              console.log('Profile updated from backend. Role:', updatedUser.role);
-              setUser(updatedUser);
-              await storage.setItem('user_session', JSON.stringify(updatedUser)); // Update cache
+          // Skip profile refresh for offline admin
+          if (user.employee_id !== 'MW-ADMIN') {
+            console.log('Refreshing user profile...', user.employee_id || user.id);
+            const profileData = await authApi.getProfile(user.employee_id || user.id);
+            if (profileData && (profileData.employee_id || profileData.id)) {
+              const updatedUser = { ...user, ...profileData };
+              if (JSON.stringify(updatedUser) !== JSON.stringify(user)) {
+                setUser(updatedUser);
+                await storage.setItem('user_session', JSON.stringify(updatedUser));
+              }
             }
           }
+
+          // Fetch dashboard data
+          await fetchGlobalData(user.id, isAdmin);
         } catch (e) {
-          console.log('Background profile refresh failed:', e);
+          console.log('Background refresh failed:', e);
         }
       };
 
-      refreshProfile();
+      refreshAll();
+
+      // Poll every 5 minutes in background
+      const interval = setInterval(refreshAll, 5 * 60 * 1000);
+      return () => clearInterval(interval);
     }
-  }, [isLoggedIn]); // Run when login status changes
+  }, [isLoggedIn, user?.id]); // Run when login status or user ID changes
 
   const handleLogoutPress = () => {
     setModalVisible(true);
@@ -343,8 +399,23 @@ function App() {
           <View style={styles.mainContent}>
             {activeTab === 'Home' && (
               <View style={{ flex: 1 }}>
-
-                <HomeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />
+                <HomeScreen
+                  user={appUser}
+                  setActiveTabToSettings={() => setActiveTab('Settings')}
+                  attendanceState={{
+                    isClockedIn,
+                    isPendingOverride,
+                    canClock,
+                    disabledReason,
+                    personalStats,
+                    leaveBalance,
+                    dashboardStats,
+                    holidays,
+                    leaveHistory,
+                    apiErrors
+                  }}
+                  onRefresh={() => fetchGlobalData(user.id, isAdmin)}
+                />
               </View>
             )}
             {activeTab === 'Team' && <MyTeamScreen user={appUser} />}

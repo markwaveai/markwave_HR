@@ -277,7 +277,7 @@ def designation_list(request):
     designations = Employees.objects.exclude(role__isnull=True).exclude(role='').values_list('role', flat=True).distinct().order_by('role')
     return Response([{'name': d} for d in designations])
 
-@api_view(['PUT', 'PATCH', 'DELETE'])
+@api_view(['PUT', 'PATCH', 'DELETE', 'POST'])
 @parser_classes([JSONParser, MultiPartParser, FormParser])
 def member_detail(request, pk):
     try:
@@ -288,10 +288,13 @@ def member_detail(request, pk):
     except Employees.DoesNotExist:
         return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
 
-    if request.method in ['PUT', 'PATCH']:
+    if request.method in ['PUT', 'PATCH', 'POST']:
         # Permission check: Only manager of the team or Admin can add/update
+        # Also allow if the user is updating THEIR OWN profile
         acting_user_id = request.data.get('acting_user_id')
         new_team_id = request.data.get('team_id')
+        
+        is_authorized = False
         
         if acting_user_id:
             try:
@@ -301,35 +304,35 @@ def member_detail(request, pk):
                 else:
                     acting_emp = Employees.objects.get(employee_id=acting_user_id)
                 
-                # Revised Permission Logic
-                is_authorized = False
-                
-                # 1. Broad Admin Check (consistent across app)
+                # 1. Broad Admin Check
                 if is_user_admin(acting_emp):
                     is_authorized = True
                 
-                # Allow self-update
+                # 2. Allow self-update
                 if acting_emp.id == employee.id:
                     is_authorized = True
                 
                 if not is_authorized:
-                    # 2. Check if they are the manager of ANY of member's CURRENT teams
-                    # In M2M, employee.teams is a queryset
+                    # 3. Check if they are the manager of ANY of member's CURRENT teams
                     if employee.teams.filter(manager=acting_emp).exists():
                         is_authorized = True
                     
-                    # 3. Check if they are the manager of the member's NEW target team
+                    # 4. Check if they are the manager of the member's NEW target team
                     if not is_authorized and new_team_id:
                         if Teams.objects.filter(id=new_team_id, manager=acting_emp).exists():
                             is_authorized = True
-                    
-                if not is_authorized:
-                    return Response({'error': 'Unauthorized. Only the Team Leader or an Admin can manage members.'}, status=403)
             except Employees.DoesNotExist:
                 return Response({'error': 'Acting user not found'}, status=403)
             except Exception as e:
                 print(f"Permission check error: {e}")
-                pass # Continue if check fails for other reasons for now to avoid blocking
+        
+        # If no acting_user_id provided, we still need to decide if we allow it.
+        # For profile picture updates from the app, acting_user_id might be missing in the multipart form.
+        if not acting_user_id and 'profile_picture' in request.FILES:
+            is_authorized = True
+
+        if not is_authorized:
+            return Response({'error': 'Unauthorized. Only the Team Leader or an Admin can manage members.'}, status=403)
 
         data = request.data
 
