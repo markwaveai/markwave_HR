@@ -85,39 +85,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
         attendanceApi.getHolidays().then(h => setHolidays(h)).catch(() => setHolidays([]));
     }, [EMPLOYEE_ID]);
 
-    // Auto-populate Notify To field
-    useEffect(() => {
-        if (!profile && !user) return;
-
-        const leadStr = profile?.team_lead_name || user?.team_lead_name || '';
-        const pmStr = profile?.project_manager_name || '';
-        const advisorStr = profile?.advisor_name || '';
-
-        const names = new Set<string>();
-
-        const addNames = (val: string) => {
-            if (!val) return;
-            val.split(',').forEach(s => {
-                const trimmed = s.trim();
-                if (trimmed && trimmed !== 'Team Lead') names.add(trimmed);
-            });
-        };
-
-        addNames(leadStr);
-        addNames(pmStr);
-        addNames(advisorStr);
-
-        // Filter out own name
-        const currentUserName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
-        if (currentUserName) {
-            names.delete(currentUserName);
-        }
-
-        const autoList = Array.from(names);
-        if (autoList.length > 0) {
-            setNotifyTo(autoList);
-        }
-    }, [profile, user]);
+    // Auto-populate Notify To field removed as per user request
 
     // Helper to check if date is Sunday or Holiday
     const isDateDisabled = (dateStr: string) => {
@@ -130,35 +98,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
     };
 
     const isTimeRestricted = () => {
-        if (!fromDate) return false;
-
-        // Only apply time restrictions for TODAY
-        const now = new Date();
-        const selectedDate = new Date(fromDate);
-        const isToday = selectedDate.getDate() === now.getDate() &&
-            selectedDate.getMonth() === now.getMonth() &&
-            selectedDate.getFullYear() === now.getFullYear();
-
-        if (!isToday) return false;
-
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const currentTime = currentHour + (currentMinute / 60);
-
-        // Rule 1: Enable requests only after 9:30 AM
-        if (currentTime < 9.5) return true; // Before 9:30 AM (9.5)
-
-        // Rule 2: Morning Session (First Half) - valid between 9:30 AM and 12:30 PM
-        // Also applies to Full Day (since it includes morning)
-        if (fromSession === 'First Half' || fromSession === 'Full Day') {
-            if (currentTime > 12.5) return true; // After 12:30 PM
-        }
-
-        // Rule 3: Afternoon Session (Second Half) - valid before 2:00 PM
-        if (fromSession === 'Second Half') {
-            if (currentTime >= 14) return true; // After 2:00 PM
-        }
-
+        // Restriction removed: Users can now apply for leave at any time for the current month.
         return false;
     };
 

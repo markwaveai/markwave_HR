@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeftIcon, EditIcon, SaveIcon } from '../components/Icons';
 import { normalize, wp, hp } from '../utils/responsive';
 
@@ -56,7 +55,7 @@ All content, design, software, and logic within the HR Portal are the intellectu
 © 2026 Markwave HR. All rights reserved.`);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -237,7 +236,7 @@ All content, design, software, and logic within the HR Portal are the intellectu
 
                 <View style={{ height: 40 }} />
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 };
 

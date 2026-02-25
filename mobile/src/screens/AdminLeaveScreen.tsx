@@ -90,17 +90,29 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
         }
     };
 
-    const handleAction = async (id: number, action: string) => {
-        setActionLoading(id);
-        try {
-            await leaveApi.action(id, action);
-            Alert.alert("Success", `Leave request ${action}d successfully`);
-            setLeaves(prev => prev.filter(l => l.id !== id));
-        } catch (error) {
-            Alert.alert("Error", `Failed to ${action} request`);
-        } finally {
-            setActionLoading(null);
-        }
+    const handleAction = async (id: number, action: string, employeeName?: string) => {
+        const confirmAction = async () => {
+            setActionLoading(id);
+            try {
+                await leaveApi.action(id, action);
+                Alert.alert("Success", `Leave request ${action}d successfully`);
+                setLeaves(prev => prev.filter(l => l.id !== id));
+                if (EMPLOYEE_ID) fetchMyHistory(); // Refresh history
+            } catch (error) {
+                Alert.alert("Error", `Failed to ${action} request`);
+            } finally {
+                setActionLoading(null);
+            }
+        };
+
+        Alert.alert(
+            `${action} Request`,
+            `Are you sure you want to ${action.toLowerCase()} this leave request${employeeName ? ` for ${employeeName}` : ''}?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: action, onPress: confirmAction, style: action === 'Reject' || action === 'Cancel' ? 'destructive' : 'default' }
+            ]
+        );
     };
 
     const getStatusColor = (type: string) => {
@@ -280,7 +292,7 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
             </View>
 
             {activeTab === 'wfh' ? (
-                <AdminWorkFromHomeScreen />
+                <AdminWorkFromHomeScreen user={user} />
             ) : activeTab === 'history' ? (
                 <ScrollView contentContainerStyle={styles.listContainer}>
                     {historyLoading ? (
@@ -297,18 +309,21 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                 <View key={index} style={styles.card}>
                                     <View style={styles.cardHeader}>
                                         <View style={{ flex: 1 }}>
-                                            <Text style={styles.employeeName}>{leaveLabel}</Text>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                                <CalendarIcon size={normalize(14)} color="#48327d" />
+                                                <Text style={styles.employeeName}>{leaveLabel}</Text>
+                                            </View>
                                             <Text style={styles.employeeId}>
                                                 {item.fromDate === item.toDate ? item.fromDate : `${item.fromDate} → ${item.toDate}`}
                                             </Text>
                                         </View>
-                                        <View style={[styles.typeBadge, { backgroundColor: statusColor + '20' }]}>
+                                        <View style={[styles.typeBadge, { backgroundColor: statusColor + '15', borderColor: statusColor + '30', borderWidth: 1 }]}>
                                             <Text style={[styles.typeText, { color: statusColor }]}>{item.status?.toUpperCase()}</Text>
                                         </View>
                                     </View>
                                     <View style={styles.datesRow}>
                                         <Text style={styles.reasonText} numberOfLines={2}>{item.reason || 'No reason provided'}</Text>
-                                        <Text style={styles.daysText}>{item.days} Day{item.days > 1 ? 's' : ''}</Text>
+                                        <Text style={[styles.daysText, { fontWeight: '800' }]}>{item.days} Day{item.days > 1 ? 's' : ''}</Text>
                                     </View>
                                 </View>
                             );
@@ -330,19 +345,22 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                         <Text style={styles.employeeId}>ID: {leave.employee_id}</Text>
                                     </View>
                                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                                        <View style={[styles.typeBadge, { backgroundColor: getStatusColor(leave.type) + '20' }]}>
+                                        <View style={[styles.typeBadge, { backgroundColor: getStatusColor(leave.type) + '15', borderColor: getStatusColor(leave.type) + '30', borderWidth: 0.5 }]}>
                                             <Text style={[styles.typeText, { color: getStatusColor(leave.type) }]}>
                                                 {leave.type.toUpperCase()}
                                             </Text>
                                         </View>
                                         {leave.is_overridden && (
-                                            <View style={[styles.typeBadge, { backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1 }]}>
-                                                <Text style={[styles.typeText, { color: '#d97706' }]}>Checked In</Text>
+                                            <View style={[styles.typeBadge, { backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }]}>
+                                                <HourglassIcon size={normalize(10)} color="#d97706" />
+                                                <Text style={[styles.typeText, { color: '#d97706' }]}>
+                                                    {leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending' && ov.check_in && ov.check_out) ? 'Punch Complete' : 'Checked In'}
+                                                </Text>
                                             </View>
                                         )}
-                                        {leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending') && (
+                                        {leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending' && (!ov.check_in || !ov.check_out)) && (
                                             <View style={[styles.typeBadge, { backgroundColor: '#faf5ff', borderColor: '#e9d5ff', borderWidth: 1 }]}>
-                                                <Text style={[styles.typeText, { color: '#9333ea' }]}>Pending Override</Text>
+                                                <Text style={[styles.typeText, { color: '#9333ea' }]}>Punch Pending</Text>
                                             </View>
                                         )}
                                     </View>
@@ -359,51 +377,72 @@ const AdminLeaveScreen: React.FC<AdminLeaveScreenProps> = ({ user }) => {
                                     {leave.reason}
                                 </Text>
 
-                                {leave.status === 'Pending' && (
+                                {leave.status === 'Pending' && leave.employee_id !== EMPLOYEE_ID && (
                                     <View style={styles.actionsRow}>
                                         <TouchableOpacity
                                             style={[styles.actionButton, styles.rejectButton]}
-                                            onPress={() => handleAction(leave.id, 'Reject')}
+                                            onPress={() => handleAction(leave.id, 'Reject', leave.employee_name)}
                                             disabled={actionLoading === leave.id}
                                         >
                                             <Text style={styles.rejectButtonText}>Reject</Text>
                                         </TouchableOpacity>
                                         <TouchableOpacity
                                             style={[styles.actionButton, styles.approveButton]}
-                                            onPress={() => handleAction(leave.id, 'Approve')}
+                                            onPress={() => handleAction(leave.id, 'Approve', leave.employee_name)}
                                             disabled={actionLoading === leave.id}
                                         >
                                             <Text style={styles.approveButtonText}>Approve</Text>
                                         </TouchableOpacity>
                                     </View>
                                 )}
-                                {(leave.status === 'Approved' || leave.is_overridden) && (
-                                    <View style={styles.actionsRow}>
-                                        {leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending') && (
-                                            <>
-                                                <TouchableOpacity
-                                                    style={[styles.actionButton, { backgroundColor: '#f1f5f9' }]}
-                                                    onPress={() => handleAction(leave.id, 'RejectOverride')}
-                                                    disabled={actionLoading === leave.id}
-                                                >
-                                                    <Text style={[styles.rejectButtonText, { color: '#475569' }]}>Reject Over...</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity
-                                                    style={[styles.actionButton, { backgroundColor: '#9333ea' }]}
-                                                    onPress={() => handleAction(leave.id, 'ApproveOverride')}
-                                                    disabled={actionLoading === leave.id}
-                                                >
-                                                    <Text style={[styles.approveButtonText, { color: 'white' }]}>Approve Over...</Text>
-                                                </TouchableOpacity>
-                                            </>
-                                        )}
-                                        <TouchableOpacity
-                                            style={[styles.actionButton, { backgroundColor: '#fee2e2' }]} // light red background for cancel
-                                            onPress={() => handleAction(leave.id, 'Cancel')}
-                                            disabled={actionLoading === leave.id}
-                                        >
-                                            <Text style={[styles.rejectButtonText, { color: '#e74c3c' }]}>Cancel Leave</Text>
-                                        </TouchableOpacity>
+
+                                {leave.status === 'Approved' && leave.employee_id !== EMPLOYEE_ID && (
+                                    leave.overrides && leave.overrides.some((ov: any) => ov.status === 'Pending' && ov.check_in && ov.check_out) ? (
+                                        <View style={styles.actionsRow}>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, { backgroundColor: '#f1f5f9' }]}
+                                                onPress={() => handleAction(leave.id, 'RejectOverride', leave.employee_name)}
+                                                disabled={actionLoading === leave.id}
+                                            >
+                                                <Text style={[styles.rejectButtonText, { color: '#475569' }]}>Reject</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, { backgroundColor: '#9333ea' }]}
+                                                onPress={() => handleAction(leave.id, 'ApproveOverride', leave.employee_name)}
+                                                disabled={actionLoading === leave.id}
+                                            >
+                                                <Text style={[styles.approveButtonText, { color: 'white' }]}>Approve</Text>
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={[styles.actionButton, { backgroundColor: '#fee2e2' }]}
+                                                onPress={() => handleAction(leave.id, 'Cancel', leave.employee_name)}
+                                                disabled={actionLoading === leave.id}
+                                            >
+                                                <Text style={[styles.rejectButtonText, { color: '#e74c3c' }]}>Cancel</Text>
+                                            </TouchableOpacity>
+                                        </View>
+                                    ) : (
+                                        <View style={{ alignItems: 'flex-start', marginTop: hp(1) }}>
+                                            <View style={[styles.typeBadge, { backgroundColor: '#dcfce7', borderColor: '#86efac', borderWidth: 1 }]}>
+                                                <Text style={[styles.typeText, { color: '#16a34a' }]}>APPROVED</Text>
+                                            </View>
+                                        </View>
+                                    )
+                                )}
+
+                                {leave.status === 'Rejected' && (
+                                    <View style={{ alignItems: 'flex-start', marginTop: hp(1) }}>
+                                        <View style={[styles.typeBadge, { backgroundColor: '#fee2e2', borderColor: '#fecaca', borderWidth: 1 }]}>
+                                            <Text style={[styles.typeText, { color: '#dc2626' }]}>REJECTED</Text>
+                                        </View>
+                                    </View>
+                                )}
+
+                                {(leave.status === 'Cancelled' || leave.status === 'Canceled') && (
+                                    <View style={{ alignItems: 'flex-start', marginTop: hp(1) }}>
+                                        <View style={[styles.typeBadge, { backgroundColor: '#f1f5f9', borderColor: '#e2e8f0', borderWidth: 1 }]}>
+                                            <Text style={[styles.typeText, { color: '#64748b' }]}>CANCELLED</Text>
+                                        </View>
                                     </View>
                                 )}
                             </View>

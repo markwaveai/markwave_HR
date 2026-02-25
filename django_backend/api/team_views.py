@@ -304,7 +304,7 @@ def member_detail(request, pk):
                 else:
                     acting_emp = Employees.objects.get(employee_id=acting_user_id)
                 
-                # 1. Broad Admin Check
+                # 1. Broad Admin Check (role-based)
                 if is_user_admin(acting_emp):
                     is_authorized = True
                 
@@ -312,12 +312,16 @@ def member_detail(request, pk):
                 if acting_emp.id == employee.id:
                     is_authorized = True
                 
+                # 3. Allow any team manager (manages at least one team)
+                if not is_authorized and Teams.objects.filter(manager=acting_emp).exists():
+                    is_authorized = True
+                
                 if not is_authorized:
-                    # 3. Check if they are the manager of ANY of member's CURRENT teams
+                    # 4. Check if they are the manager of ANY of member's CURRENT teams
                     if employee.teams.filter(manager=acting_emp).exists():
                         is_authorized = True
                     
-                    # 4. Check if they are the manager of the member's NEW target team
+                    # 5. Check if they are the manager of the member's NEW target team
                     if not is_authorized and new_team_id:
                         if Teams.objects.filter(id=new_team_id, manager=acting_emp).exists():
                             is_authorized = True
@@ -325,8 +329,10 @@ def member_detail(request, pk):
                 return Response({'error': 'Acting user not found'}, status=403)
             except Exception as e:
                 print(f"Permission check error: {e}")
+        else:
+            # No acting_user_id provided — allow (e.g. profile picture updates, admin tools)
+            is_authorized = True
         
-        # If no acting_user_id provided, we still need to decide if we allow it.
         # For profile picture updates from the app, acting_user_id might be missing in the multipart form.
         if not acting_user_id and 'profile_picture' in request.FILES:
             is_authorized = True

@@ -9,13 +9,7 @@ import datetime
 import threading
 
 from django.utils import timezone
-
-
-
-# Centralized Admin Roles Definition
-ADMIN_ROLES = {
-    'admin', 'administrator', 'advisor-technology & operations', 'project manager', 'founder'
-}
+from .utils import is_employee_admin, ADMIN_ROLES
 
 @api_view(['GET'])
 
@@ -32,6 +26,25 @@ def get_leaves(request, employee_id):
     leaves = Leaves.objects.filter(employee=employee).order_by('-created_at')
     serializer = LeavesSerializer(leaves, many=True)
     return Response(serializer.data)
+
+
+def restore_balance_v2(emp, leave_type_code, days):
+    """Utility to restore leave balance in EmployeeLeaveBalance table."""
+    try:
+        from core.models import EmployeeLeaveBalance, LeaveType
+        from datetime import datetime as dt_cls
+        current_year = dt_cls.now().year
+        leave_type = LeaveType.objects.filter(code=leave_type_code.upper()).first()
+        if leave_type:
+            bal = EmployeeLeaveBalance.objects.filter(
+                employee=emp, leave_type=leave_type, year=current_year
+            ).first()
+            if bal:
+                bal.allocated_days = bal.allocated_days + days
+                bal.save()
+                print(f"DEBUG: [V2] Restored {days} day(s) of {leave_type_code} for {emp.employee_id}")
+    except Exception as be:
+        print(f"DEBUG: [V2] Could not restore balance: {be}")
 
 
 def process_leave_notifications(employee, leave_request, notify_to_str, leave_type, from_date, to_date, days, reason, from_session='Full Day', to_session='Full Day'):
@@ -345,7 +358,7 @@ def apply_leave(request):
         from_date_obj = datetime.strptime(from_date, '%Y-%m-%d')
         to_date_obj = datetime.strptime(to_date, '%Y-%m-%d')
         today = datetime.now().date()
-        is_admin_check = (employee.role or '').strip().lower() in ADMIN_ROLES
+        is_admin_check = is_employee_admin(employee)
         
         if not is_admin_check:
             # Allow past dates ONLY if they are within the current month
@@ -355,11 +368,37 @@ def apply_leave(request):
                     'error': 'Leave requests for previous months are not allowed. Please select a date in the current month or future.'
                 }, status=status.HTTP_400_BAD_REQUEST)
 
-        # Validate that leave dates don't fall on Sundays or public holidays
+        # Validate each date in the range for Sundays or public holidays
+        from datetime import timedelta
         
+        # Get all holidays for validation
+        all_holidays = Holidays.objects.all()
+        holiday_dict = {}
+        for holiday in all_holidays:
+            try:
+                holiday_date = datetime.strptime(holiday.date, '%Y-%m-%d').date()
+                holiday_dict[holiday_date] = holiday.name
+            except (ValueError, TypeError):
+                continue
 
-        
+        current_date = from_date_obj.date()
+        while current_date <= to_date_obj.date():
+            # Check if it's a Sunday (weekday() returns 6 for Sunday)
+            if current_date.weekday() == 6:
+                formatted_date = current_date.strftime('%B %d, %Y')
+                return Response({
+                    'error': f'Leave requests are not allowed on Sundays. {formatted_date} is a Sunday.'
+                }, status=status.HTTP_400_BAD_REQUEST)
 
+            # Check if it's a public holiday
+            if current_date in holiday_dict:
+                formatted_date = current_date.strftime('%B %d, %Y')
+                holiday_name = holiday_dict[current_date]
+                return Response({
+                    'error': f'Leave requests are not allowed on public holidays. {formatted_date} is {holiday_name}.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            current_date += timedelta(days=1)
 
         # Check for overlapping leaves
         existing_overlap = Leaves.objects.filter(
@@ -433,7 +472,7 @@ def apply_leave(request):
             return Response({'error': f'You do not have allocation for {leave_code_upper}. Please contact HR.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Auto-approve if the applicant is an Admin or admin-equivalent role
-        is_admin = (employee.role or '').strip().lower() in ADMIN_ROLES
+        is_admin = is_employee_admin(employee)
         initial_status = 'Approved' if is_admin else 'Pending'
 
         new_request = Leaves.objects.create(
@@ -623,6 +662,9 @@ def leave_action(request, request_id):
         leave_request.status = 'Rejected'
     elif action == 'Cancel':
         leave_request.status = 'Cancelled'
+        # Restore leave balance
+        restore_balance_v2(leave_request.employee, leave_request.type, leave_request.days)
+        
         # Restore Attendance records for those dates if they were marked as Leave
         try:
             from datetime import datetime, timedelta
@@ -638,37 +680,92 @@ def leave_action(request, request_id):
         except Exception as e:
             print(f"Error resetting attendance after cancel: {e}")
     elif action == 'ApproveOverride':
-        # 1. Find the override request for this leave (likely for today, or passed in data)
-        # For simplicity, we assume we want to approve all pending overrides for this leave
+        # Admin accepts: treat the check-in/out as valid working attendance for that day.
+        # 1. Backfill AttendanceLogs  2. Update Attendance summary  3. Split/cancel the leave
+        from datetime import datetime as dt_cls
+        from core.models import AttendanceLogs
+
         overrides = LeaveOverrideRequest.objects.filter(leave=leave_request, status='Pending')
         for ovr in overrides:
-            # Mark attendance as Present
-            att = Attendance.objects.filter(employee=ovr.employee, date=ovr.date).first()
-            if att:
-                att.status = 'Present'
-                att.save()
-            
-            # Cancel/Split the leave for that date
+            employee = ovr.employee
+            date_str = ovr.date
+
+            # --- Backfill AttendanceLogs entries from override times ---
+            # Use India time (naive) so timestamps are consistent with normal clock()
+            def parse_time_to_datetime(date_s, time_s):
+                """Convert 'YYYY-MM-DD' + '09:30 AM' → naive datetime (IST)."""
+                try:
+                    return dt_cls.strptime(f"{date_s} {time_s}", "%Y-%m-%d %I:%M %p")
+                except Exception:
+                    return None
+
+            if ovr.check_in:
+                check_in_dt = parse_time_to_datetime(date_str, ovr.check_in)
+                if check_in_dt and not AttendanceLogs.objects.filter(employee=employee, date=date_str, type='IN').exists():
+                    AttendanceLogs.objects.create(
+                        employee=employee,
+                        timestamp=check_in_dt,
+                        type='IN',
+                        location=ovr.location_in or '',
+                        date=date_str
+                    )
+
+            if ovr.check_out:
+                check_out_dt = parse_time_to_datetime(date_str, ovr.check_out)
+                if check_out_dt and not AttendanceLogs.objects.filter(employee=employee, date=date_str, type='OUT').exists():
+                    AttendanceLogs.objects.create(
+                        employee=employee,
+                        timestamp=check_out_dt,
+                        type='OUT',
+                        location=ovr.location_out or '',
+                        date=date_str
+                    )
+
+            # --- Update Attendance summary with real check-in/check-out times ---
+            att, _ = Attendance.objects.get_or_create(
+                employee=employee,
+                date=date_str,
+                defaults={'status': 'Present', 'break_minutes': 0}
+            )
+            att.status = 'Present'
+            if ovr.check_in:
+                att.check_in = ovr.check_in
+            if ovr.check_out:
+                att.check_out = ovr.check_out
+                # Recalculate worked hours if both times are available
+                if ovr.check_in:
+                    check_in_dt = parse_time_to_datetime(date_str, ovr.check_in)
+                    check_out_dt = parse_time_to_datetime(date_str, ovr.check_out)
+                    if check_in_dt and check_out_dt:
+                        total_mins = (check_out_dt - check_in_dt).total_seconds() / 60
+                        total_mins = max(0, total_mins)
+                        h = int(total_mins // 60)
+                        m = int(total_mins % 60)
+                        att.worked_hours = f"{h}h {m}m"
+            att.save()
+
+            # --- Cancel/Split the leave for that date so balance is restored ---
             cancel_leave_for_date(leave_request, ovr.date)
-            
+
             # Mark override as Approved
             ovr.status = 'Approved'
             ovr.save()
-        return Response({'message': 'Leave override request approved successfully'})
+
+        return Response({'message': 'Leave override approved. Attendance marked as Present.'})
 
     elif action == 'RejectOverride':
+        # Admin rejects: check-in/out is ignored, leave stays approved as-is.
         overrides = LeaveOverrideRequest.objects.filter(leave=leave_request, status='Pending')
         for ovr in overrides:
-            # Mark attendance back to 'On Leave' or '-'? 
-            # Reverting to 'On Leave' is safer if they are still on leave
             att = Attendance.objects.filter(employee=ovr.employee, date=ovr.date).first()
             if att:
                 att.status = 'On Leave'
+                att.check_in = None
+                att.check_out = None
                 att.save()
-            
             ovr.status = 'Rejected'
             ovr.save()
-        return Response({'message': 'Leave override request rejected successfully'})
+        return Response({'message': 'Leave override rejected. Leave remains approved.'})
 
     leave_request.save()
 

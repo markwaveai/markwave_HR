@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plane, X, Calendar, Clock, XCircle } from 'lucide-react';
-import { wfhApi, authApi } from '../../services/api';
+import { wfhApi, authApi, attendanceApi } from '../../services/api';
 import LoadingSpinner from './LoadingSpinner';
 
 const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
@@ -11,52 +11,16 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [profile, setProfile] = useState(null);
+    const [holidays, setHolidays] = useState([]);
 
     useEffect(() => {
         if (isOpen && user?.id) {
             authApi.getProfile(user.id).then(setProfile).catch(console.error);
+            attendanceApi.getHolidays().then(setHolidays).catch(console.error);
         }
     }, [isOpen, user?.id]);
 
-    // Auto-populate Notify To field
-    useEffect(() => {
-        if (!profile && !user) return;
-
-        const teamLeads = profile?.team_leads || user?.team_leads || [];
-        const teamLeadName = profile?.team_lead_name || user?.team_lead_name;
-        const pmName = profile?.project_manager_name;
-        const advisorName = profile?.advisor_name;
-
-        const names = new Set();
-
-        const addNames = (val) => {
-            if (!val) return;
-            if (Array.isArray(val)) {
-                val.forEach(v => v && names.add(v.trim()));
-            } else if (typeof val === 'string') {
-                val.split(',').forEach(s => {
-                    const trimmed = s.trim();
-                    if (trimmed && trimmed !== 'Team Lead') names.add(trimmed);
-                });
-            }
-        };
-
-        addNames(teamLeads);
-        addNames(teamLeadName);
-        addNames(pmName);
-        addNames(advisorName);
-
-        // Filter out own name
-        const currentUserName = `${user?.first_name || ''} ${user?.last_name || ''}`.trim();
-        if (currentUserName) {
-            names.delete(currentUserName);
-        }
-
-        const autoList = Array.from(names);
-        if (autoList.length > 0) {
-            setNotifyTo(autoList);
-        }
-    }, [profile, user]);
+    // Auto-populate Notify To field removed as per user request
 
     if (!isOpen && !isClosing) return null;
 
@@ -109,6 +73,24 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
                 });
                 return;
             }
+
+            // Check if it's a public holiday
+            const yyyy = currentDate.getFullYear();
+            const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(currentDate.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            const holiday = holidays.find(h => (h.raw_date || h.date) === dateStr);
+            if (holiday) {
+                const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = currentDate.toLocaleDateString('en-US', options);
+                setToast({
+                    message: `WFH requests are not allowed on public holidays. ${formattedDate} is ${holiday.name}.`,
+                    type: 'error'
+                });
+                return;
+            }
+
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
@@ -130,7 +112,30 @@ const ApplyWFHModal = ({ isOpen, onClose, user, setToast }) => {
         }
     };
 
-    const isSubmitButtonDisabled = isSubmitting || !fromDate || !toDate || !reason.trim() || notifyTo.length === 0;
+    const hasRestrictedDaysInRange = () => {
+        if (!fromDate || !toDate) return false;
+        const start = new Date(fromDate);
+        const end = new Date(toDate);
+        let curr = new Date(start);
+
+        while (curr <= end) {
+            // Check Sunday (getDay() returns 0 for Sunday)
+            if (curr.getDay() === 0) return true;
+
+            // Check Holiday
+            const yyyy = curr.getFullYear();
+            const mm = String(curr.getMonth() + 1).padStart(2, '0');
+            const dd = String(curr.getDate()).padStart(2, '0');
+            const dateStr = `${yyyy}-${mm}-${dd}`;
+
+            if (holidays.some(h => (h.raw_date || h.date) === dateStr)) return true;
+
+            curr.setDate(curr.getDate() + 1);
+        }
+        return false;
+    };
+
+    const isSubmitButtonDisabled = isSubmitting || !fromDate || !toDate || !reason.trim() || notifyTo.length === 0 || hasRestrictedDaysInRange();
 
     return (
         <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e293b]/60 backdrop-blur-sm ${isClosing ? 'animate-overlay-out' : 'animate-overlay-in'}`}>

@@ -13,6 +13,7 @@ urlpatterns = [
     path('auth/verify-otp/', views.verify_otp, name='verify_otp'),
     path('auth/send-email-otp/', views.send_email_otp, name='send_email_otp'),
     path('auth/verify-email-otp/', views.verify_email_otp, name='verify_email_otp'),
+    path('auth/update-status/', views.update_account_status, name='update_account_status'),
     path('auth/profile/<str:employee_id>/', views.get_profile, name='get_profile'),
     
     # Team

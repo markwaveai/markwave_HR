@@ -188,3 +188,20 @@ def remove_whatsapp_participant(chat_id, phone_number):
         return False, str(e)
 
 
+ADMIN_ROLES = {
+    'admin', 'administrator', 'advisor-technology & operations', 'project manager', 'founder'
+}
+
+def is_employee_admin(employee):
+    """
+    Checks if an employee has an administrative role or is explicitly marked as admin.
+    """
+    if not employee:
+        return False
+    
+    # Check if the model has an is_admin flag (if implemented)
+    if hasattr(employee, 'is_admin') and employee.is_admin:
+        return True
+        
+    role = (employee.role or '').strip().lower()
+    return role in ADMIN_ROLES

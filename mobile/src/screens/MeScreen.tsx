@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Modal, Alert, FlatList, Platform, PermissionsAndroid, RefreshControl } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import Geolocation from 'react-native-geolocation-service';
 import { attendanceApi, teamApi } from '../services/api';
 import { ChevronDownIcon, MoreVerticalIcon, UserIcon, UsersIcon, CoffeeIcon, UmbrellaIcon, PartyPopperIcon, HomeIcon } from '../components/Icons';
@@ -920,7 +919,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
     }
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="dark-content" />
             {renderBreakModal()}
             <RegularizeModal visible={regularizeModalVisible} onClose={() => setRegularizeModalVisible(false)} date={activeRegularizeLog?.date} employeeId={user.id} onSuccess={() => { fetchData(); setRegularizeModalVisible(false); }} teamLeadName={user.team_lead_name} />
@@ -965,7 +964,7 @@ const MeScreen: React.FC<MeScreenProps & { setActiveTabToSettings: (u: any) => v
                 )}
                 ListEmptyComponent={() => activeTab === 'Requests' ? <View style={styles.emptyRequests}><Text style={styles.emptyRequestsText}>No requests found.</Text></View> : null}
             />
-        </SafeAreaView>
+        </View>
     );
 };
 

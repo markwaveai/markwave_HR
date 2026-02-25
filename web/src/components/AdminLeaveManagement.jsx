@@ -1,17 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { leaveApi } from '../services/api';
-import { CheckCircle, XCircle, Clock, Calendar, AlertCircle } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Calendar, AlertCircle, Plus } from 'lucide-react';
 import Toast from './Common/Toast';
 import ConfirmDialog from './Common/ConfirmDialog';
 import AdminWorkFromHome from './AdminLeaveManagement/AdminWorkFromHome';
+import ApplyLeaveModal from './LeaveAttendance/ApplyLeaveModal';
 
-const AdminLeaveManagement = () => {
+const AdminLeaveManagement = ({ user }) => {
     const [leaves, setLeaves] = useState([]);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(null); // ID of request being processed
     const [toast, setToast] = useState(null);
-    const [activeTab, setActiveTab] = useState('leaves');
+    const [activeTab, setActiveTab] = useState('leaves'); // 'leaves', 'wfh', or 'history'
+    const [myLeaves, setMyLeaves] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [showApplyModal, setShowApplyModal] = useState(false);
 
     // Dialog State
     const [dialogConfig, setDialogConfig] = useState({
@@ -22,8 +26,26 @@ const AdminLeaveManagement = () => {
     });
 
     useEffect(() => {
-        fetchPendingLeaves();
-    }, []);
+        if (activeTab === 'history') {
+            fetchMyLeaves();
+        } else if (activeTab === 'leaves') {
+            fetchPendingLeaves();
+        }
+    }, [activeTab]);
+
+    const fetchMyLeaves = async () => {
+        if (!user?.id) return;
+        setHistoryLoading(true);
+        try {
+            const data = await leaveApi.getLeaves(user.id);
+            setMyLeaves(data);
+        } catch (error) {
+            console.error(error);
+            setToast({ type: 'error', message: 'Failed to fetch your leave history.' });
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
 
     const fetchPendingLeaves = async () => {
         try {
@@ -72,9 +94,17 @@ const AdminLeaveManagement = () => {
 
     return (
         <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 bg-[#f5f7fa]">
-            <div className="mb-4 mm:mb-6">
-                <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Leave & WFH Management</h1>
-                <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Review and manage employee requests</p>
+            <div className="mb-4 mm:mb-6 flex justify-between items-start">
+                <div>
+                    <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Leave & WFH Management</h1>
+                    <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Review and manage employee requests</p>
+                </div>
+                <button
+                    onClick={() => setShowApplyModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#48327d] text-white rounded-xl hover:bg-[#3d2a6a] transition-all shadow-lg shadow-purple-200 font-bold text-sm"
+                >
+                    <Plus size={18} /> Apply Leave
+                </button>
             </div>
 
             <div className="flex items-center gap-4 border-b border-[#e2e8f0] mb-6">
@@ -90,89 +120,158 @@ const AdminLeaveManagement = () => {
                 >
                     WFH Requests
                 </button>
+                <button
+                    onClick={() => setActiveTab('history')}
+                    className={`pb-2 text-sm font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'history' ? 'border-[#48327d] text-[#48327d]' : 'border-transparent text-[#64748b] hover:text-[#48327d]'}`}
+                >
+                    My History
+                </button>
             </div>
 
-            {activeTab === 'wfh' ? (
-                <AdminWorkFromHome />
-            ) : loading ? (
-                <div className="text-center py-20 text-[#636e72]">Loading requests...</div>
-            ) : leaves.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] p-10 text-center">
-                    <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle size={32} />
+            {activeTab === 'wfh' && <AdminWorkFromHome />}
+
+            {activeTab === 'history' && (
+                historyLoading ? (
+                    <div className="text-center py-20 text-[#636e72]">Loading history...</div>
+                ) : myLeaves.length === 0 ? (
+                    <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] p-10 text-center">
+                        <div className="w-16 h-16 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Clock size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#2d3436]">No History Found</h3>
+                        <p className="text-[#636e72]">You haven't applied for any leaves yet.</p>
                     </div>
-                    <h3 className="text-lg font-bold text-[#2d3436]">All Caught Up!</h3>
-                    <p className="text-[#636e72]">There are no pending leave requests at the moment.</p>
-                </div>
-            ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] overflow-hidden">
-                    <div className="p-4 bg-[#fbfcff] border-b border-[#dfe6e9]">
-                        <h2 className="text-[#48327d] font-bold flex items-center gap-2">
-                            <Clock size={18} /> Leave Requests ({leaves.length})
-                        </h2>
+                ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] overflow-hidden">
+                        <div className="p-4 bg-[#fbfcff] border-b border-[#dfe6e9]">
+                            <h2 className="text-[#48327d] font-bold flex items-center gap-2">
+                                <Calendar size={18} /> My Leave History ({myLeaves.length})
+                            </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-[#f8f9fa] text-[#636e72] text-[10px] uppercase tracking-wider font-black">
+                                    <tr>
+                                        <th className="px-6 py-4">Leave Type</th>
+                                        <th className="px-6 py-4 text-center">Dates</th>
+                                        <th className="px-6 py-4 text-center">Duration</th>
+                                        <th className="px-6 py-4">Reason</th>
+                                        <th className="px-6 py-4 text-center">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#f1f2f6] text-sm">
+                                    {myLeaves.map((leave) => (
+                                        <tr key={leave.id} className="hover:bg-[#f8f9fa] transition-all">
+                                            <td className="px-6 py-4 font-bold text-[#2d3436]">
+                                                {leave.type?.toUpperCase()}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="text-[#2d3436] font-medium text-xs">
+                                                    {leave.fromDate === leave.toDate ? leave.fromDate : `${leave.fromDate} to ${leave.toDate}`}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center font-bold text-[#48327d]">
+                                                {leave.days} Day{leave.days > 1 ? 's' : ''}
+                                            </td>
+                                            <td className="px-6 py-4 max-w-xs truncate text-[#636e72] text-xs">
+                                                {leave.reason}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`px-2 py-1 rounded text-[10px] font-bold ${leave.status === 'Approved' ? 'bg-green-50 text-green-600' :
+                                                    leave.status === 'Rejected' ? 'bg-red-50 text-red-600' :
+                                                        'bg-amber-50 text-amber-600'
+                                                    }`}>
+                                                    {leave.status?.toUpperCase()}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-[#f8f9fa] text-[#636e72] text-[10px] uppercase tracking-wider font-black">
-                                <tr>
-                                    <th className="px-6 py-4">Employee</th>
-                                    <th className="px-6 py-4 text-center">Leave Type</th>
-                                    <th className="px-6 py-4 text-center">Dates</th>
-                                    <th className="px-6 py-4 text-center">Duration</th>
-                                    <th className="px-6 py-4">Reason</th>
-                                    <th className="px-6 py-4 text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#f1f2f6] text-sm">
-                                {leaves.map((leave) => (
-                                    <tr key={leave.id} className="hover:bg-[#f8f9fa] transition-all">
-                                        <td className="px-6 py-4">
-                                            <div>
-                                                <div className="font-bold text-[#2d3436]">{leave.employee_name}</div>
-                                                <div className="text-xs text-[#636e72] font-mono">ID: {leave.employee_id}</div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <span className={`px-2 py-1 rounded text-xs font-bold ${leave.type === 'cl' ? 'bg-blue-50 text-blue-600' :
-                                                leave.type === 'sl' ? 'bg-red-50 text-red-600' :
-                                                    'bg-green-50 text-green-600'
-                                                }`}>
-                                                {leave.type.toUpperCase()}
-                                            </span>
-                                            {leave.is_overridden && (
-                                                <div className="mt-2 text-[10px] flex items-center justify-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded border border-amber-200" title="Employee checked in during this leave">
-                                                    <AlertCircle size={10} />
-                                                    Checked In
+                )
+            )}
+
+            {activeTab === 'leaves' && (
+                loading ? (
+                    <div className="text-center py-20 text-[#636e72]">Loading requests...</div>
+                ) : leaves.length === 0 ? (
+                    <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] p-10 text-center">
+                        <div className="w-16 h-16 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <CheckCircle size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-[#2d3436]">All Caught Up!</h3>
+                        <p className="text-[#636e72]">There are no pending leave requests at the moment.</p>
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] overflow-hidden">
+                        <div className="p-4 bg-[#fbfcff] border-b border-[#dfe6e9]">
+                            <h2 className="text-[#48327d] font-bold flex items-center gap-2">
+                                <Clock size={18} /> Leave Requests ({leaves.length})
+                            </h2>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left">
+                                <thead className="bg-[#f8f9fa] text-[#636e72] text-[10px] uppercase tracking-wider font-black">
+                                    <tr>
+                                        <th className="px-6 py-4">Employee</th>
+                                        <th className="px-6 py-4 text-center">Leave Type</th>
+                                        <th className="px-6 py-4 text-center">Dates</th>
+                                        <th className="px-6 py-4 text-center">Duration</th>
+                                        <th className="px-6 py-4">Reason</th>
+                                        <th className="px-6 py-4 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[#f1f2f6] text-sm">
+                                    {leaves.map((leave) => (
+                                        <tr key={leave.id} className="hover:bg-[#f8f9fa] transition-all">
+                                            <td className="px-6 py-4">
+                                                <div>
+                                                    <div className="font-bold text-[#2d3436]">{leave.employee_name}</div>
+                                                    <div className="text-xs text-[#636e72] font-mono">ID: {leave.employee_id}</div>
                                                 </div>
-                                            )}
-                                            {leave.overrides && leave.overrides.some(ov => ov.status === 'Pending') && (
-                                                <div className="mt-2 text-[10px] flex items-center justify-center gap-1 text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded border border-purple-200" title="Pending Leave Override Request">
-                                                    <AlertCircle size={10} />
-                                                    Pending Override
-                                                </div>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="text-[#2d3436] font-medium text-xs">
-                                                {leave.fromDate === leave.toDate ? leave.fromDate : (
-                                                    <div className="flex flex-col items-center">
-                                                        <span>{leave.fromDate}</span>
-                                                        <span className="text-[#b2bec3] text-[10px]">to</span>
-                                                        <span>{leave.toDate}</span>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className={`px-2 py-1 rounded text-xs font-bold ${leave.type === 'cl' ? 'bg-blue-50 text-blue-600' :
+                                                    leave.type === 'sl' ? 'bg-red-50 text-red-600' :
+                                                        'bg-green-50 text-green-600'
+                                                    }`}>
+                                                    {leave.type?.toUpperCase()}
+                                                </span>
+                                                {leave.is_overridden && (
+                                                    <div className="mt-2 text-[10px] flex items-center justify-center gap-1 text-amber-600 font-bold bg-amber-50 px-2 py-1 rounded border border-amber-200" title="Employee checked in during this leave">
+                                                        <AlertCircle size={10} />
+                                                        {leave.overrides && leave.overrides.some(ov => ov.status === 'Pending' && ov.check_in && ov.check_out) ? 'Punch Complete' : 'Checked In'}
                                                     </div>
                                                 )}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-center font-bold text-[#48327d]">
-                                            {leave.days} Day{leave.days > 1 ? 's' : ''}
-                                        </td>
-                                        <td className="px-6 py-4 max-w-xs">
-                                            <p className="text-[#636e72] text-xs truncate" title={leave.reason}>
-                                                {leave.reason}
-                                            </p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center justify-center gap-2">
+                                                {leave.overrides && leave.overrides.some(ov => ov.status === 'Pending' && (!ov.check_in || !ov.check_out)) && (
+                                                    <div className="mt-2 text-[10px] flex items-center justify-center gap-1 text-purple-600 font-bold bg-purple-50 px-2 py-1 rounded border border-purple-200" title="Awaiting Check-out for full override">
+                                                        <Clock size={10} />
+                                                        Punch Pending
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <div className="text-[#2d3436] font-medium text-xs">
+                                                    {leave.fromDate === leave.toDate ? leave.fromDate : (
+                                                        <div className="flex flex-col items-center">
+                                                            <span>{leave.fromDate}</span>
+                                                            <span className="text-[#b2bec3] text-[10px]">to</span>
+                                                            <span>{leave.toDate}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center font-bold text-[#48327d]">
+                                                {leave.days} Day{leave.days > 1 ? 's' : ''}
+                                            </td>
+                                            <td className="px-6 py-4 max-w-xs">
+                                                <p className="text-[#636e72] text-xs truncate" title={leave.reason}>
+                                                    {leave.reason}
+                                                </p>
+                                            </td>
+                                            <td className="px-6 py-4">
                                                 <div className="flex items-center justify-center gap-2">
                                                     {leave.status === 'Pending' && (
                                                         <>
@@ -195,48 +294,61 @@ const AdminLeaveManagement = () => {
                                                         </>
                                                     )}
 
-                                                    {/* For Overridden (Approved) Leaves, show Cancel option */}
-                                                    {(leave.status === 'Approved' || leave.is_overridden) && (
-                                                        <div className="flex gap-2">
-                                                            {leave.overrides && leave.overrides.some(ov => ov.status === 'Pending') && (
-                                                                <>
-                                                                    <button
-                                                                        onClick={() => initiateAction(leave, 'ApproveOverride')}
-                                                                        disabled={actionLoading === leave.id}
-                                                                        className="px-3 py-1.5 bg-purple-600 text-white rounded hover:bg-purple-700 disabled:opacity-50 transition-colors text-xs font-bold"
-                                                                        title="Approve Override"
-                                                                    >
-                                                                        Approve Override
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => initiateAction(leave, 'RejectOverride')}
-                                                                        disabled={actionLoading === leave.id}
-                                                                        className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 disabled:opacity-50 transition-colors text-xs font-bold"
-                                                                        title="Reject Override"
-                                                                    >
-                                                                        Reject Override
-                                                                    </button>
-                                                                </>
-                                                            )}
-                                                            <button
-                                                                onClick={() => initiateAction(leave, 'Cancel')}
-                                                                disabled={actionLoading === leave.id}
-                                                                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded hover:bg-gray-200 disabled:opacity-50 transition-colors text-xs font-bold"
-                                                                title="Cancel Leave"
-                                                            >
-                                                                Cancel
-                                                            </button>
-                                                        </div>
+                                                    {leave.status === 'Approved' && (
+                                                        leave.overrides && leave.overrides.some(ov => ov.status === 'Pending' && ov.check_in && ov.check_out) ? (
+                                                            <div className="flex gap-2">
+                                                                <button
+                                                                    onClick={() => initiateAction(leave, 'ApproveOverride')}
+                                                                    disabled={actionLoading === leave.id}
+                                                                    className="px-3 py-1.5 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                                    title="Approve Attendance"
+                                                                >
+                                                                    Approve
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => initiateAction(leave, 'RejectOverride')}
+                                                                    disabled={actionLoading === leave.id}
+                                                                    className="px-3 py-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                                    title="Reject Attendance"
+                                                                >
+                                                                    Reject
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => initiateAction(leave, 'Cancel')}
+                                                                    disabled={actionLoading === leave.id}
+                                                                    className="px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 rounded hover:bg-red-100 disabled:opacity-50 transition-colors text-xs font-bold"
+                                                                    title="Cancel Leave Request"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-100">
+                                                                APPROVED
+                                                            </span>
+                                                        )
+                                                    )}
+
+                                                    {leave.status === 'Rejected' && (
+                                                        <span className="text-[10px] font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100">
+                                                            REJECTED
+                                                        </span>
+                                                    )}
+
+                                                    {(leave.status === 'Cancelled' || leave.status === 'Canceled') && (
+                                                        <span className="text-[10px] font-bold text-gray-500 bg-gray-50 px-2 py-1 rounded border border-gray-200">
+                                                            CANCELLED
+                                                        </span>
                                                     )}
                                                 </div>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                )
             )}
 
             {toast && (
@@ -256,6 +368,20 @@ const AdminLeaveManagement = () => {
                 confirmText={dialogConfig.action}
                 type={dialogConfig.action === 'Reject' ? 'danger' : 'primary'}
             />
+
+            {showApplyModal && (
+                <ApplyLeaveModal
+                    isOpen={showApplyModal}
+                    onClose={() => setShowApplyModal(false)}
+                    user={user}
+                    setToast={setToast}
+                    onSubmitSuccess={() => {
+                        setShowApplyModal(false);
+                        if (activeTab === 'history') fetchMyLeaves();
+                        if (activeTab === 'leaves') fetchPendingLeaves();
+                    }}
+                />
+            )}
         </div>
     );
 };

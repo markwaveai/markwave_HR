@@ -78,9 +78,13 @@ const apiFetch = async (endpoint: string, options: RequestInit & { retries?: num
 };
 
 export const authApi = {
-    sendOTP: (phone: string) => apiFetch('/auth/send-otp/', {
+    sendOTP: (phone: string, action?: string) => apiFetch('/auth/send-otp/', {
         method: 'POST',
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone, action })
+    }),
+    updateAccountStatus: (phone: string, otp: string, action: string) => apiFetch('/auth/update-status/', {
+        method: 'POST',
+        body: JSON.stringify({ phone, otp, action })
     }),
     verifyOTP: (phone: string, otp: string) => apiFetch('/auth/verify-otp/', {
         method: 'POST',

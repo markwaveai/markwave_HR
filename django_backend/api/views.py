@@ -10,6 +10,7 @@ import requests
 from django.conf import settings
 from .models import OTPStore
 from django.utils import timezone
+from .utils import is_employee_admin
 
 def normalize_phone(phone_str):
     if not phone_str:
@@ -75,7 +76,7 @@ def login(request):
                 'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
                 'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
                 'is_manager': Teams.objects.filter(manager=emp).exists(),
-                'is_admin': getattr(emp, 'is_admin', False),
+                'is_admin': is_employee_admin(emp),
                 'project_manager_name': manager_names,
                 'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
                 'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
@@ -106,6 +107,8 @@ def send_otp(request):
         
         target_phone = normalized_input if phone != 'admin' else 'admin'
 
+        purpose = request.data.get('purpose', 'login')
+
         # Check if user exists
         if phone != 'admin':
             user_exists = False
@@ -123,8 +126,10 @@ def send_otp(request):
             # Check for inactive status
             for emp in Employees.objects.all():
                 if normalize_phone(emp.contact) == normalized_input:
-                    if emp.status == 'Inactive':
+                    if emp.status == 'Inactive' and purpose != 'activate':
                         return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+                    elif emp.status == 'Active' and purpose == 'activate':
+                        return Response({'error': 'Your account is already active.'}, status=status.HTTP_400_BAD_REQUEST)
                     break
 
         otp = str(random.randint(100000, 999999))
@@ -244,7 +249,7 @@ def verify_otp(request):
                         'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
                         'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or None,
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
-                        'is_admin': getattr(emp, 'is_admin', False),
+                        'is_admin': is_employee_admin(emp),
                         'project_manager_name': manager_names,
                         'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
                         'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
@@ -303,7 +308,7 @@ def get_profile(request, employee_id):
             'team_leads': [f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern'],
             'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or None,
             'is_manager': Teams.objects.filter(manager=emp).exists(),
-            'is_admin': getattr(emp, 'is_admin', False),
+            'is_admin': is_employee_admin(emp),
             'project_manager_name': manager_names,
             'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
             'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
@@ -468,7 +473,7 @@ def verify_email_otp(request):
                 'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(employee.teams.all()) + list(Teams.objects.filter(manager=employee)))],
                 'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
-                'is_admin': getattr(employee, 'is_admin', False),
+                'is_admin': is_employee_admin(employee),
                 'project_manager_name': manager_names,
                 'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
                 'profile_picture': request.build_absolute_uri(employee.profile_picture.url) if employee.profile_picture else None
@@ -479,3 +484,42 @@ def verify_email_otp(request):
         if "too many clients" in error_msg or "connection to server" in error_msg:
             return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         return Response({'error': error_msg}, status=500)
+
+@api_view(['POST'])
+def update_account_status(request):
+    phone = request.data.get('phone')
+    otp = request.data.get('otp')
+    action = request.data.get('action') # 'activate' or 'deactivate'
+
+    if not phone or not otp or not action:
+        return Response({'error': 'Phone, OTP, and action are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    normalized_input = normalize_phone(phone)
+    target_phone = normalized_input if phone != 'admin' else 'admin'
+    
+    if target_phone == 'admin':
+        return Response({'error': 'Cannot modify admin account status'}, status=status.HTTP_403_FORBIDDEN)
+
+    try:
+        otp_entry = OTPStore.objects.filter(phone=target_phone, is_verified=False).order_by('-created_at').first()
+        if not otp_entry or otp_entry.otp != otp:
+            return Response({'error': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        otp_entry.is_verified = True
+        otp_entry.verified_at = timezone.now()
+        otp_entry.save()
+
+        user_found = False
+        for emp in Employees.objects.all():
+            if normalize_phone(emp.contact) == normalized_input:
+                user_found = True
+                emp.status = 'Inactive' if action == 'deactivate' else 'Active'
+                emp.save()
+                break
+
+        if not user_found:
+            return Response({'error': 'User not found'}, status=404)
+
+        return Response({'success': True, 'message': f"Account {action}d successfully"})
+    except Exception as e:
+        return Response({'error': str(e)}, status=500)

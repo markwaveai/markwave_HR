@@ -301,6 +301,39 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 )}
             </View>
 
+            <View style={styles.section}>
+                <View style={styles.sectionHeader}>
+                    <View style={[styles.sectionIconBg, { backgroundColor: '#fee2e2' }]}>
+                        <Text style={{ fontSize: 18 }}>🛡️</Text>
+                    </View>
+                    <Text style={styles.sectionTitle}>Account Security</Text>
+                </View>
+                <View style={[styles.card, { padding: wp(4) }]}>
+                    <TouchableOpacity
+                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: hp(1) }}
+                        onPress={() => {
+                            if (onBack) {
+                                // Close settings
+                                onBack();
+                                // We need a way to navigate to the Support/DeleteAccount screen.
+                                // We can use the global navigation or a prop event. 
+                                // To keep it simple and safe within App.js state, we'll alert the user to use the drawer.
+                                Alert.alert(
+                                    "Delete Account",
+                                    "To delete your account, please open the side Menu and select 'Delete Account'.",
+                                    [{ text: "OK" }]
+                                );
+                            }
+                        }}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(3) }}>
+                            <Text style={{ fontSize: normalize(15), fontWeight: '600', color: '#ef4444' }}>Delete Account</Text>
+                        </View>
+                        <Text style={{ color: '#cbd5e1', fontSize: normalize(18) }}>›</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
             <View style={{ height: hp(12) }} />
 
             <EditProfileModal

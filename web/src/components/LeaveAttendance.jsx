@@ -16,20 +16,12 @@ import WorkFromHome from './LeaveAttendance/WorkFromHome';
 import ApplyWFHModal from './Common/ApplyWFHModal';
 
 function LeaveAttendance({ user }) {
-    const [leaveType, setLeaveType] = useState('cl');
-    const [fromDate, setFromDate] = useState('');
-    const [toDate, setToDate] = useState('');
-    const [reason, setReason] = useState('');
-    const [fromSession, setFromSession] = useState('Full Day');
-    const [toSession, setToSession] = useState('Full Day');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWFHModalOpen, setIsWFHModalOpen] = useState(false);
     const [history, setHistory] = useState([]);
     const [attendanceHistory, setAttendanceHistory] = useState([]);
     const [activeTab, setActiveTab] = useState('leaves'); // 'leaves' or 'attendance'
     const [loading, setLoading] = useState(true);
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [notifyTo, setNotifyTo] = useState([]);
     const [profile, setProfile] = useState(null);
     const [toast, setToast] = useState(null);
     const [apiBalance, setApiBalance] = useState({});
@@ -113,12 +105,6 @@ function LeaveAttendance({ user }) {
         };
         loadInitialData();
 
-        if (EMPLOYEE_ID) {
-            authApi.getProfile(EMPLOYEE_ID).then(p => {
-                setProfile(p);
-            }).catch(console.error);
-        }
-
         attendanceApi.getHolidays().then(h => setHolidays(h)).catch(() => setHolidays([]));
 
         const pollInterval = setInterval(() => {
@@ -150,84 +136,6 @@ function LeaveAttendance({ user }) {
 
     const balances = calculateBalances();
 
-    useEffect(() => {
-        if (balances.length > 0 && !balances.find(b => b.code === leaveType)) {
-            setLeaveType(balances[0].code);
-        }
-    }, [balances.length]);
-
-    const handleLeaveSubmit = async () => {
-        if (!fromDate || !reason.trim()) {
-            setToast({ message: "From Date and Reason are required.", type: 'error' });
-            return;
-        }
-
-        const effectiveToDate = toDate || fromDate;
-        const start = new Date(fromDate);
-        const end = new Date(effectiveToDate);
-
-        if (end < start) {
-            setToast({ message: "To Date cannot be earlier than From Date.", type: 'error' });
-            return;
-        }
-
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const startDateOnly = new Date(start);
-        startDateOnly.setHours(0, 0, 0, 0);
-        const endDateOnly = new Date(end);
-        endDateOnly.setHours(0, 0, 0, 0);
-
-        const startOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        startOfCurrentMonth.setHours(0, 0, 0, 0);
-
-        if (startDateOnly < startOfCurrentMonth || endDateOnly < startOfCurrentMonth) {
-            setToast({ message: "Leave requests for previous months are not allowed. Please select a date in the current month or future.", type: 'error' });
-            return;
-        }
-
-        const diffTime = Math.abs(end - start);
-        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-        if (fromDate === effectiveToDate) {
-            if (fromSession !== 'Full Day') diffDays = 0.5;
-        } else {
-            if (fromSession !== 'Full Day') diffDays -= 0.5;
-            if (toSession !== 'Full Day') diffDays -= 0.5;
-        }
-
-        setIsSubmitting(true);
-        try {
-            await leaveApi.apply({
-                employeeId: EMPLOYEE_ID,
-                type: leaveType,
-                fromDate,
-                toDate: effectiveToDate,
-                days: diffDays,
-                reason: reason.trim(),
-                from_session: fromSession,
-                to_session: toSession,
-                notifyTo: notifyTo.join(', ')
-            });
-
-            await fetchLeaves();
-            setFromDate('');
-            setToDate('');
-            setReason('');
-            setLeaveType('cl');
-            setNotifyTo([]);
-            setFromSession('Full Day');
-            setToSession('Full Day');
-            setIsModalOpen(false);
-            setToast({ message: "Leave applied successfully!", type: 'success' });
-        } catch (error) {
-            console.error("Failed to submit leave:", error);
-            const errorMessage = error.response?.data?.error || "Failed to submit leave request.";
-            setToast({ message: errorMessage, type: 'error' });
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const calculateStats = (log) => {
         const hasCheckIn = log.checkIn && log.checkIn !== '-';
@@ -352,29 +260,11 @@ function LeaveAttendance({ user }) {
                 )}
                 {isModalOpen && (
                     <ApplyLeaveModal
-                        setIsModalOpen={setIsModalOpen}
-                        leaveType={leaveType}
-                        setLeaveType={setLeaveType}
-                        fromDate={fromDate}
-                        setFromDate={setFromDate}
-                        toDate={toDate}
-                        setToDate={setToDate}
-                        reason={reason}
-                        setReason={setReason}
-                        fromSession={fromSession}
-                        setFromSession={setFromSession}
-                        toSession={toSession}
-                        setToSession={setToSession}
-                        notifyTo={notifyTo}
-                        setNotifyTo={setNotifyTo}
+                        isOpen={isModalOpen}
+                        onClose={() => setIsModalOpen(false)}
                         user={user}
-                        profile={profile}
-                        handleLeaveSubmit={handleLeaveSubmit}
-                        isSubmitting={isSubmitting}
-                        balances={balances}
-                        LEAVE_TYPES={LEAVE_TYPES}
-                        holidays={holidays}
-                        history={history}
+                        onSubmitSuccess={() => fetchLeaves()}
+                        setToast={setToast}
                     />
                 )}
                 <ApplyWFHModal

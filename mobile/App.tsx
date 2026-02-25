@@ -285,7 +285,7 @@ function App() {
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
       {!isLoggedIn ? (
-        (activeTab === 'PrivacyPolicy' || activeTab === 'Support') ? (
+        (activeTab === 'PrivacyPolicy' || activeTab === 'Support' || activeTab === 'DeleteAccount') ? (
           <SafeAreaView style={styles.container}>
             <View style={styles.header}>
               <TouchableOpacity
@@ -402,6 +402,12 @@ function App() {
                     icon={<HelpCircleIcon color={activeTab === 'Support' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Support'}
                     onPress={() => { setActiveTab('Support'); setIsDrawerVisible(false); }}
+                  />
+                  <DrawerItem
+                    title="Delete Account"
+                    icon={<LogOutIcon color={activeTab === 'DeleteAccount' ? '#ffffff' : '#cbd5e1'} size={24} />}
+                    isActive={activeTab === 'DeleteAccount'}
+                    onPress={() => { setActiveTab('DeleteAccount'); setIsDrawerVisible(false); }}
                   />
                 </ScrollView>
 

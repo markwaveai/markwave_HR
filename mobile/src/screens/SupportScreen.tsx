@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking, TextInput } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeftIcon, HelpCircleIcon, MailIcon, PhoneIcon, ClockIcon, MessageSquareIcon, ChevronDownIcon, SendIcon } from '../components/Icons';
 import { normalize, wp, hp } from '../utils/responsive';
 
@@ -54,7 +53,7 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
             <View style={styles.header}>
                 <TouchableOpacity style={styles.backButton} onPress={onBack}>
@@ -165,20 +164,13 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         <SendIcon color="#ffffff" size={20} />
                         <Text style={styles.submitBtnText}>Send Message</Text>
                     </TouchableOpacity>
-
-                    <View style={{ marginTop: 32, paddingTop: 24, borderTopWidth: 1, borderTopColor: '#f1f5f9', alignItems: 'center' }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 13, marginBottom: 8 }}>Need to leave Markwave?</Text>
-                        <TouchableOpacity onPress={() => onNavigateTo?.('DeleteAccount')}>
-                            <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: '600', textDecorationLine: 'underline' }}>Request Account Deletion</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
 
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>© 2026 Markwave HR. Professional Support Services.</Text>
                 </View>
             </ScrollView>
-        </SafeAreaView>
+        </View>
     );
 };
 

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, RefreshControl } from 'react-native';
 import { wfhApi } from '../services/api';
 import { normalize, wp, hp } from '../utils/responsive';
+import { CalendarIcon, HomeIcon, UserIcon } from '../components/Icons';
 
-const AdminWorkFromHomeScreen = () => {
+const AdminWorkFromHomeScreen = ({ user }: { user: any }) => {
     const [requests, setRequests] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
@@ -31,17 +32,28 @@ const AdminWorkFromHomeScreen = () => {
         }
     };
 
-    const handleAction = async (id: number, action: 'Approve' | 'Reject') => {
-        setActionLoading(id);
-        try {
-            await wfhApi.action(id, action);
-            Alert.alert("Success", `Request ${action}d successfully`);
-            setRequests(prev => prev.filter(r => r.id !== id));
-        } catch (error) {
-            Alert.alert("Error", `Failed to ${action} request`);
-        } finally {
-            setActionLoading(null);
-        }
+    const handleAction = async (id: number, action: 'Approve' | 'Reject', employeeName?: string) => {
+        const confirmAction = async () => {
+            setActionLoading(id);
+            try {
+                await wfhApi.action(id, action);
+                Alert.alert("Success", `Request ${action}d successfully`);
+                setRequests(prev => prev.filter(r => r.id !== id));
+            } catch (error) {
+                Alert.alert("Error", `Failed to ${action} request`);
+            } finally {
+                setActionLoading(null);
+            }
+        };
+
+        Alert.alert(
+            `${action} Request`,
+            `Are you sure you want to ${action.toLowerCase()} this WFH request${employeeName ? ` for ${employeeName}` : ''}?`,
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: action, onPress: confirmAction, style: action === 'Reject' ? 'destructive' : 'default' }
+            ]
+        );
     };
 
     const formatDate = (dateStr: string) => {
@@ -73,13 +85,21 @@ const AdminWorkFromHomeScreen = () => {
                         <View key={index} style={styles.card}>
                             <View style={styles.cardHeader}>
                                 <View>
-                                    <Text style={styles.employeeName}>{req.employee_name}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                        <Text style={styles.employeeName}>{req.employee_name}</Text>
+                                    </View>
                                     <Text style={styles.employeeId}>ID: {req.employee_id}</Text>
                                 </View>
-                                <Text style={styles.appliedOn}>{formatDate(req.applied_on)}</Text>
+                                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                                    <Text style={styles.appliedOn}>{formatDate(req.applied_on)}</Text>
+                                    <View style={[styles.typeBadge, { backgroundColor: '#e0f2fe', borderColor: '#bae6fd', borderWidth: 1 }]}>
+                                        <Text style={[styles.typeText, { color: '#0369a1' }]}>WFH</Text>
+                                    </View>
+                                </View>
                             </View>
 
                             <View style={styles.datesRow}>
+                                <CalendarIcon size={normalize(14)} color="#48327d" style={{ marginRight: 6 }} />
                                 <Text style={styles.dateText}>
                                     {formatDate(req.from_date)} - {formatDate(req.to_date)}
                                 </Text>
@@ -89,22 +109,24 @@ const AdminWorkFromHomeScreen = () => {
                                 {req.reason}
                             </Text>
 
-                            <View style={styles.actionsRow}>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.rejectButton]}
-                                    onPress={() => handleAction(req.id, 'Reject')}
-                                    disabled={actionLoading === req.id}
-                                >
-                                    <Text style={styles.rejectButtonText}>Reject</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.actionButton, styles.approveButton]}
-                                    onPress={() => handleAction(req.id, 'Approve')}
-                                    disabled={actionLoading === req.id}
-                                >
-                                    <Text style={styles.approveButtonText}>Approve</Text>
-                                </TouchableOpacity>
-                            </View>
+                            {req.employee_id !== (user?.id || user?.employee_id) && (
+                                <View style={styles.actionsRow}>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.rejectButton]}
+                                        onPress={() => handleAction(req.id, 'Reject', req.employee_name)}
+                                        disabled={actionLoading === req.id}
+                                    >
+                                        <Text style={styles.rejectButtonText}>Reject</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.actionButton, styles.approveButton]}
+                                        onPress={() => handleAction(req.id, 'Approve', req.employee_name)}
+                                        disabled={actionLoading === req.id}
+                                    >
+                                        <Text style={styles.approveButtonText}>Approve</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
                         </View>
                     ))
                 )}
@@ -125,8 +147,10 @@ const styles = StyleSheet.create({
     employeeName: { fontSize: normalize(16), fontWeight: 'bold', color: '#2d3436' },
     employeeId: { fontSize: normalize(12), color: '#636e72', fontFamily: 'monospace' },
     appliedOn: { fontSize: normalize(10), color: '#b2bec3' },
+    typeBadge: { paddingHorizontal: wp(2), paddingVertical: hp(0.3), borderRadius: normalize(6), marginBottom: 2 },
+    typeText: { fontSize: normalize(9), fontWeight: 'bold' },
 
-    datesRow: { flexDirection: 'row', marginBottom: hp(1) },
+    datesRow: { flexDirection: 'row', alignItems: 'center', marginBottom: hp(1) },
     dateText: { fontSize: normalize(13), color: '#2d3436', fontWeight: '500' },
 
     reasonText: { fontSize: normalize(12), color: '#636e72', marginBottom: hp(2), fontStyle: 'italic' },

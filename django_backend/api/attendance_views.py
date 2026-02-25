@@ -70,40 +70,60 @@ def notify_leave_override(employee, leave_obj, date_str):
 def cancel_leave_for_date(leave_obj, target_date_str):
     """
     Cancels or splits a leave request because the user clocked in on 'target_date_str'.
+    When a day is removed from the leave, the leave balance is also restored accordingly.
     """
     try:
         from api.leave_views import notify_employee_status_update
     except ImportError as e:
         print(f"DEBUG: Failed to import notify_employee_status_update: {e}")
         notify_employee_status_update = None
+
+    try:
         target_date = datetime.strptime(target_date_str, '%Y-%m-%d').date()
         from_date = datetime.strptime(leave_obj.from_date, '%Y-%m-%d').date()
         to_date = datetime.strptime(leave_obj.to_date, '%Y-%m-%d').date()
         
         print(f"DEBUG: Process Leave Override | Leave ID: {leave_obj.id} [{from_date} to {to_date}] | Target: {target_date}")
 
-        # CASE 1: Single Day Leave (or start=end for some reason)
+        # Helper: restore 1 day of leave balance
+        def restore_balance(emp, leave_type_code, days=1):
+            try:
+                from core.models import EmployeeLeaveBalance, LeaveType
+                from datetime import datetime as dt_cls
+                current_year = dt_cls.now().year
+                leave_type = LeaveType.objects.filter(code=leave_type_code.upper()).first()
+                if leave_type:
+                    bal = EmployeeLeaveBalance.objects.filter(
+                        employee=emp, leave_type=leave_type, year=current_year
+                    ).first()
+                    if bal:
+                        bal.allocated_days = bal.allocated_days + days
+                        bal.save()
+                        print(f"DEBUG: Restored {days} day(s) of {leave_type_code} for {emp.employee_id}")
+            except Exception as be:
+                print(f"DEBUG: Could not restore balance: {be}")
+
+        # CASE 1: Single Day Leave
         if from_date == to_date:
             if from_date == target_date:
                 print("DEBUG: Cancelling single day leave.")
                 leave_obj.status = 'Cancelled'
-                # leave_obj.days = 0 
                 leave_obj.save()
-                # Notify
+                restore_balance(leave_obj.employee, leave_obj.type, days=1)
                 if notify_employee_status_update:
                     threading.Thread(target=notify_employee_status_update, args=(leave_obj.id,)).start()
                 return
 
         # CASE 2: Multi-day Leave - SPLIT
-        
+
         # Subcase A: Target is the START date
         if target_date == from_date:
             print("DEBUG: Trimming start of leave.")
             new_from = from_date + timedelta(days=1)
             leave_obj.from_date = new_from.strftime('%Y-%m-%d')
-            # approx recalc: days = days - 1
-            leave_obj.days = max(0, leave_obj.days - 1) 
+            leave_obj.days = max(0, leave_obj.days - 1)
             leave_obj.save()
+            restore_balance(leave_obj.employee, leave_obj.type, days=1)
             return
 
         # Subcase B: Target is the END date
@@ -113,31 +133,26 @@ def cancel_leave_for_date(leave_obj, target_date_str):
             leave_obj.to_date = new_to.strftime('%Y-%m-%d')
             leave_obj.days = max(0, leave_obj.days - 1)
             leave_obj.save()
+            restore_balance(leave_obj.employee, leave_obj.type, days=1)
             return
             
         # Subcase C: Target is in the MIDDLE
         if from_date < target_date < to_date:
             print("DEBUG: Splitting leave into two.")
-            # 1. Shrink existing leave to end before target
-            original_to = leave_obj.to_date # Keep for Part 2
+            original_to = leave_obj.to_date  # Keep for Part 2
             
             # Update Part 1 (Current Object) -> From Start to Target-1
             part1_end = target_date - timedelta(days=1)
             leave_obj.to_date = part1_end.strftime('%Y-%m-%d')
-            
-            # Calc days for Part 1: (part1_end - from_date).days + 1
             leave_obj.days = (part1_end - from_date).days + 1
             leave_obj.save()
             
-            # 2. Create Part 2 -> From Target+1 to End
+            # Create Part 2 -> From Target+1 to End
             part2_start = target_date + timedelta(days=1)
             part2_start_str = part2_start.strftime('%Y-%m-%d')
-            
-            # Days for Part 2
             original_to_date = datetime.strptime(original_to, '%Y-%m-%d').date()
             days_part2 = (original_to_date - part2_start).days + 1
             
-            # Create new Leave object
             Leaves.objects.create(
                 employee=leave_obj.employee,
                 type=leave_obj.type,
@@ -145,15 +160,17 @@ def cancel_leave_for_date(leave_obj, target_date_str):
                 to_date=original_to,
                 days=days_part2,
                 reason=f"{leave_obj.reason} (Split due to check-in on {target_date_str})",
-                status='Approved', # Auto-approve the remainder
-                created_at=leave_obj.created_at # Keep original timestamp
+                status='Approved',
+                created_at=leave_obj.created_at
             )
+            restore_balance(leave_obj.employee, leave_obj.type, days=1)
             return
 
     except Exception as e:
         print(f"ERROR: Failed to cancel/split leave: {e}")
         import traceback
         traceback.print_exc()
+
 
 @api_view(['GET'])
 def resolve_location(request):
@@ -253,38 +270,77 @@ def clock(request):
         print(f"DEBUG: Found conflicting leave {conflicting_leave.id} on {current_date_str}. Creating LeaveOverrideRequest.")
         is_pending_override = True
         
+        # --- Determine clock_type early for LeaveOverrideRequest ---
+        # (We cannot rely on AttendanceLogs since we won't write one for on-leave punches)
+        if not clock_type:
+            # Check the override request itself to determine direction
+            override_check = LeaveOverrideRequest.objects.filter(employee=employee, date=current_date_str).first()
+            if override_check and override_check.check_in and not override_check.check_out:
+                clock_type = 'OUT'
+            else:
+                clock_type = 'IN'
+
         # Create or update LeaveOverrideRequest
         override_req, _ = LeaveOverrideRequest.objects.get_or_create(
             employee=employee,
             date=current_date_str,
             defaults={'leave': conflicting_leave}
         )
-        # Ensure it points to the current active leave (fixes issue where old overrides pointing to cancelled leaves hide UI buttons)
+        # Ensure it points to the current active leave
         if override_req.leave != conflicting_leave:
             override_req.leave = conflicting_leave
             override_req.save()
         
-        if clock_type == 'IN' or not clock_type:
-             if not override_req.check_in:
-                 override_req.check_in = current_time_str
-                 override_req.location_in = location
+        if clock_type == 'IN':
+            if not override_req.check_in:
+                override_req.check_in = current_time_str
+                override_req.location_in = location
         elif clock_type == 'OUT':
-             override_req.check_out = current_time_str
-             override_req.location_out = location
+            override_req.check_out = current_time_str
+            override_req.location_out = location
         
         override_req.status = 'Pending'
         override_req.save()
 
-        # Notify Admin/Manager if this is the first punch of the day to avoid spamming
-        first_punch_check = AttendanceLogs.objects.filter(employee=employee, date=current_date_str).exists()
-        if not first_punch_check:
-             print(f"DEBUG: Sending Leave Override Notification for {employee.employee_id}")
-             # Mark leave as overridden so admin can see it in UI
-             conflicting_leave.is_overridden = True
-             conflicting_leave.save()
-             
-             threading.Thread(target=notify_leave_override, args=(employee, conflicting_leave, current_date_str)).start()
+        # Notify Admin/Manager only on first punch of the day to avoid spamming
+        # (Since we no longer write AttendanceLogs for overrides, track via override_req creation)
+        is_first_override_punch = (override_req.check_in == current_time_str and clock_type == 'IN') or \
+                                  (not AttendanceLogs.objects.filter(employee=employee, date=current_date_str).exists() and
+                                   not LeaveOverrideRequest.objects.filter(employee=employee, date=current_date_str, check_in__isnull=False).exclude(pk=override_req.pk).exists())
+        
+        if not conflicting_leave.is_overridden:
+            print(f"DEBUG: Sending Leave Override Notification for {employee.employee_id}")
+            # Mark leave as overridden so admin can see it in UI
+            conflicting_leave.is_overridden = True
+            conflicting_leave.save()
+            threading.Thread(target=notify_leave_override, args=(employee, conflicting_leave, current_date_str)).start()
 
+        # --- Ensure Attendance summary row exists showing Pending Override status ---
+        # Do NOT set check_in/check_out times — those are set only after admin approves
+        attendance_summary, created = Attendance.objects.get_or_create(
+            employee=employee,
+            date=current_date_str,
+            defaults={'status': 'Pending Override', 'break_minutes': 0}
+        )
+        if not created and attendance_summary.status != 'Pending Override':
+            attendance_summary.status = 'Pending Override'
+            attendance_summary.save()
+
+        print(f"DEBUG: Leave override recorded. Skipping normal AttendanceLogs entry.")
+        return Response({
+            'message': f'Leave Override Request submitted. Pending admin approval.',
+            'type': clock_type,
+            'time': current_time_str,
+            'is_override': True,
+            'summary': {
+                'check_in': '-',
+                'check_out': '-',
+                'break_minutes': 0,
+                'worked_hours': '-'
+            }
+        })
+
+    # ── Normal check-in/out (employee is NOT on approved leave) ──────────────
     last_log_today = AttendanceLogs.objects.filter(employee=employee, date=current_date_str).order_by('-timestamp').first()
     
     if not clock_type:
@@ -303,22 +359,20 @@ def clock(request):
     )
     
     # Update Attendance Summary
-    target_status = 'Pending Override' if is_pending_override else 'Present'
     attendance_summary, created = Attendance.objects.get_or_create(
         employee=employee,
         date=current_date_str,
-        defaults={'status': target_status, 'break_minutes': 0}
+        defaults={'status': 'Present', 'break_minutes': 0}
     )
     
     if created:
         if Holidays.objects.filter(date=current_date_str).exists():
             attendance_summary.is_holiday = True
     
-    # If the record already existed but was marked as something else, update status
-    if not created and (attendance_summary.status in ['Week Off', 'Holiday', 'Absent', '-', None] or is_pending_override):
-        attendance_summary.status = target_status
+    # If the record already existed but was marked as something else, update to Present
+    if not created and attendance_summary.status in ['Week Off', 'Holiday', 'Absent', '-', None]:
+        attendance_summary.status = 'Present'
 
-    
     if clock_type == 'IN':
         if not attendance_summary.check_in:
              attendance_summary.check_in = current_time_str

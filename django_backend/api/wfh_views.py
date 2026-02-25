@@ -8,8 +8,8 @@ from django.db.models import Q
 import datetime
 import threading
 from django.utils import timezone
-from .utils import send_email_via_api
 import os
+from .utils import send_email_via_api, is_employee_admin
 
 def send_wfh_notification_to_manager(employee, wfh_request, reason, notify_to_str=""):
     try:
@@ -191,9 +191,7 @@ def apply_wfh(request):
             return Response({'error': 'End date cannot be before start date.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Validate that wfh dates are not in previous months (skip for admins)
-        # Roles treated as admin (must match frontend App.tsx isAdmin logic)
-        ADMIN_ROLES = {'admin', 'administrator', 'project manager', 'advisor-technology & operations'}
-        is_admin = (employee.role or '').strip().lower() in ADMIN_ROLES
+        is_admin = is_employee_admin(employee)
 
         if not is_admin:
             today = datetime.date.today()
@@ -265,11 +263,8 @@ def apply_wfh(request):
              return Response({'error': 'You have already applied for Leave for this date range. Please cancel it first.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
-        # Roles treated as admin (must match frontend App.tsx isAdmin logic)
-        ADMIN_ROLES = {'admin', 'administrator', 'project manager', 'advisor-technology & operations'}
-
         # Auto-approve if the applicant is an Admin or admin-equivalent role
-        is_admin = (employee.role or '').strip().lower() in ADMIN_ROLES
+        is_admin = is_employee_admin(employee)
         initial_status = 'Approved' if is_admin else 'Pending'
 
         # All validations passed, create the WFH request

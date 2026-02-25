@@ -1,57 +1,63 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { normalize, wp, hp } from '../utils/responsive';
+import { authApi } from '../services/api';
 
 const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
-    const [activeTab, setActiveTab] = useState<'activate' | 'deactivate'>('deactivate');
     const [mobile, setMobile] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [isSending, setIsSending] = useState(false);
 
-    const handleSendOTP = () => {
+    const [showOtpField, setShowOtpField] = useState(false);
+    const [otp, setOtp] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    const handleSendOTP = async () => {
         if (!mobile || !firstName || !lastName) return;
         setIsSending(true);
-        setTimeout(() => {
-            setIsSending(false);
+        try {
+            await authApi.sendOTP(mobile, 'deactivate');
+            setShowOtpField(true);
             Alert.alert('Success', 'OTP Sent successfully to your mobile number!');
-        }, 1500);
+        } catch (error: any) {
+            console.error('Failed to send OTP:', error);
+            Alert.alert('Error', error.map ? error.map((e: any) => e.message).join('\n') : (error.message || 'Failed to send OTP. Please try again.'));
+        } finally {
+            setIsSending(false);
+        }
+    };
+
+    const handleVerifyOTP = async () => {
+        if (!otp || otp.length !== 6) return;
+        setIsVerifying(true);
+        try {
+            await authApi.updateAccountStatus(mobile, otp, 'deactivate');
+            Alert.alert('Success', 'Account deactivated successfully!');
+            onBack();
+        } catch (error: any) {
+            console.error('Failed to verify OTP:', error);
+            Alert.alert('Error', error.message || 'Failed to verify OTP. Please try again.');
+        } finally {
+            setIsVerifying(false);
+        }
     };
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                     <View style={styles.card}>
-                        {/* Custom Tab Switcher */}
-                        <View style={styles.tabContainer}>
-                            <TouchableOpacity
-                                style={[styles.tabButton, activeTab === 'activate' ? styles.activeTabButton : styles.inactiveTabButton]}
-                                onPress={() => setActiveTab('activate')}
-                            >
-                                <Text style={[styles.tabText, activeTab === 'activate' ? styles.activeTabText : styles.inactiveTabText]}>
-                                    Activate User
-                                </Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.tabButton, activeTab === 'deactivate' ? styles.activeTabButton : styles.inactiveTabButton]}
-                                onPress={() => setActiveTab('deactivate')}
-                            >
-                                <Text style={[styles.tabText, activeTab === 'deactivate' ? styles.activeTabText : styles.inactiveTabText]}>
-                                    Deactivate User
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
 
                         <View style={styles.headerTextContainer}>
                             <Text style={styles.mainTitle}>
-                                {activeTab === 'deactivate' ? 'Deactivate Account' : 'Activate Account'}
+                                Delete Account
                             </Text>
                             <Text style={styles.subTitle}>
-                                {activeTab === 'deactivate' ? "We're sorry to see you go." : "Welcome back to Markwave."}
+                                We're sorry to see you go.
                             </Text>
                         </View>
 
@@ -62,61 +68,77 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                                     <Text style={styles.prefixText}>+91</Text>
                                 </View>
                                 <TextInput
-                                    style={[styles.input, { paddingLeft: wp(12) }]}
+                                    style={[styles.input, { paddingLeft: wp(12) }, showOtpField && styles.disabledInput]}
                                     placeholder="Enter your registered mobile *"
                                     placeholderTextColor="#94a3b8"
                                     keyboardType="phone-pad"
                                     value={mobile}
                                     onChangeText={(text) => setMobile(text.replace(/[^0-9]/g, ''))}
                                     maxLength={10}
+                                    editable={!showOtpField}
                                 />
                             </View>
 
                             {/* Name Inputs Grid */}
                             <View style={styles.row}>
                                 <TextInput
-                                    style={[styles.input, styles.halfInput]}
+                                    style={[styles.input, styles.halfInput, showOtpField && styles.disabledInput]}
                                     placeholder="First Name *"
                                     placeholderTextColor="#94a3b8"
                                     value={firstName}
                                     onChangeText={setFirstName}
+                                    editable={!showOtpField}
                                 />
                                 <TextInput
-                                    style={[styles.input, styles.halfInput]}
+                                    style={[styles.input, styles.halfInput, showOtpField && styles.disabledInput]}
                                     placeholder="Last Name *"
                                     placeholderTextColor="#94a3b8"
                                     value={lastName}
                                     onChangeText={setLastName}
+                                    editable={!showOtpField}
                                 />
                             </View>
 
                             {/* Email Input */}
                             <TextInput
-                                style={styles.input}
+                                style={[styles.input, showOtpField && styles.disabledInput]}
                                 placeholder="Email Address (Optional)"
                                 placeholderTextColor="#94a3b8"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                                 value={email}
                                 onChangeText={setEmail}
+                                editable={!showOtpField}
                             />
+
+                            {showOtpField && (
+                                <TextInput
+                                    style={[styles.input, { textAlign: 'center', letterSpacing: 8 }]}
+                                    placeholder="Enter 6-digit OTP *"
+                                    placeholderTextColor="#94a3b8"
+                                    keyboardType="number-pad"
+                                    value={otp}
+                                    onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
+                                    maxLength={6}
+                                />
+                            )}
 
                             {/* Submit Button */}
                             <TouchableOpacity
                                 style={[
                                     styles.submitButton,
-                                    (!mobile || !firstName || !lastName || isSending) && styles.disabledButton
+                                    (isSending || isVerifying || (!showOtpField && (!mobile || !firstName || !lastName)) || (showOtpField && otp.length !== 6)) && styles.disabledButton
                                 ]}
-                                onPress={handleSendOTP}
-                                disabled={!mobile || !firstName || !lastName || isSending}
+                                onPress={showOtpField ? handleVerifyOTP : handleSendOTP}
+                                disabled={isSending || isVerifying || (!showOtpField && (!mobile || !firstName || !lastName)) || (showOtpField && otp.length !== 6)}
                             >
-                                {isSending ? (
+                                {isSending || isVerifying ? (
                                     <View style={styles.loadingRow}>
                                         <ActivityIndicator color="#ffffff" size="small" />
-                                        <Text style={styles.submitButtonText}>SENDING...</Text>
+                                        <Text style={styles.submitButtonText}>{isSending ? 'SENDING...' : 'VERIFYING...'}</Text>
                                     </View>
                                 ) : (
-                                    <Text style={styles.submitButtonText}>SEND OTP</Text>
+                                    <Text style={styles.submitButtonText}>{showOtpField ? 'VERIFY & DEACTIVATE' : 'SEND OTP'}</Text>
                                 )}
                             </TouchableOpacity>
 
@@ -134,7 +156,7 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
-        </SafeAreaView>
+        </View>
     );
 };
 
@@ -160,43 +182,6 @@ const styles = StyleSheet.create({
         elevation: 5,
         borderWidth: 1,
         borderColor: '#f1f5f9',
-    },
-    tabContainer: {
-        flexDirection: 'row',
-        backgroundColor: '#f8f9fa',
-        borderRadius: 16,
-        padding: 6,
-        marginBottom: hp(4),
-        borderWidth: 1,
-        borderColor: '#f1f5f9',
-    },
-    tabButton: {
-        flex: 1,
-        paddingVertical: hp(1.5),
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    activeTabButton: {
-        backgroundColor: '#ef4444',
-        shadowColor: '#ef4444',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 8,
-        elevation: 3,
-    },
-    inactiveTabButton: {
-        backgroundColor: 'transparent',
-    },
-    tabText: {
-        fontSize: normalize(14),
-        fontWeight: '700',
-    },
-    activeTabText: {
-        color: '#ffffff',
-    },
-    inactiveTabText: {
-        color: '#64748b',
     },
     headerTextContainer: {
         alignItems: 'center',
@@ -247,6 +232,10 @@ const styles = StyleSheet.create({
         fontSize: normalize(14),
         color: '#334155',
         fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    },
+    disabledInput: {
+        backgroundColor: '#f8fafc',
+        color: '#94a3b8',
     },
     halfInput: {
         flex: 1,

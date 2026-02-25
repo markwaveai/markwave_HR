@@ -33,13 +33,17 @@ const apiFetch = async (endpoint, options = {}) => {
 
 export const authApi = {
     getProfile: (employeeId) => apiFetch(`/auth/profile/${employeeId}/`),
-    sendOTP: (phone) => apiFetch('/auth/send-otp/', {
+    sendOTP: (phone, purpose = 'login') => apiFetch('/auth/send-otp/', {
         method: 'POST',
-        body: JSON.stringify({ phone })
+        body: JSON.stringify({ phone, purpose })
     }),
     verifyOTP: (phone, otp) => apiFetch('/auth/verify-otp/', {
         method: 'POST',
         body: JSON.stringify({ phone, otp })
+    }),
+    updateAccountStatus: (phone, otp, action) => apiFetch('/auth/update-status/', {
+        method: 'POST',
+        body: JSON.stringify({ phone, otp, action })
     }),
     sendEmailOTP: (email) => apiFetch('/auth/send-email-otp/', {
         method: 'POST',
