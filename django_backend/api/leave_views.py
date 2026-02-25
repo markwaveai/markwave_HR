@@ -586,10 +586,11 @@ def email_leave_action(request, request_id, action):
 @api_view(['GET'])
 def get_pending_leaves(request):
     # Roles treated as admin — their leaves are auto-approved and must not appear here
-
+    from datetime import datetime, timedelta
+    thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
     # Exclude leaves submitted by admin-equivalent role employees
     leaves = Leaves.objects.filter(
-        Q(status='Pending') | Q(status='Approved', is_overridden=True)
+        Q(status='Pending') | Q(status='Approved', from_date__gte=thirty_days_ago) | Q(status='Approved', is_overridden=True)
     ).exclude(
         employee__role__in=[
             r for role in ADMIN_ROLES
@@ -622,6 +623,20 @@ def leave_action(request, request_id):
         leave_request.status = 'Rejected'
     elif action == 'Cancel':
         leave_request.status = 'Cancelled'
+        # Restore Attendance records for those dates if they were marked as Leave
+        try:
+            from datetime import datetime, timedelta
+            current_d = datetime.strptime(leave_request.from_date, '%Y-%m-%d')
+            end_d = datetime.strptime(leave_request.to_date, '%Y-%m-%d')
+            while current_d <= end_d:
+                d_str = current_d.strftime('%Y-%m-%d')
+                att = Attendance.objects.filter(employee=leave_request.employee, date=d_str).first()
+                if att and att.status in ['On Leave', 'Leave']:
+                    att.status = '-'
+                    att.save()
+                current_d += timedelta(days=1)
+        except Exception as e:
+            print(f"Error resetting attendance after cancel: {e}")
     elif action == 'ApproveOverride':
         # 1. Find the override request for this leave (likely for today, or passed in data)
         # For simplicity, we assume we want to approve all pending overrides for this leave

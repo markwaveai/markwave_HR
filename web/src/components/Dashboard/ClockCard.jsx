@@ -13,7 +13,7 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
     const isButtonDisabled = isLoadingLocation || (!canClock && !isOnLeave);
 
     return (
-        <div className={`rounded-xl p-3 mm:p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between transition-all duration-300 ${isAbsent ? 'bg-[#6366f1]' : 'bg-[#6366f1]'}`}>
+        <div className={`rounded-xl p-3 mm:p-4 shadow-lg text-white min-h-[140px] flex flex-col justify-between transition-all duration-300 ${isAbsent ? 'bg-[#48327d]' : 'bg-[#48327d]'}`}>
             <div className="flex justify-between items-center mb-4 opacity-90">
                 <span className="text-xs mm:text-sm font-medium">Time Today - {currentTime.toLocaleDateString('en-US', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span>
                 {disabledReason && (
@@ -45,12 +45,12 @@ const ClockCard = ({ currentTime, isClockedIn, isLoadingLocation, locationState,
 
                 <div className="flex gap-2">
                     <button
-                        className={`bg-white text-[#4f46e5] px-3 mm:px-4 py-2 rounded-md font-semibold text-xs mm:text-sm transition-all shadow-sm ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90 active:scale-95'}`}
+                        className={`bg-white text-[#48327d] px-3 mm:px-4 py-2 rounded-md font-semibold text-xs mm:text-sm transition-all shadow-sm ${isButtonDisabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90 active:scale-95'}`}
                         onClick={handleClockAction}
                         disabled={isButtonDisabled}
                     >
                         {isLoadingLocation || (isClockedIn === null && !isOnLeave) ? (
-                            <LoadingSpinner size={16} color="border-[#4f46e5]" />
+                            <LoadingSpinner size={16} color="border-[#48327d]" />
                         ) : (
                             <span className="whitespace-nowrap">
                                 {window.innerWidth < 350 ? (isClockedIn ? 'Out' : 'In') : (isClockedIn ? 'Check-Out' : 'Check-In')}

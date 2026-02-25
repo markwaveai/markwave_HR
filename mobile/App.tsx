@@ -23,7 +23,10 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import MeScreen from './src/screens/MeScreen';
 import LeaveScreen from './src/screens/LeaveScreen';
-import { LayoutGridIcon, UserIcon, UserPlusIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon } from './src/components/Icons';
+import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
+import SupportScreen from './src/screens/SupportScreen';
+import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
+import { LayoutGridIcon, UserIcon, UserPlusIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon, ShieldIcon, HelpCircleIcon, ChevronLeftIcon } from './src/components/Icons';
 
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -282,7 +285,31 @@ function App() {
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
       {!isLoggedIn ? (
-        <LoginScreen onLogin={handleLogin} />
+        (activeTab === 'PrivacyPolicy' || activeTab === 'Support') ? (
+          <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+              <TouchableOpacity
+                onPress={() => setActiveTab('Home')}
+                style={styles.menuButton}
+              >
+                <ChevronLeftIcon color="#48327d" size={28} />
+              </TouchableOpacity>
+              <Text style={styles.headerTitle}>MARKWAVE HR</Text>
+              <View style={{ width: 36 }} />
+            </View>
+            <View style={styles.mainContent}>
+              {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => setActiveTab('Home')} />}
+              {activeTab === 'Support' && <SupportScreen onBack={() => setActiveTab('Home')} onNavigateTo={(screen) => setActiveTab(screen)} />}
+              {activeTab === 'DeleteAccount' && <DeleteAccountScreen onBack={() => setActiveTab('Support')} />}
+            </View>
+          </SafeAreaView>
+        ) : (
+          <LoginScreen
+            onLogin={handleLogin}
+            onOpenSupport={() => setActiveTab('Support')}
+            onOpenPrivacy={() => setActiveTab('PrivacyPolicy')}
+          />
+        )
       ) : (
         <SafeAreaView style={styles.container}>
           <Modal
@@ -364,6 +391,18 @@ function App() {
                     isActive={activeTab === 'Settings'}
                     onPress={() => { setActiveTab('Settings'); setIsDrawerVisible(false); }}
                   />
+                  <DrawerItem
+                    title="Privacy Policy"
+                    icon={<ShieldIcon color={activeTab === 'PrivacyPolicy' ? '#ffffff' : '#cbd5e1'} size={24} />}
+                    isActive={activeTab === 'PrivacyPolicy'}
+                    onPress={() => { setActiveTab('PrivacyPolicy'); setIsDrawerVisible(false); }}
+                  />
+                  <DrawerItem
+                    title="Support"
+                    icon={<HelpCircleIcon color={activeTab === 'Support' ? '#ffffff' : '#cbd5e1'} size={24} />}
+                    isActive={activeTab === 'Support'}
+                    onPress={() => { setActiveTab('Support'); setIsDrawerVisible(false); }}
+                  />
                 </ScrollView>
 
                 <TouchableOpacity style={styles.logoutBtn} onPress={handleLogoutPress}>
@@ -425,6 +464,9 @@ function App() {
             {activeTab === 'Teams' && <TeamManagementScreen />}
             {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
             {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}
+            {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => setActiveTab('Home')} />}
+            {activeTab === 'Support' && <SupportScreen onBack={() => setActiveTab('Home')} onNavigateTo={(screen) => setActiveTab(screen)} />}
+            {activeTab === 'DeleteAccount' && <DeleteAccountScreen onBack={() => setActiveTab('Support')} />}
           </View>
 
           <ProfileModal

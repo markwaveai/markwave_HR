@@ -11,16 +11,20 @@ import {
     StatusBar,
     Image,
     Animated,
-    Pressable
+    Pressable,
+    ScrollView
 } from 'react-native';
+import { HelpCircleIcon, ShieldIcon } from '../components/Icons';
 import { authApi } from '../services/api';
 import { normalize, wp, hp } from '../utils/responsive';
 
 interface LoginScreenProps {
     onLogin: (user: any) => void;
+    onOpenSupport: () => void;
+    onOpenPrivacy: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onOpenSupport, onOpenPrivacy }) => {
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
     const [otp, setOtp] = useState('');
@@ -202,6 +206,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                 )}
 
                 <View style={styles.formContainer}>
+                    {/* ... Existing form inputs/logic remains same ... */}
                     {step === 'phone' ? (
                         <View>
                             <Text style={styles.inputLabel}>
@@ -298,6 +303,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
                             </TouchableOpacity>
                         );
                     })()}
+                </View>
+
+                {/* Footer Links inside card */}
+                <View style={styles.cardFooter}>
+                    <TouchableOpacity style={styles.footerLink} onPress={onOpenPrivacy}>
+                        <ShieldIcon size={14} color="#636e72" />
+                        <Text style={styles.footerLinkText}>Privacy Policy</Text>
+                    </TouchableOpacity>
+                    <View style={styles.linkSeparator} />
+                    <TouchableOpacity style={styles.footerLink} onPress={onOpenSupport}>
+                        <HelpCircleIcon size={14} color="#636e72" />
+                        <Text style={styles.footerLinkText}>Support</Text>
+                    </TouchableOpacity>
                 </View>
             </Animated.View>
 
@@ -505,6 +523,31 @@ const styles = StyleSheet.create({
         fontSize: normalize(13),
         textAlign: 'center',
         fontWeight: '500',
+    },
+    cardFooter: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: hp(4),
+        paddingTop: hp(2),
+        borderTopWidth: 1,
+        borderTopColor: '#f1f5f9',
+    },
+    footerLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: wp(4),
+        gap: 6,
+    },
+    footerLinkText: {
+        fontSize: normalize(12),
+        color: '#636e72',
+        fontWeight: '600',
+    },
+    linkSeparator: {
+        width: 1,
+        height: 12,
+        backgroundColor: '#e2e8f0',
     }
 });
 

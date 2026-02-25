@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Lock, Phone, ArrowRight, AlertCircle, Mail } from 'lucide-react';
+import { Lock, Phone, ArrowRight, AlertCircle, Mail, ShieldCheck, HelpCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { authApi } from '../services/api';
 
 const LoginPage = ({ onLogin }) => {
@@ -198,6 +199,23 @@ const LoginPage = ({ onLogin }) => {
                     </form>
                 </div>
 
+                {/* Footer Link */}
+                <div className="bg-[#fbfcff] px-6 py-4 border-t border-[#dfe6e9] flex justify-center">
+                    <Link
+                        to="/privacy-policy"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-[#636e72] hover:text-[#48327d] transition-colors group px-4 border-r border-gray-200"
+                    >
+                        <ShieldCheck size={14} className="text-[#b2bec3] group-hover:text-[#48327d] transition-colors" />
+                        <span>Privacy Policy</span>
+                    </Link>
+                    <Link
+                        to="/support"
+                        className="flex items-center gap-1.5 text-xs font-semibold text-[#636e72] hover:text-[#48327d] transition-colors group px-4"
+                    >
+                        <HelpCircle size={14} className="text-[#b2bec3] group-hover:text-[#48327d] transition-colors" />
+                        <span>Support</span>
+                    </Link>
+                </div>
             </div>
         </div>
     );

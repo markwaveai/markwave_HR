@@ -756,3 +756,88 @@ export const BanIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, str
         <Path d="m4.9 4.9 14.2 14.2" />
     </Svg>
 );
+
+export const ShieldIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+    </Svg>
+);
+
+export const SaveIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+        <Polyline points="17 21 17 13 7 13 7 21" />
+        <Polyline points="7 3 7 8 15 8" />
+    </Svg>
+);
+
+export const HelpCircleIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Circle cx="12" cy="12" r="10" />
+        <Path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+        <Line x1="12" y1="17" x2="12.01" y2="17" />
+    </Svg>
+);
+
+export const MessageSquareIcon: React.FC<IconProps> = ({ color = '#64748b', size = 24, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </Svg>
+);
+
+export const SendIcon: React.FC<IconProps> = ({ color = '#64748b', size = 18, strokeWidth = 2, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        style={style}
+    >
+        <Path d="m22 2-7 20-4-9-9-4Z" />
+        <Path d="M22 2 11 13" />
+    </Svg>
+);

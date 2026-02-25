@@ -4,7 +4,7 @@ import { UserPlus, Users, MapPin, Mail, Briefcase, Phone, Clock, Calendar, X, Sh
 import ConfirmDialog from './Common/ConfirmDialog';
 import LoadingSpinner from './Common/LoadingSpinner';
 
-function EmployeeManagement() {
+function EmployeeManagement({ user }) {
     const [employees, setEmployees] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -244,7 +244,8 @@ function EmployeeManagement() {
 
         try {
             await teamApi.updateMember(targetId, {
-                status: 'Inactive'
+                status: 'Inactive',
+                acting_user_id: user?.id
             });
             await fetchEmployees();
             setDeleteConfirm({ isOpen: false, employee: null });
@@ -268,12 +269,12 @@ function EmployeeManagement() {
 
     return (
         <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 overflow-y-auto bg-[#f5f7fa]">
-            <div className="mb-4 mm:mb-6 flex justify-between items-center">
+            <div className="mb-4 mm:mb-6 flex flex-col xl:flex-row justify-between xl:items-center gap-4">
                 <div>
                     <h1 className="text-xl mm:text-2xl font-bold text-[#2d3436]">Employee Management</h1>
                     <p className="text-[12px] mm:text-sm text-[#636e72] mt-1">Personnel registry and employee records</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-4">
                     <div className="relative hidden md:block">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                         <input
@@ -281,17 +282,17 @@ function EmployeeManagement() {
                             placeholder="Search employee records"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            className="pl-9 pr-4 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#48327d]/20 w-64"
+                            className="pl-9 pr-4 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#48327d]/20 w-48 lg:w-64"
                         />
                     </div>
                     <button
                         onClick={() => setIsModalOpen(true)}
-                        className="bg-[#48327d] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#3a2865] transition-all shadow-md"
+                        className="bg-[#48327d] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#3a2865] transition-all shadow-md whitespace-nowrap"
                     >
                         <UserPlus size={18} /> Register Employee
                     </button>
                     <div className="text-right hidden sm:block">
-                        <div className="text-sm font-semibold text-[#48327d]">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
+                        <div className="text-sm font-semibold text-[#48327d] whitespace-nowrap">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
                 </div>
             </div>
@@ -427,10 +428,10 @@ function EmployeeManagement() {
                                     </td>
                                 </tr>
                             ) : (
-                                filteredEmployees.map((emp) => (
+                                filteredEmployees.map((emp, index) => (
                                     <tr key={emp.id} className={`hover:bg-[#f8f9fa] transition-all group ${emp.status === 'Inactive' ? 'opacity-50 grayscale-[0.5]' : ''}`}>
                                         <td className="px-6 py-4 font-mono text-[#48327d] font-bold text-center">
-                                            {emp.id || '----'}
+                                            {index + 1}
                                         </td>
                                         <td className="px-6 py-4 font-mono text-[#48327d] font-bold text-center">
                                             {emp.employee_id || '----'}

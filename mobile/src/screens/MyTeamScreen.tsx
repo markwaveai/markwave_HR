@@ -8,12 +8,12 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
-    SafeAreaView,
     StatusBar,
     Platform,
     Modal,
     ScrollView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { teamApi } from '../services/api';
 import { normalize, wp, hp } from '../utils/responsive';
 import { EditIcon, TrashIcon, SearchIcon, MapPinIcon, MailIcon } from '../components/Icons';

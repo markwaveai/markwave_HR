@@ -15,6 +15,58 @@ const Settings = lazy(() => import('./components/Layout/Settings'));
 const EmployeeManagement = lazy(() => import('./components/EmployeeManagement'));
 const AdminLeaveManagement = lazy(() => import('./components/AdminLeaveManagement'));
 const TeamManagement = lazy(() => import('./components/TeamManagement'));
+const Support = lazy(() => import('./components/Support'));
+const DeleteAccount = lazy(() => import('./components/DeleteAccount'));
+const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
+
+// Privacy Policy Route Component (Context-Aware)
+const PrivacyPolicyRoute = ({ isAuthenticated, user, handleLogout }) => {
+  const location = useLocation();
+  const isFromPortal = location.state?.fromPortal === true;
+
+  if (isAuthenticated && isFromPortal) {
+    return (
+      <Layout user={user} handleLogout={handleLogout}>
+        <PrivacyPolicy user={user} />
+      </Layout>
+    );
+  }
+
+  return <PrivacyPolicy user={user} />;
+};
+
+// Support Route Component (Context-Aware)
+const SupportRoute = ({ isAuthenticated, user, handleLogout }) => {
+  const location = useLocation();
+  const isFromPortal = location.state?.fromPortal === true;
+
+  if (isAuthenticated && isFromPortal) {
+    return (
+      <Layout user={user} handleLogout={handleLogout}>
+        <Support user={user} />
+      </Layout>
+    );
+  }
+
+  return <Support user={user} />;
+};
+
+// Delete Account Route Component (Context-Aware)
+const DeleteAccountRoute = ({ isAuthenticated, user, handleLogout }) => {
+  const location = useLocation();
+  const isFromPortal = location.state?.fromPortal === true;
+
+  if (isAuthenticated && isFromPortal) {
+    return (
+      <Layout user={user} handleLogout={handleLogout}>
+        <DeleteAccount user={user} />
+      </Layout>
+    );
+  }
+
+  return <DeleteAccount user={user} />;
+};
+
 
 // Protected Route Component
 const ProtectedRoute = ({ isAuthenticated, children }) => {
@@ -25,7 +77,7 @@ const ProtectedRoute = ({ isAuthenticated, children }) => {
 };
 
 // Main Layout Component
-const Layout = ({ user, handleLogout }) => {
+const Layout = ({ user, handleLogout, children }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
 
@@ -54,7 +106,7 @@ const Layout = ({ user, handleLogout }) => {
       <div className={`flex-1 flex flex-col h-full min-w-0 transition-all duration-300 ${isSidebarOpen ? 'tab:ml-[240px] lg:ml-0' : ''}`}>
         <Header user={user} isSidebarOpen={isSidebarOpen} onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} onLogout={handleLogout} />
         <main className="flex-1 relative overflow-y-auto">
-          <Outlet />
+          {children || <Outlet />}
         </main>
       </div>
     </div>
@@ -146,6 +198,35 @@ function App() {
             <Navigate to="/dashboard" replace />
           )
         } />
+
+        {/* Privacy Policy - Context Aware (Integrated vs Standalone) */}
+        <Route path="/privacy-policy" element={
+          <PrivacyPolicyRoute
+            isAuthenticated={isAuthenticated}
+            user={user}
+            handleLogout={handleLogout}
+          />
+        } />
+
+        {/* Support - Context Aware (Integrated vs Standalone) */}
+        <Route path="/support" element={
+          <SupportRoute
+            isAuthenticated={isAuthenticated}
+            user={user}
+            handleLogout={handleLogout}
+          />
+        } />
+
+        {/* Delete Account - Context Aware (Integrated vs Standalone) */}
+        <Route path="/delete-account" element={
+          <DeleteAccountRoute
+            isAuthenticated={isAuthenticated}
+            user={user}
+            handleLogout={handleLogout}
+          />
+        } />
+
+
 
         {/* Protected Routes */}
         <Route element={<ProtectedRoute isAuthenticated={isAuthenticated}><Layout user={user} handleLogout={handleLogout} /></ProtectedRoute>}>

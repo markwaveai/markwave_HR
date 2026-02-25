@@ -108,7 +108,7 @@ const AdminLeaveManagement = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-[#dfe6e9] overflow-hidden">
                     <div className="p-4 bg-[#fbfcff] border-b border-[#dfe6e9]">
                         <h2 className="text-[#48327d] font-bold flex items-center gap-2">
-                            <Clock size={18} /> Pending Requests ({leaves.length})
+                            <Clock size={18} /> Leave Requests ({leaves.length})
                         </h2>
                     </div>
                     <div className="overflow-x-auto">

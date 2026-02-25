@@ -9,7 +9,10 @@ import {
     LogOut,
     UserPlus,
     Menu,
-    X
+    X,
+    Shield,
+    HelpCircle,
+    Trash2
 } from 'lucide-react';
 
 function Sidebar({ user, onLogout, isOpen, onClose }) {
@@ -46,7 +49,10 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
         { id: 'team-management', label: 'Team Management', icon: Users, path: '/team-management', roles: ['Admin'] },
         { id: 'leaves', label: 'Leave & Attendance', icon: Calendar, path: '/leaves', roles: ['Employee'] },
         { id: 'admin-leaves', label: 'Leave Management', icon: Calendar, path: '/admin-leaves', roles: ['Admin'] },
-        { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', roles: ['All'] }
+        { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', roles: ['All'] },
+        { id: 'privacy-policy', label: 'Privacy Policy', icon: Shield, path: '/privacy-policy', roles: ['All'] },
+        { id: 'support', label: 'Support', icon: HelpCircle, path: '/support', roles: ['All'] },
+        { id: 'delete-account', label: 'Delete Account', icon: Trash2, path: '/delete-account', roles: ['All'] }
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
@@ -79,6 +85,7 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
                             <NavLink
                                 key={item.id}
                                 to={item.path}
+                                state={(item.id === 'privacy-policy' || item.id === 'support' || item.id === 'delete-account') ? { fromPortal: true } : undefined}
                                 className={({ isActive }) => `flex items-center gap-3 px-2 py-2 text-white no-underline rounded-lg transition-all font-medium mb-1 hover:bg-white/10 hover:text-white text-sm ${isActive ? 'bg-white/10 text-white' : ''}`}
                             >
                                 <Icon size={18} /> {item.label}
