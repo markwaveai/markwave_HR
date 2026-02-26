@@ -487,22 +487,13 @@ function EmployeeManagement({ user }) {
                                                             <button
                                                                 onClick={() => setDeleteConfirm({ isOpen: true, employee: emp })}
                                                                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all hover:scale-110 active:scale-90"
-                                                                title="Deactivate Employee"
+                                                                title="Disable Employee"
                                                             >
                                                                 <Trash2 size={18} />
                                                             </button>
                                                         </>
                                                     ) : (
-                                                        <button
-                                                            onClick={() => {
-                                                                // Redirect to Delete Account with the mobile number pre-filled or just navigate
-                                                                navigate('/delete-account', { state: { fromPortal: true, mobile: emp.contact, action: 'activate' } });
-                                                            }}
-                                                            className="px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-lg font-bold hover:bg-green-100 transition-all text-[10px]"
-                                                            title="Reactivate Employee"
-                                                        >
-                                                            REACTIVATE
-                                                        </button>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Disabled</span>
                                                     )}
                                                 </div>
                                             )}
@@ -516,11 +507,11 @@ function EmployeeManagement({ user }) {
             </div>
             <ConfirmDialog
                 isOpen={deleteConfirm.isOpen}
-                title="Deactivate Employee"
-                message={`Are you sure you want to deactivate ${deleteConfirm.employee?.first_name} ${deleteConfirm.employee?.last_name || ''}? They will no longer be able to log in, but their historical records will be preserved.`}
+                title="Disable Employee"
+                message={`Are you sure you want to disable ${deleteConfirm.employee?.first_name} ${deleteConfirm.employee?.last_name || ''}? They will no longer be able to log in, but their historical records will be preserved.`}
                 onConfirm={handleDelete}
                 onCancel={() => setDeleteConfirm({ isOpen: false, employee: null })}
-                confirmText="Deactivate"
+                confirmText="Disable"
                 type="danger"
                 isLoading={isDeleting}
                 closeOnConfirm={false}

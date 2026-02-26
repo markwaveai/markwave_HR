@@ -27,20 +27,6 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
         }
     }, [state]);
 
-    if (!isAdmin) {
-        return (
-            <View style={styles.container}>
-                <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
-                <View style={styles.card}>
-                    <Text style={styles.mainTitle}>Unauthorized</Text>
-                    <Text style={styles.subTitle}>Only administrators can access the delete account tool.</Text>
-                    <TouchableOpacity style={styles.submitButton} onPress={onBack}>
-                        <Text style={styles.submitButtonText}>Return</Text>
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    }
 
     const handleSendOTP = async () => {
         if (!mobile) return; // Note: firstName/lastName not strictly required for OTP send if they are optional for actual update?
@@ -63,7 +49,7 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
         setIsVerifying(true);
         try {
             await authApi.updateAccountStatus(mobile, otp, action);
-            Alert.alert('Success', `Account ${action === 'activate' ? 'activated' : 'deactivated'} successfully!`);
+            Alert.alert('Success', `Account disabled successfully!`);
             onBack();
         } catch (error: any) {
             console.error('Failed to verify OTP:', error);
@@ -83,29 +69,11 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
 
                         <View style={styles.headerTextContainer}>
                             <Text style={styles.mainTitle}>
-                                Delete Account
+                                Disable Account
                             </Text>
                             <Text style={styles.subTitle}>
                                 Admin Portal: Manage User Account Status
                             </Text>
-                        </View>
-
-                        {/* Action Toggle */}
-                        <View style={styles.toggleContainer}>
-                            <TouchableOpacity
-                                onPress={() => !showOtpField && setAction('deactivate')}
-                                style={[styles.toggleButton, action === 'deactivate' && styles.activeToggleDeactivate]}
-                                disabled={showOtpField}
-                            >
-                                <Text style={[styles.toggleButtonText, action === 'deactivate' ? { color: '#ef4444' } : { color: '#94a3b8' }]}>Deactivate</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => !showOtpField && setAction('activate')}
-                                style={[styles.toggleButton, action === 'activate' && styles.activeToggleActivate]}
-                                disabled={showOtpField}
-                            >
-                                <Text style={[styles.toggleButtonText, action === 'activate' ? { color: '#22c55e' } : { color: '#94a3b8' }]}>Activate</Text>
-                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.formContainer}>
@@ -158,7 +126,7 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
                                     </View>
                                 ) : (
                                     <Text style={styles.submitButtonText}>
-                                        {showOtpField ? `VERIFY & ${action.toUpperCase()}` : `SEND OTP TO ${action.toUpperCase()}`}
+                                        {showOtpField ? `VERIFY & DISABLE` : `SEND OTP TO DISABLE`}
                                     </Text>
                                 )}
                             </TouchableOpacity>

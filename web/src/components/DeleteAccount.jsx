@@ -15,21 +15,6 @@ const DeleteAccount = ({ user }) => {
     const [otp, setOtp] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
 
-    // Permission check
-    const isAdmin = user?.is_admin === true ||
-        ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Founder', 'Acting Admin'].includes(user?.role);
-
-    if (!isAdmin) {
-        return (
-            <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center p-4">
-                <div className="bg-white p-8 rounded-3xl shadow-xl text-center max-w-sm">
-                    <h2 className="text-2xl font-bold text-slate-900 mb-4">Unauthorized</h2>
-                    <p className="text-slate-600 mb-6">Only administrators can access the delete account tool.</p>
-                    <button onClick={() => navigate('/dashboard')} className="bg-[#48327d] text-white px-6 py-2 rounded-xl font-bold">Return to Dashboard</button>
-                </div>
-            </div>
-        );
-    }
 
     const handleSendOTP = async (e) => {
         e.preventDefault();
@@ -51,7 +36,7 @@ const DeleteAccount = ({ user }) => {
         setIsVerifying(true);
         try {
             await authApi.updateAccountStatus(mobile, otp, action, user.id);
-            alert(`Account ${action === 'activate' ? 'activated' : 'deactivated'} successfully!`);
+            alert(`Account disabled successfully!`);
             navigate(-1);
         } catch (error) {
             console.error('Failed to update status:', error);
@@ -81,29 +66,11 @@ const DeleteAccount = ({ user }) => {
 
                     <div className="text-center mb-10">
                         <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 mb-2 font-serif">
-                            Delete Account
+                            Disable Account
                         </h1>
                         <p className="text-slate-900 font-bold text-[15px]">
                             Admin Portal: Manage User Account Status
                         </p>
-                    </div>
-
-                    {/* Action Toggle */}
-                    <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
-                        <button
-                            onClick={() => !showOtpField && setAction('deactivate')}
-                            className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all ${action === 'deactivate' ? 'bg-white text-red-500 shadow-sm' : 'text-slate-500'}`}
-                            disabled={showOtpField}
-                        >
-                            Deactivate
-                        </button>
-                        <button
-                            onClick={() => !showOtpField && setAction('activate')}
-                            className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all ${action === 'activate' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'}`}
-                            disabled={showOtpField}
-                        >
-                            Activate
-                        </button>
                     </div>
 
                     <form onSubmit={showOtpField ? handleVerifyOTP : handleSendOTP} className="space-y-5">
@@ -157,9 +124,9 @@ const DeleteAccount = ({ user }) => {
                                     <span>{isSending ? 'SENDING...' : 'VERIFYING...'}</span>
                                 </div>
                             ) : showOtpField ? (
-                                `VERIFY & ${action.toUpperCase()}`
+                                `VERIFY & DISABLE`
                             ) : (
-                                `SEND OTP TO ${action === 'deactivate' ? 'DEACTIVATE' : 'ACTIVATE'}`
+                                `SEND OTP TO DISABLE`
                             )}
                         </button>
 

@@ -13,6 +13,11 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     python3-dev \
     build-essential \
+    libjpeg-dev \
+    zlib1g-dev \
+    libwebp-dev \
+    libheif-dev \
+    libde265-dev \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /app/

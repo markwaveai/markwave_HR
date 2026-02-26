@@ -154,7 +154,7 @@ function Settings({ user, onUserUpdate }) {
                                 type="file"
                                 ref={fileInputRef}
                                 className="hidden"
-                                accept="image/*"
+                                accept="image/*,.heic,.heif,.webp"
                                 onChange={handleImageUpload}
                             />
                         </div>

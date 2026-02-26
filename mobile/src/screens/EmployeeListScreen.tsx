@@ -246,12 +246,9 @@ const EmployeeListScreen = ({ user, onNavigateTo }: { user: any, onNavigateTo: (
             <Text style={[styles.cell, { width: COL_WIDTHS.loc, color: '#636e72' }]}>{item.location || '-'}</Text>
             <View style={[styles.cell, { width: wp(26), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: wp(3) }]}>
                 {item.status === 'Inactive' && (
-                    <TouchableOpacity
-                        onPress={() => onNavigateTo('DeleteAccount', { mobile: item.contact, action: 'activate' })}
-                        style={{ padding: 4 }}
-                    >
-                        <ZapIcon color="#22c55e" size={normalize(18)} />
-                    </TouchableOpacity>
+                    <View style={{ padding: 4 }}>
+                        <Text style={{ fontSize: normalize(10), color: '#94a3b8', fontWeight: 'bold' }}>DISABLED</Text>
+                    </View>
                 )}
                 <TouchableOpacity onPress={() => handleEdit(item)}>
                     <EditIcon color="#48327d" size={normalize(18)} />

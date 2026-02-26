@@ -181,7 +181,15 @@ def login(request):
                 'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
                 'team_name': ", ".join([t.name for t in emp.teams.all()]) or "Testing Team",
                 'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-                'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
+                'team_lead_name': ", ".join(sorted(list(set([
+                    f"{m.first_name} {m.last_name or ''}".strip()
+                    for t in emp.teams.all()
+                    for m in t.members.filter(status='Active').filter(
+                        Q(role__icontains='Lead') | Q(role__icontains='Manager') | 
+                        Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
+                        Q(role__icontains='Advisor')
+                    )
+                ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or "Team Lead",
                 'is_manager': Teams.objects.filter(manager=emp).exists(),
                 'is_admin': is_employee_admin(emp),
                 'project_manager_name': manager_names,
@@ -355,7 +363,15 @@ def verify_otp(request):
                         'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
                         'team_name': ", ".join([t.name for t in emp.teams.all()]) or None,
                         'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-                        'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or None,
+                        'team_lead_name': ", ".join(sorted(list(set([
+                            f"{m.first_name} {m.last_name or ''}".strip()
+                            for t in emp.teams.all()
+                            for m in t.members.filter(status='Active').filter(
+                                Q(role__icontains='Lead') | Q(role__icontains='Manager') | 
+                                Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
+                                Q(role__icontains='Advisor')
+                            )
+                        ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or "Team Lead",
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
                         'is_admin': is_employee_admin(emp),
                         'project_manager_name': manager_names,
@@ -413,8 +429,24 @@ def get_profile(request, employee_id):
             'team_ids': ",".join([str(t.id) for t in emp.teams.all()]),
             'team_name': ", ".join([t.name for t in emp.teams.all()]) or None,
             'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(emp.teams.all()) + list(Teams.objects.filter(manager=emp)))],
-            'team_leads': [f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern'],
-            'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager and t.manager.role != 'Intern']) or None,
+            'team_leads': sorted(list(set([
+                f"{m.first_name} {m.last_name or ''}".strip()
+                for t in emp.teams.all()
+                for m in t.members.filter(status='Active').filter(
+                    Q(role__icontains='Lead') | Q(role__icontains='Manager') | 
+                    Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
+                    Q(role__icontains='Advisor')
+                )
+            ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else [])))),
+            'team_lead_name': ", ".join(sorted(list(set([
+                f"{m.first_name} {m.last_name or ''}".strip()
+                for t in emp.teams.all()
+                for m in t.members.filter(status='Active').filter(
+                    Q(role__icontains='Lead') | Q(role__icontains='Manager') | 
+                    Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
+                    Q(role__icontains='Advisor')
+                )
+            ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or "Team Lead",
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': is_employee_admin(emp),
             'project_manager_name': manager_names,
@@ -579,7 +611,15 @@ def verify_email_otp(request):
                 'team_ids': ",".join([str(t.id) for t in employee.teams.all()]),
                 'team_name': ", ".join([t.name for t in employee.teams.all()]) or "No Team",
                 'teams': [{'id': t.id, 'name': t.name, 'manager_name': f"{t.manager.first_name} {t.manager.last_name or ''}".strip() if t.manager else None} for t in (list(employee.teams.all()) + list(Teams.objects.filter(manager=employee)))],
-                'team_lead_name': ", ".join([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager and t.manager.role != 'Intern']) or "Team Lead",
+                'team_lead_name': ", ".join(sorted(list(set([
+                    f"{m.first_name} {m.last_name or ''}".strip()
+                    for t in employee.teams.all()
+                    for m in t.members.filter(status='Active').filter(
+                        Q(role__icontains='Lead') | Q(role__icontains='Manager') | 
+                        Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
+                        Q(role__icontains='Advisor')
+                    )
+                ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager] if any(t.manager for t in employee.teams.all()) else []))))) or "Team Lead",
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
                 'is_admin': is_employee_admin(employee),
                 'project_manager_name': manager_names,

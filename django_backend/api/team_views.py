@@ -1,4 +1,5 @@
 import random
+import os
 import traceback
 from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
@@ -20,6 +21,44 @@ def is_user_admin(employee):
     )
 
 from .utils import create_whatsapp_group, add_whatsapp_participant, remove_whatsapp_participant
+import io
+from PIL import Image
+try:
+    from pillow_heif import register_heif_opener
+    register_heif_opener()
+except ImportError:
+    pass
+
+def process_profile_picture(image_file):
+    """
+    Processes the uploaded image:
+    1. Opens it using PIL (supporting HEIC via pillow-heif)
+    2. Converts to RGB if necessary
+    3. Resizes if too large (optional, but good for profile pics)
+    4. Saves as JPEG in a BytesIO object
+    """
+    try:
+        img = Image.open(image_file)
+        
+        # Convert to RGB (removes alpha channel if PNG, or handles HEIC/P)
+        if img.mode != 'RGB':
+            img = img.convert('RGB')
+        
+        # Optional: Resize if larger than 800x800
+        max_size = (800, 800)
+        img.thumbnail(max_size, Image.Resampling.LANCZOS)
+        
+        # Save to BytesIO as JPEG
+        output = io.BytesIO()
+        img.save(output, format='JPEG', quality=85)
+        output.seek(0)
+        
+        # Replace the original file content
+        from django.core.files.base import ContentFile
+        return ContentFile(output.read(), name=f"{os.path.splitext(image_file.name)[0]}.jpg")
+    except Exception as e:
+        print(f"Error processing image: {e}")
+        return image_file # Fallback to original if processing fails
 
 @api_view(['GET', 'POST'])
 def team_list(request):
@@ -381,7 +420,8 @@ def member_detail(request, pk):
             if 'qualification' in data: employee.qualification = data['qualification']
             
             if 'profile_picture' in request.FILES:
-                employee.profile_picture = request.FILES['profile_picture']
+                processed_image = process_profile_picture(request.FILES['profile_picture'])
+                employee.profile_picture = processed_image
             
             # Update Team if provided
             # Update Team if provided

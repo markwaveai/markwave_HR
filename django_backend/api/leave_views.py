@@ -51,24 +51,8 @@ def process_leave_notifications(employee, leave_request, notify_to_str, leave_ty
     try:
         from .utils import send_email_via_api
         
-        # 1. Gather all automatic recipients based on hierarchy
+        # 1. Gather recipients based ONLY on manually selected 'Notify To' field
         recipient_emails = set()
-        
-        # Add Team Leads/Managers from employee's teams
-        for team in employee.teams.all():
-            if team.manager and team.manager.email:
-                recipient_emails.add(team.manager.email.strip())
-        
-        # Add all Admins/Managers from the system
-        admins = Employees.objects.filter(
-            Q(role__icontains='Admin') | 
-            Q(role__icontains='Manager') | 
-            Q(role__icontains='Founder')
-        ).exclude(email__isnull=True).exclude(email='')
-        
-        for admin in admins:
-            if admin.email:
-                recipient_emails.add(admin.email.strip())
 
         # 2. Parse notifyTo names (if any were manually added/remained)
         if notify_to_str:

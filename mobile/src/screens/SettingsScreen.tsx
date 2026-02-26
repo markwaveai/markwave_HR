@@ -315,15 +315,15 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                             if (onBack) {
                                 onBack();
                                 Alert.alert(
-                                    "Delete Account",
-                                    "To delete an account, please open the side Menu and select 'Delete Account'.",
+                                    "Disable Account",
+                                    "To disable an account, please open the side Menu and select 'Disable Account'.",
                                     [{ text: "OK" }]
                                 );
                             }
                         }}
                     >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(3) }}>
-                            <Text style={{ fontSize: normalize(15), fontWeight: '600', color: '#ef4444' }}>Delete Account</Text>
+                            <Text style={{ fontSize: normalize(15), fontWeight: '600', color: '#ef4444' }}>Disable Account</Text>
                         </View>
                         <Text style={{ color: '#cbd5e1', fontSize: normalize(18) }}>›</Text>
                     </TouchableOpacity>
