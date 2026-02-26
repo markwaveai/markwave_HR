@@ -116,7 +116,7 @@ export const authApi = {
         } as any);
 
         return fetch(`${API_BASE_URL}/team/members/${employeeId}/`, {
-            method: 'POST',
+            method: 'PATCH',
             body: formData,
             headers: {
                 // Do not set Content-Type here; fetch will automatically 
