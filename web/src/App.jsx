@@ -16,7 +16,7 @@ const EmployeeManagement = lazy(() => import('./components/EmployeeManagement'))
 const AdminLeaveManagement = lazy(() => import('./components/AdminLeaveManagement'));
 const TeamManagement = lazy(() => import('./components/TeamManagement'));
 const Support = lazy(() => import('./components/Support'));
-const DeleteAccount = lazy(() => import('./components/DeleteAccount'));
+const AccountManagement = lazy(() => import('./components/AccountManagement'));
 const PrivacyPolicy = lazy(() => import('./components/PrivacyPolicy'));
 
 // Privacy Policy Route Component (Context-Aware)
@@ -51,32 +51,24 @@ const SupportRoute = ({ isAuthenticated, user, handleLogout }) => {
   return <Support user={user} />;
 };
 
-// Delete Account Route Component (Context-Aware)
-const DeleteAccountRoute = ({ isAuthenticated, user, handleLogout }) => {
+// Account Management Route Component (Context-Aware)
+const AccountManagementRoute = ({ isAuthenticated, user, handleLogout }) => {
   const location = useLocation();
   const isFromPortal = location.state?.fromPortal === true;
-
-  // Check if admin (robust check similar to Sidebar)
-  const isAdmin = user?.is_admin === true ||
-    ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Founder', 'Acting Admin'].includes(user?.role);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
   if (isFromPortal) {
     return (
       <Layout user={user} handleLogout={handleLogout}>
-        <DeleteAccount user={user} />
+        <AccountManagement user={user} />
       </Layout>
     );
   }
 
-  return <DeleteAccount user={user} />;
+  return <AccountManagement user={user} />;
 };
 
 
@@ -229,9 +221,9 @@ function App() {
           />
         } />
 
-        {/* Delete Account - Context Aware (Integrated vs Standalone) */}
-        <Route path="/delete-account" element={
-          <DeleteAccountRoute
+        {/* Account Management - Context Aware (Integrated vs Standalone) */}
+        <Route path="/account-management" element={
+          <AccountManagementRoute
             isAuthenticated={isAuthenticated}
             user={user}
             handleLogout={handleLogout}

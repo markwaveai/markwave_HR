@@ -45,8 +45,8 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
             answer: "Since we use OTP-based login for enhanced security, you don't need a traditional password. Simply log in using your registered mobile number or email and enter the 6-digit code sent to you."
         },
         {
-            question: "How do I delete my account?",
-            answer: "Account deletion is a permanent action. If you wish to proceed, please fill out the contact form with the subject 'Account Deletion' or contact your HR administrator directly. We will process your request within 48 hours."
+            question: "How do I manage user accounts?",
+            answer: "Administrators can manage user account status by navigating to 'Account Management' from the sidebar. From there, you can activate or deactivate accounts as needed. If you require further assistance, please fill out the contact form below."
         }
     ];
 

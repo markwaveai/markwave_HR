@@ -54,7 +54,7 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
         { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', roles: ['All'] },
         { id: 'privacy-policy', label: 'Privacy Policy', icon: Shield, path: '/privacy-policy', roles: ['All'] },
         { id: 'support', label: 'Support', icon: HelpCircle, path: '/support', roles: ['All'] },
-        { id: 'delete-account', label: 'Account Management', icon: Trash2, path: '/delete-account', roles: ['Admin'] }
+        { id: 'delete-user', label: 'Delete User', icon: Trash2, path: '/account-management', roles: ['Admin', 'Employee'] }
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
@@ -87,7 +87,7 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
                             <NavLink
                                 key={item.id}
                                 to={item.path}
-                                state={(item.id === 'privacy-policy' || item.id === 'support' || item.id === 'delete-account') ? { fromPortal: true } : undefined}
+                                state={(item.id === 'privacy-policy' || item.id === 'support' || item.id === 'delete-user') ? { fromPortal: true } : undefined}
                                 className={({ isActive }) => `flex items-center gap-3 px-2 py-2 text-white no-underline rounded-lg transition-all font-medium mb-1 hover:bg-white/10 hover:text-white text-sm ${isActive ? 'bg-white/10 text-white' : ''}`}
                             >
                                 <Icon size={18} /> {item.label}

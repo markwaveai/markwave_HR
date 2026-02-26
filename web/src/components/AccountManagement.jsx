@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '../services/api';
 
-const DeleteAccount = ({ user }) => {
+const AccountManagement = ({ user }) => {
+    const isAdmin = user?.role === 'Admin' || user?.is_admin === true;
     const navigate = useNavigate();
     const [mobile, setMobile] = useState('');
     const [action, setAction] = useState('deactivate'); // 'activate' or 'deactivate'
@@ -33,7 +34,7 @@ const DeleteAccount = ({ user }) => {
         setIsVerifying(true);
         try {
             await authApi.updateAccountStatus(mobile, otp, action, user.id);
-            alert(`Account ${action === 'deactivate' ? 'disabled' : 'activated'} successfully!`);
+            alert(`Account ${action === 'deactivate' ? (isAdmin ? 'disabled' : 'deactivated') : 'activated'} successfully!`);
             navigate(-1);
         } catch (error) {
             console.error('Failed to update status:', error);
@@ -63,14 +64,15 @@ const DeleteAccount = ({ user }) => {
 
                     <div className="text-center mb-10">
                         <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 mb-2 font-serif">
-                            Account Management
+                            {isAdmin ? 'Delete User' : 'Deactivate Account'}
                         </h1>
                         <p className="text-slate-900 font-bold text-[15px]">
-                            Admin Portal: Manage User Account Status
+                            {isAdmin ? 'Admin Portal: Manage User Account Status' : 'Deactivate your account temporarily'}
                         </p>
                     </div>
 
-                    {!showOtpField && (
+                    {/* Only show Activate/Deactivate toggle for Admins */}
+                    {isAdmin && !showOtpField && (
                         <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
                             <button
                                 onClick={() => setAction('deactivate')}
@@ -96,7 +98,7 @@ const DeleteAccount = ({ user }) => {
                             </div>
                             <input
                                 type="tel"
-                                placeholder="Target user mobile number *"
+                                placeholder={isAdmin ? "Target user mobile number *" : "Your mobile number *"}
                                 value={mobile}
                                 onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
                                 required
@@ -168,4 +170,4 @@ const DeleteAccount = ({ user }) => {
     );
 };
 
-export default DeleteAccount;
+export default AccountManagement;

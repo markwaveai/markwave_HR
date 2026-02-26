@@ -25,8 +25,8 @@ import MeScreen from './src/screens/MeScreen';
 import LeaveScreen from './src/screens/LeaveScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import SupportScreen from './src/screens/SupportScreen';
-import DeleteAccountScreen from './src/screens/DeleteAccountScreen';
-import { LayoutGridIcon, UserIcon, UserPlusIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon, ShieldIcon, HelpCircleIcon, ChevronLeftIcon } from './src/components/Icons';
+import AccountManagementScreen from './src/screens/AccountManagementScreen';
+import { LayoutGridIcon, UserIcon, UserPlusIcon, UsersIcon, CalendarIcon, CheckCircleIcon, BuildingIcon, SettingsIcon, MenuIcon, ClockIcon, LogOutIcon, ShieldIcon, HelpCircleIcon, ChevronLeftIcon, TrashIcon } from './src/components/Icons';
 
 import AdminLeaveScreen from './src/screens/AdminLeaveScreen';
 import LoginScreen from './src/screens/LoginScreen';
@@ -294,7 +294,7 @@ function App() {
       <StatusBar translucent backgroundColor="transparent" barStyle="dark-content" />
 
       {!isLoggedIn ? (
-        (activeTab === 'PrivacyPolicy' || activeTab === 'Support' || activeTab === 'DeleteAccount') ? (
+        (activeTab === 'PrivacyPolicy' || activeTab === 'Support' || activeTab === 'AccountManagement') ? (
           <SafeAreaView style={styles.container}>
             <View style={styles.header}>
               <TouchableOpacity
@@ -309,7 +309,7 @@ function App() {
             <View style={styles.mainContent}>
               {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => handleNavigate('Home')} />}
               {activeTab === 'Support' && <SupportScreen onBack={() => handleNavigate('Home')} onNavigateTo={handleNavigate} />}
-              {activeTab === 'DeleteAccount' && <DeleteAccountScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}
+              {activeTab === 'AccountManagement' && <AccountManagementScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}
             </View>
           </SafeAreaView>
         ) : (
@@ -413,10 +413,10 @@ function App() {
                     onPress={() => handleNavigate('Support')}
                   />
                   <DrawerItem
-                    title="Delete Account"
-                    icon={<LogOutIcon color={activeTab === 'DeleteAccount' ? '#ffffff' : '#cbd5e1'} size={24} />}
-                    isActive={activeTab === 'DeleteAccount'}
-                    onPress={() => handleNavigate('DeleteAccount')}
+                    title={isAdmin ? "Delete User" : "Deactivate"}
+                    icon={<TrashIcon color={activeTab === 'AccountManagement' ? '#ffffff' : '#cbd5e1'} size={24} />}
+                    isActive={activeTab === 'AccountManagement'}
+                    onPress={() => handleNavigate('AccountManagement')}
                   />
                 </ScrollView>
 
@@ -481,7 +481,7 @@ function App() {
             {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => handleNavigate('Home')} />}
             {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => handleNavigate('Home')} />}
             {activeTab === 'Support' && <SupportScreen onBack={() => handleNavigate('Home')} onNavigateTo={handleNavigate} />}
-            {activeTab === 'DeleteAccount' && <DeleteAccountScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}
+            {activeTab === 'AccountManagement' && <AccountManagementScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}
           </View>
 
           <ProfileModal

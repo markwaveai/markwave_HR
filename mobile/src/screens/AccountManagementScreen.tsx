@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView,
 import { normalize, wp, hp } from '../utils/responsive';
 import { authApi } from '../services/api';
 
-const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, onBack: () => void }) => {
+const AccountManagementScreen = ({ user, state, onBack }: { user: any, state?: any, onBack: () => void }) => {
     const [mobile, setMobile] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -48,8 +48,8 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
         if (!otp || otp.length !== 6) return;
         setIsVerifying(true);
         try {
-            await authApi.updateAccountStatus(mobile, otp, action);
-            Alert.alert('Success', `Account disabled successfully!`);
+            await authApi.updateAccountStatus(mobile, otp, 'deactivate'); // Force 'deactivate' here as a safeguard
+            Alert.alert('Success', `Account ${isAdmin ? 'disabled' : 'deactivated'} successfully!`);
             onBack();
         } catch (error: any) {
             console.error('Failed to verify OTP:', error);
@@ -69,14 +69,36 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
 
                         <View style={styles.headerTextContainer}>
                             <Text style={styles.mainTitle}>
-                                Disable Account
+                                {isAdmin ? 'Delete User' : 'Deactivate'}
                             </Text>
                             <Text style={styles.subTitle}>
-                                Admin Portal: Manage User Account Status
+                                {isAdmin ? 'Admin Portal: Manage User Account Status' : 'Deactivate your account temporarily'}
                             </Text>
                         </View>
 
                         <View style={styles.formContainer}>
+                            {/* Only show if admin. If not admin, the action defaults to 'deactivate' */}
+                            {isAdmin && !showOtpField && (
+                                <View style={styles.toggleContainer}>
+                                    <TouchableOpacity
+                                        style={[styles.toggleButton, action === 'deactivate' && styles.activeToggleDeactivate]}
+                                        onPress={() => setAction('deactivate')}
+                                    >
+                                        <Text style={[styles.toggleButtonText, { color: action === 'deactivate' ? '#ef4444' : '#64748b' }]}>
+                                            Deactivate
+                                        </Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.toggleButton, action === 'activate' && styles.activeToggleActivate]}
+                                        onPress={() => setAction('activate')}
+                                    >
+                                        <Text style={[styles.toggleButtonText, { color: action === 'activate' ? '#22c55e' : '#64748b' }]}>
+                                            Activate
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            )}
+
                             {/* Mobile Input */}
                             <View style={styles.inputWrapper}>
                                 <View style={styles.prefixContainer}>
@@ -84,7 +106,7 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
                                 </View>
                                 <TextInput
                                     style={[styles.input, { paddingLeft: wp(12) }, showOtpField && styles.disabledInput]}
-                                    placeholder="Target user mobile number *"
+                                    placeholder={isAdmin ? "Target user mobile number *" : "Your mobile number *"}
                                     placeholderTextColor="#94a3b8"
                                     keyboardType="phone-pad"
                                     value={mobile}
@@ -126,7 +148,7 @@ const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, 
                                     </View>
                                 ) : (
                                     <Text style={styles.submitButtonText}>
-                                        {showOtpField ? `VERIFY & DISABLE` : `SEND OTP TO DISABLE`}
+                                        {showOtpField ? `VERIFY & ${isAdmin ? 'DISABLE' : 'DEACTIVATE'}` : `SEND OTP TO ${isAdmin ? 'DISABLE' : 'DEACTIVATE'}`}
                                     </Text>
                                 )}
                             </TouchableOpacity>
@@ -315,4 +337,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default DeleteAccountScreen;
+export default AccountManagementScreen;
