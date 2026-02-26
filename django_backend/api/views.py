@@ -189,7 +189,7 @@ def login(request):
                         Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
                         Q(role__icontains='Advisor')
                     )
-                ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or "Team Lead",
+                ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or None,
                 'is_manager': Teams.objects.filter(manager=emp).exists(),
                 'is_admin': is_employee_admin(emp),
                 'project_manager_name': manager_names,
@@ -371,7 +371,7 @@ def verify_otp(request):
                                 Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
                                 Q(role__icontains='Advisor')
                             )
-                        ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or "Team Lead",
+                        ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or None,
                         'is_manager': Teams.objects.filter(manager=emp).exists(),
                         'is_admin': is_employee_admin(emp),
                         'project_manager_name': manager_names,
@@ -400,9 +400,12 @@ def get_profile(request, employee_id):
             'is_admin': False
         })
     try:
+        # 1. Try exact employee_id match first (preferred)
         emp = Employees.objects.filter(employee_id=employee_id).first()
+        
+        # 2. Fallback to Primary Key if not found as employee_id and is numeric
         if not emp and str(employee_id).isdigit():
-            emp = Employees.objects.filter(pk=employee_id).first()
+            emp = Employees.objects.filter(id=employee_id).first()
             
         if not emp:
             return Response({'error': 'User not found'}, status=404)
@@ -446,7 +449,7 @@ def get_profile(request, employee_id):
                     Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
                     Q(role__icontains='Advisor')
                 )
-            ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or "Team Lead",
+            ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in emp.teams.all() if t.manager] if any(t.manager for t in emp.teams.all()) else []))))) or None,
             'is_manager': Teams.objects.filter(manager=emp).exists(),
             'is_admin': is_employee_admin(emp),
             'project_manager_name': manager_names,
@@ -619,7 +622,7 @@ def verify_email_otp(request):
                         Q(role__icontains='Admin') | Q(role__icontains='Founder') | 
                         Q(role__icontains='Advisor')
                     )
-                ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager] if any(t.manager for t in employee.teams.all()) else []))))) or "Team Lead",
+                ] + ([f"{t.manager.first_name} {t.manager.last_name or ''}".strip() for t in employee.teams.all() if t.manager] if any(t.manager for t in employee.teams.all()) else []))))) or None,
                 'is_manager': Teams.objects.filter(manager=employee).exists(),
                 'is_admin': is_employee_admin(employee),
                 'project_manager_name': manager_names,

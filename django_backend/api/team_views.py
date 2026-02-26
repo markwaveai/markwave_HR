@@ -58,6 +58,8 @@ def process_profile_picture(image_file):
         return ContentFile(output.read(), name=f"{os.path.splitext(image_file.name)[0]}.jpg")
     except Exception as e:
         print(f"Error processing image: {e}")
+        import traceback
+        traceback.print_exc()
         return image_file # Fallback to original if processing fails
 
 @api_view(['GET', 'POST'])
@@ -328,12 +330,17 @@ def designation_list(request):
 @parser_classes([JSONParser, MultiPartParser, FormParser])
 def member_detail(request, pk):
     try:
-        if str(pk).isdigit():
-            employee = Employees.objects.get(pk=pk)
-        else:
-            employee = Employees.objects.get(employee_id=pk)
-    except Employees.DoesNotExist:
-        return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+        # 1. Try exact employee_id match first (preferred)
+        employee = Employees.objects.filter(employee_id=pk).first()
+        
+        # 2. Fallback to Primary Key if not found as employee_id and is numeric
+        if not employee and str(pk).isdigit():
+            employee = Employees.objects.filter(id=pk).first()
+            
+        if not employee:
+            return Response({'error': 'Employee not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': f"Error finding employee: {str(e)}"}, status=500)
 
     if request.method in ['PUT', 'PATCH', 'POST']:
         # Permission check: Only manager of the team or Admin can add/update
@@ -450,7 +457,13 @@ def member_detail(request, pk):
             serializer = EmployeesSerializer(employee, context={'request': request})
             return Response({'message': 'Employee updated successfully', 'member': serializer.data})
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            print(f"Error in member_detail: {e}")
+            import traceback
+            traceback.print_exc()
+            error_msg = str(e)
+            if "too many clients" in error_msg or "connection to server" in error_msg:
+                return Response({'error': 'Database connection limit reached. Please try again in a moment.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+            return Response({'error': error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
     elif request.method == 'DELETE':
         try:

@@ -800,42 +800,52 @@ def get_leave_balance(request, employee_id):
             status__in=['Pending', 'Approved']
         )
         
+        # Get all defined leave types to show full balance visibility
+        all_leave_types = LeaveType.objects.all()
+        
+        # Build usage dictionary
         usage = {}
         for leave in used_leaves:
             if leave.type:
                 leave_code = leave.type.lower()
                 usage[leave_code] = usage.get(leave_code, 0) + leave.days
         
-        # Build response with only allocated leave types (allocated_days > 0)
-        result = {}
-        total_allocated = 0
-        total_used = 0
+        # Build balance dictionary from records
+        balance_dict = {}
+        for b in balances:
+            if b.leave_type and b.leave_type.code:
+                balance_dict[b.leave_type.code.lower()] = b.allocated_days or 0
+
+        # Build final array including ALL leave types
+        result_list = []
         
-        for balance in balances:
-            try:
-                if not balance.leave_type or not balance.leave_type.code:
-                    continue
-                    
-                code = balance.leave_type.code.lower()
-                allocated = balance.allocated_days or 0
-                
-                # Only include leave types with actual allocation
-                if allocated > 0:
-                    used = usage.get(code, 0)
-                    remaining = max(0, allocated - used)
-                    
-                    result[code] = remaining
-                    total_allocated += allocated
-                    total_used += used
-            except Exception as e:
-                print(f"Error processing balance record {balance.id}: {e}")
+        for lt in all_leave_types:
+            code = lt.code.lower()
+            name = lt.name
+            
+            # LWP is special - no allocation but always available
+            if code == 'lwp':
+                result_list.append({
+                    'code': 'lwp',
+                    'name': name,
+                    'available': 999,
+                    'is_lwp': True
+                })
                 continue
-        
-        # Only add total if there are any leaves
-        if total_allocated > 0:
-            result['total'] = max(0, total_allocated - total_used)
-        
-        return Response(result)
+
+            allocated = balance_dict.get(code, 0)
+            used = usage.get(code, 0)
+            remaining = max(0, allocated - used)
+            
+            result_list.append({
+                'code': code,
+                'name': name,
+                'available': remaining,
+                'allocated': allocated,
+                'used': used
+            })
+            
+        return Response(result_list)
     except Exception as e:
         import traceback
         traceback.print_exc()

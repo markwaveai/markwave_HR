@@ -107,7 +107,8 @@ function Settings({ user, onUserUpdate }) {
             }
         } catch (error) {
             console.error("Failed to upload image:", error);
-            alert("Failed to update profile picture. Please try again.");
+            const errorMsg = error.response?.data?.error || error.message || "Unknown error";
+            alert(`Failed to update profile picture: ${errorMsg}`);
         } finally {
             setIsUploading(false);
         }

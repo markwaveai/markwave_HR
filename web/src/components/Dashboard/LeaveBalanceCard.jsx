@@ -17,7 +17,16 @@ const LeaveBalanceCard = ({ user }) => {
     const fetchBalance = async () => {
         try {
             const data = await leaveApi.getBalance(user.id);
-            setBalance(data);
+            // Convert array back to object for compatibility with the rendering logic
+            const balanceObj = {};
+            if (Array.isArray(data)) {
+                data.forEach(item => {
+                    balanceObj[item.code] = item.available;
+                });
+            } else {
+                Object.assign(balanceObj, data);
+            }
+            setBalance(balanceObj);
         } catch (error) {
             console.error("Failed to fetch leave balance", error);
         }

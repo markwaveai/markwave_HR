@@ -1,5 +1,6 @@
-const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-export const API_BASE_URL = import.meta.env.VITE_API_URL || (isLocalhost ? 'http://localhost:8000/api' : 'https://hr.markwave.ai/api');
+// For local development, we use a proxy in vite.config.js to avoid hardcoded localhost URLs.
+// In production, the reverse proxy (Nginx) handles the /api routing.
+export const API_BASE_URL = '/api';
 
 const apiFetch = async (endpoint, options = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {

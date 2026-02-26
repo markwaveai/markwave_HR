@@ -220,18 +220,24 @@ const ApplyLeaveModal = ({ isOpen, onClose, user, onSubmitSuccess, setToast }) =
                     <div>
                         <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Leave Type *</label>
                         <select
-                            className="w-full bg-gray-50 border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-500/20"
+                            className="w-full p-2 border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#48327d] text-sm mm:text-base font-medium"
                             value={leaveType}
-                            onChange={e => setLeaveType(e.target.value)}
+                            onChange={(e) => setLeaveType(e.target.value)}
                         >
                             {balances.length > 0 ? (
-                                balances.map(b => (
-                                    <option key={b.code} value={b.code}>{b.name} ({b.available} Available)</option>
-                                ))
+                                balances
+                                    .filter(b => ['cl', 'sl', 'bl', 'lwp'].includes(b.code))
+                                    .map(b => (
+                                        <option key={b.code} value={b.code}>
+                                            {b.name.toUpperCase()} ({b.code === 'lwp' ? 'Unlimited' : `${b.available} Available`})
+                                        </option>
+                                    ))
                             ) : (
-                                <option value="cl">CASUAL LEAVE</option>
+                                <>
+                                    <option value="cl">CASUAL LEAVE</option>
+                                    <option value="lwp">LEAVE WITHOUT PAY</option>
+                                </>
                             )}
-                            <option value="lwp">LEAVE WITHOUT PAY</option>
                         </select>
                     </div>
 
