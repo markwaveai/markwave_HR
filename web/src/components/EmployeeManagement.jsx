@@ -493,7 +493,14 @@ function EmployeeManagement({ user }) {
                                                             </button>
                                                         </>
                                                     ) : (
-                                                        <span className="text-[10px] font-bold text-gray-400 uppercase">Disabled</span>
+                                                        <button
+                                                            onClick={() => navigate('/delete-account', { state: { mobile: emp.contact, action: 'activate', fromPortal: true } })}
+                                                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-all hover:scale-110 active:scale-90 flex items-center justify-center gap-1"
+                                                            title="Enable Employee"
+                                                        >
+                                                            <ShieldCheck size={18} />
+                                                            <span className="text-[10px] font-bold uppercase">Enable</span>
+                                                        </button>
                                                     )}
                                                 </div>
                                             )}

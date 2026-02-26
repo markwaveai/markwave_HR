@@ -64,6 +64,10 @@ const DeleteAccountRoute = ({ isAuthenticated, user, handleLogout }) => {
     return <Navigate to="/login" replace />;
   }
 
+  if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   if (isFromPortal) {
     return (
       <Layout user={user} handleLogout={handleLogout}>

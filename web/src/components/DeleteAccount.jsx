@@ -5,9 +5,6 @@ import { authApi } from '../services/api';
 const DeleteAccount = ({ user }) => {
     const navigate = useNavigate();
     const [mobile, setMobile] = useState('');
-    const [firstName, setFirstName] = useState('');
-    const [lastName, setLastName] = useState('');
-    const [email, setEmail] = useState('');
     const [action, setAction] = useState('deactivate'); // 'activate' or 'deactivate'
     const [isSending, setIsSending] = useState(false);
 
@@ -20,9 +17,9 @@ const DeleteAccount = ({ user }) => {
         e.preventDefault();
         setIsSending(true);
         try {
-            await authApi.sendOTP(mobile, action);
+            const response = await authApi.sendOTP(mobile, action, user.id);
             setShowOtpField(true);
-            alert(`OTP Sent successfully to ${mobile}!`);
+            alert(response.message || `OTP Sent successfully!`);
         } catch (error) {
             console.error('Failed to send OTP:', error);
             alert(error.response?.data?.error || error.message || 'Failed to send OTP. Please try again.');
@@ -36,7 +33,7 @@ const DeleteAccount = ({ user }) => {
         setIsVerifying(true);
         try {
             await authApi.updateAccountStatus(mobile, otp, action, user.id);
-            alert(`Account disabled successfully!`);
+            alert(`Account ${action === 'deactivate' ? 'disabled' : 'activated'} successfully!`);
             navigate(-1);
         } catch (error) {
             console.error('Failed to update status:', error);
@@ -66,12 +63,29 @@ const DeleteAccount = ({ user }) => {
 
                     <div className="text-center mb-10">
                         <h1 className="text-2xl sm:text-[28px] font-bold text-slate-900 mb-2 font-serif">
-                            Disable Account
+                            Account Management
                         </h1>
                         <p className="text-slate-900 font-bold text-[15px]">
                             Admin Portal: Manage User Account Status
                         </p>
                     </div>
+
+                    {!showOtpField && (
+                        <div className="flex bg-slate-100 p-1 rounded-2xl mb-8">
+                            <button
+                                onClick={() => setAction('deactivate')}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${action === 'deactivate' ? 'bg-white text-red-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Deactivate
+                            </button>
+                            <button
+                                onClick={() => setAction('activate')}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${action === 'activate' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                            >
+                                Activate
+                            </button>
+                        </div>
+                    )}
 
                     <form onSubmit={showOtpField ? handleVerifyOTP : handleSendOTP} className="space-y-5">
 
@@ -94,7 +108,7 @@ const DeleteAccount = ({ user }) => {
 
                         {showOtpField && (
                             <div className="space-y-4">
-                                <p className="text-center text-sm text-slate-500">Enter OTP sent to the user's mobile</p>
+                                <p className="text-center text-sm text-slate-500 text-pretty">Enter authorization OTP sent to <b>target user</b> mobile number</p>
                                 <input
                                     type="text"
                                     placeholder="Enter 6-digit OTP *"
@@ -124,9 +138,9 @@ const DeleteAccount = ({ user }) => {
                                     <span>{isSending ? 'SENDING...' : 'VERIFYING...'}</span>
                                 </div>
                             ) : showOtpField ? (
-                                `VERIFY & DISABLE`
+                                `VERIFY & ${action.toUpperCase()}`
                             ) : (
-                                `SEND OTP TO DISABLE`
+                                `SEND OTP TO ${action.toUpperCase()}`
                             )}
                         </button>
 

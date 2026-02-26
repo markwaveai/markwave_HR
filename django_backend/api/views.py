@@ -223,13 +223,17 @@ def send_otp(request):
         target_phone = normalized_input if phone != 'admin' else 'admin'
 
         purpose = request.data.get('purpose', 'login')
+        acting_user_id = request.data.get('acting_user_id')
+        delivery_phone = normalized_input # Default delivery to the user themselves
 
         # Check if user exists
         if phone != 'admin':
             user_exists = False
+            target_emp = None
             for emp in Employees.objects.all():
                 if normalize_phone(emp.contact) == normalized_input:
                     user_exists = True
+                    target_emp = emp
                     break
             
             print(f"[OTP DEBUG] User exists check for {normalized_input}: {user_exists}")
@@ -238,55 +242,83 @@ def send_otp(request):
                 print("[OTP DEBUG] User not found")
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Check for inactive status
-            # Allow OTP for inactive accounts IF the purpose is 'activate' (requested by Admin)
-            for emp in Employees.objects.all():
-                if normalize_phone(emp.contact) == normalized_input:
-                    if emp.status == 'Inactive' and purpose != 'activate':
-                        return Response({'error': 'Your account is inactive. Please contact HR for reactivation.'}, status=status.HTTP_403_FORBIDDEN)
-                    elif emp.status == 'Active' and purpose == 'activate':
-                        return Response({'error': 'Your account is already active.'}, status=status.HTTP_400_BAD_REQUEST)
-                    break
+            # Account Management Security Check: Verify Admin permissions
+            if purpose in ['activate', 'deactivate']:
+                if not acting_user_id:
+                    return Response({'error': 'Unauthorized. Admin authorization required.'}, status=status.HTTP_403_FORBIDDEN)
+                
+                try:
+                    # Handle special admin (id 0 or MW-ADMIN)
+                    is_admin = False
+                    if str(acting_user_id) in ['0', 'MW-ADMIN']:
+                        is_admin = True
+                        print(f"[OTP DEBUG] Action requested by Special Admin.")
+                    else:
+                        if str(acting_user_id).isdigit():
+                            acting_emp = Employees.objects.get(id=acting_user_id)
+                        else:
+                            acting_emp = Employees.objects.get(employee_id=acting_user_id)
+                        
+                        if is_employee_admin(acting_emp):
+                            is_admin = True
+                    
+                    if not is_admin:
+                        return Response({'error': 'Unauthorized. Only administrators can perform this action.'}, status=status.HTTP_403_FORBIDDEN)
+
+                    # OTP stays on the target user's phone as requested
+                    print(f"[OTP DEBUG] Account {purpose} requested by Admin. Delivering OTP to target user: {delivery_phone}")
+
+                except Employees.DoesNotExist:
+                    return Response({'error': f'Acting admin user (ID: {acting_user_id}) not found'}, status=status.HTTP_403_FORBIDDEN)
+
+            # Check for inactive status (for regular login)
+            if purpose == 'login' and target_emp and target_emp.status == 'Inactive':
+                return Response({'error': 'Your account is inactive. Please contact HR for reactivation.'}, status=status.HTTP_403_FORBIDDEN)
+            
+            if purpose == 'activate' and target_emp and target_emp.status == 'Active':
+                return Response({'error': 'Your account is already active.'}, status=status.HTTP_400_BAD_REQUEST)
 
         otp = str(random.randint(100000, 999999))
-        print(f"[OTP DEBUG] Generated OTP: {otp}")
+        print(f"[OTP DEBUG] Generated OTP: {otp} for key: {target_phone} (Delivery to: {delivery_phone})")
         
         OTPStore.objects.create(phone=target_phone, otp=otp, created_at=timezone.now())
 
-        whatsapp_recipient = f"91{normalized_input}@c.us" if phone != 'admin' else f"{settings.ADMIN_WHATSAPP_NUMBER}@c.us"
-        print(f"[OTP DEBUG] WhatsApp Recipient: {whatsapp_recipient}")
+        whatsapp_recipient = f"91{delivery_phone}@c.us" if phone != 'admin' else f"{settings.ADMIN_WHATSAPP_NUMBER}@c.us"
+        print(f"[OTP DEBUG] Final WhatsApp Recipient: {whatsapp_recipient}")
         
+        # WhatsApp integration
         headers = {
             "Authorization": f"Bearer {settings.PERISKOPE_API_KEY}",
             "Content-Type": "application/json",
             "x-phone": settings.PERISKOPE_SENDER_PHONE
         }
+        # Using the exact same message format that works for login to avoid carrier/API filtering
         payload = {
             "chat_id": whatsapp_recipient,
             "type": "text",
             "message": f"Your MarkwaveHR login OTP is: {otp}"
         }
 
-        # OTP_DEBUG MODE: Skip WhatsApp in development (controlled by OTP_DEBUG env var)
+        # OTP_DEBUG MODE: Skip WhatsApp in development
         otp_debug_mode = os.getenv('OTP_DEBUG', 'False') == 'True'
         if otp_debug_mode:
             print(f"[OTP DEBUG] ⚠️ OTP_DEBUG MODE: Skipping WhatsApp send")
             print(f"[OTP DEBUG] ✅ OTP for {phone}: {otp}")
-            print(f"[OTP DEBUG] Use this OTP to login in the mobile app")
-            return Response({'success': True, 'message': 'OTP sent successfully (DEBUG MODE - check console)'})
+            return Response({'success': True, 'message': f"OTP: {otp} (DEBUG)"})
         
-        print(f"[OTP DEBUG] Sending to Periskope: {settings.PERISKOPE_URL}")
+        print(f"[OTP DEBUG] Calling Periskope API for {whatsapp_recipient}...")
         try:
             response = requests.post(settings.PERISKOPE_URL, headers=headers, json=payload, timeout=30)
-            print(f"[OTP DEBUG] Periskope Response Status: {response.status_code}")
-            print(f"[OTP DEBUG] Periskope Response Body: {response.text}")
+            print(f"[OTP DEBUG] Periskope Status: {response.status_code}")
+            print(f"[OTP DEBUG] Periskope Body: {response.text}")
             
             if response.status_code in [200, 201]:
-                return Response({'success': True, 'message': 'OTP sent successfully'})
+                return Response({'success': True, 'message': 'OTP sent successfully to WhatsApp'})
+                
             return Response({'error': f'Failed to send OTP: {response.text}'}, status=500)
         except Exception as e:
-             print(f"[OTP DEBUG] Exception sending OTP request: {str(e)}")
-             return Response({'error': f'WhatsApp API connection error: {str(e)}'}, status=500)
+            print(f"[OTP DEBUG] Exception sending OTP request: {str(e)}")
+            return Response({'error': f'WhatsApp connection error: {str(e)}'}, status=500)
 
     except Exception as e:
         import traceback
@@ -648,15 +680,19 @@ def update_account_status(request):
 
     # Permission check: Only admins can activate/deactivate accounts
     try:
-        if str(acting_user_id).isdigit():
-            acting_emp = Employees.objects.get(id=acting_user_id)
+        if str(acting_user_id) in ['0', 'MW-ADMIN']:
+            # Special admin bypass
+            pass
         else:
-            acting_emp = Employees.objects.get(employee_id=acting_user_id)
-        
-        if not is_employee_admin(acting_emp):
-            return Response({'error': 'Unauthorized. Only administrators can change account status.'}, status=status.HTTP_403_FORBIDDEN)
+            if str(acting_user_id).isdigit():
+                acting_emp = Employees.objects.get(id=acting_user_id)
+            else:
+                acting_emp = Employees.objects.get(employee_id=acting_user_id)
+            
+            if not is_employee_admin(acting_emp):
+                return Response({'error': 'Unauthorized. Only administrators can change account status.'}, status=status.HTTP_403_FORBIDDEN)
     except Employees.DoesNotExist:
-        return Response({'error': 'Acting user not found'}, status=status.HTTP_403_FORBIDDEN)
+        return Response({'error': f'Acting user (ID: {acting_user_id}) not found'}, status=status.HTTP_403_FORBIDDEN)
 
     normalized_input = normalize_phone(phone)
     target_phone = normalized_input if phone != 'admin' else 'admin'

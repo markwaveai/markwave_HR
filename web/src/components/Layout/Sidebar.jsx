@@ -54,7 +54,7 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
         { id: 'settings', label: 'Settings', icon: Settings, path: '/settings', roles: ['All'] },
         { id: 'privacy-policy', label: 'Privacy Policy', icon: Shield, path: '/privacy-policy', roles: ['All'] },
         { id: 'support', label: 'Support', icon: HelpCircle, path: '/support', roles: ['All'] },
-        { id: 'delete-account', label: 'Disable Account', icon: Trash2, path: '/delete-account', roles: ['All'] }
+        { id: 'delete-account', label: 'Account Management', icon: Trash2, path: '/delete-account', roles: ['Admin'] }
     ];
 
     const filteredMenuItems = menuItems.filter(item => {
