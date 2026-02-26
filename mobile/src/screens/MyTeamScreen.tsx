@@ -15,13 +15,13 @@ import {
 } from 'react-native';
 import { teamApi } from '../services/api';
 import { normalize, wp, hp } from '../utils/responsive';
-import { EditIcon, TrashIcon, SearchIcon, MapPinIcon, MailIcon } from '../components/Icons';
+import { SearchIcon, MapPinIcon, MailIcon } from '../components/Icons';
 
 interface MyTeamScreenProps {
     user: any;
 }
 
-const TeamHeader = React.memo(({ teams, selectedTeamId, searchTerm, setSearchTerm, stats, isManager, setIsTeamSelectorVisible, setIsAddModalVisible, user }: any) => {
+const TeamHeader = React.memo(({ teams, selectedTeamId, searchTerm, setSearchTerm, stats, setIsTeamSelectorVisible, user }: any) => {
     const currentTeam = teams.find((t: any) => t.id === selectedTeamId);
     return (
         <View style={styles.headerContainer}>
@@ -32,14 +32,6 @@ const TeamHeader = React.memo(({ teams, selectedTeamId, searchTerm, setSearchTer
                         {currentTeam?.manager_name ? `Team ${currentTeam.manager_name}` : (currentTeam ? `Team ${currentTeam.name}` : (user?.team_lead_name ? `Team ${user.team_lead_name}` : 'My Team Members'))}
                     </Text>
                 </View>
-                {isManager && (
-                    <TouchableOpacity
-                        style={styles.addButton}
-                        onPress={() => setIsAddModalVisible(true)}
-                    >
-                        <Text style={styles.addButtonText}>Add Member</Text>
-                    </TouchableOpacity>
-                )}
             </View>
 
             {teams.length > 1 && (
@@ -93,7 +85,7 @@ const TeamHeader = React.memo(({ teams, selectedTeamId, searchTerm, setSearchTer
     );
 });
 
-const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMemberClick, handleDeleteMember }: any) => (
+const MemberCard = React.memo(({ item }: any) => (
     <View style={styles.card}>
         <View style={styles.cardHeaderRow}>
             <View style={styles.memberInfo}>
@@ -104,27 +96,6 @@ const MemberCard = React.memo(({ item, isManager, isRemovingMember, handleEditMe
                     {item.role}
                 </Text>
             </View>
-            {isManager && (
-                <View style={styles.actionButtonsContainer}>
-                    <TouchableOpacity
-                        style={styles.actionIconBtn}
-                        onPress={() => handleEditMemberClick(item)}
-                    >
-                        <EditIcon color="#3b82f6" size={normalize(18)} strokeWidth={2.5} />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        style={styles.actionIconBtn}
-                        onPress={() => handleDeleteMember(item)}
-                        disabled={isRemovingMember === item.id}
-                    >
-                        {isRemovingMember === item.id ? (
-                            <ActivityIndicator size="small" color="#ef4444" />
-                        ) : (
-                            <TrashIcon color="#ef4444" size={normalize(18)} strokeWidth={2.5} />
-                        )}
-                    </TouchableOpacity>
-                </View>
-            )}
         </View>
 
         <View style={styles.divider} />
@@ -168,17 +139,9 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [allEmployees, setAllEmployees] = useState<any[]>([]);
-    const [isAddModalVisible, setIsAddModalVisible] = useState(false);
-    const [selectedExistingId, setSelectedExistingId] = useState<string>('');
     const [selectedTeamId, setSelectedTeamId] = useState<number | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [teams, setTeams] = useState<any[]>([]);
-    const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-    const [editingMember, setEditingMember] = useState<any>(null);
-    const [isRemovingMember, setIsRemovingMember] = useState<string | null>(null);
     const [isTeamSelectorVisible, setIsTeamSelectorVisible] = useState(false);
-
-    const isManager = user?.is_manager || user?.role?.toLowerCase()?.includes('team lead');
 
     useEffect(() => {
         console.log('User data for team:', JSON.stringify({ teams: user?.teams, team_id: user?.team_id }, null, 2));
@@ -228,83 +191,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
         }
     };
 
-    const handleAddMember = async () => {
-        if (!selectedExistingId || selectedTeamId === null) {
-            Alert.alert("Required", "Please select an employee.");
-            return;
-        }
 
-        setIsSubmitting(true);
-        try {
-            await teamApi.updateMember(selectedExistingId, {
-                team_id: selectedTeamId,
-                acting_user_id: user?.id
-            });
-
-            Alert.alert("Success", "Team member added successfully!");
-            setIsAddModalVisible(false);
-            setSelectedExistingId('');
-            fetchTeamData(); // Refresh list
-        } catch (error: any) {
-            console.log("Failed to add member:", error);
-            Alert.alert("Error", error.message || "Could not add team member.");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDeleteMember = (member: any) => {
-        Alert.alert(
-            "Remove Member",
-            `Are you sure you want to remove ${member.name} from the team?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Remove",
-                    style: "destructive",
-                    onPress: async () => {
-                        setIsRemovingMember(member.id);
-                        try {
-                            await teamApi.updateMember(member.id, {
-                                remove_team_id: selectedTeamId,
-                                acting_user_id: user?.id
-                            });
-                            Alert.alert("Success", "Member removed from team.");
-                            fetchTeamData();
-                        } catch (error: any) {
-                            Alert.alert("Error", error.message || "Failed to remove member");
-                        } finally {
-                            setIsRemovingMember(null);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const handleUpdateMember = async (updatedData: any) => {
-        if (!editingMember) return;
-        setIsSubmitting(true);
-        try {
-            await teamApi.updateMember(editingMember.id, {
-                ...updatedData,
-                acting_user_id: user?.id
-            });
-            Alert.alert("Success", "Employee updated successfully!");
-            setIsEditModalVisible(false);
-            setEditingMember(null);
-            fetchTeamData();
-        } catch (error: any) {
-            Alert.alert("Error", error.message || "Failed to update employee");
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleEditMemberClick = (member: any) => {
-        setEditingMember(member);
-        setIsEditModalVisible(true);
-    };
 
     const filteredMembers = teamMembers.filter(member => {
         const searchLower = searchTerm.toLowerCase();
@@ -338,10 +225,6 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                 renderItem={({ item }) => (
                     <MemberCard
                         item={item}
-                        isManager={isManager}
-                        isRemovingMember={isRemovingMember}
-                        handleEditMemberClick={handleEditMemberClick}
-                        handleDeleteMember={handleDeleteMember}
                     />
                 )}
                 ListHeaderComponent={
@@ -351,9 +234,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                         searchTerm={searchTerm}
                         setSearchTerm={setSearchTerm}
                         stats={stats}
-                        isManager={isManager}
                         setIsTeamSelectorVisible={setIsTeamSelectorVisible}
-                        setIsAddModalVisible={setIsAddModalVisible}
                         user={user}
                     />
                 }
@@ -361,124 +242,7 @@ const MyTeamScreen: React.FC<MyTeamScreenProps> = ({ user }) => {
                 showsVerticalScrollIndicator={false}
             />
 
-            {/* Add Member Modal */}
-            <Modal
-                visible={isAddModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setIsAddModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Add Team Member</Text>
-                            <TouchableOpacity onPress={() => setIsAddModalVisible(false)} style={styles.closeButton}>
-                                <Text style={styles.closeButtonText}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
 
-                        <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
-                            <View>
-                                <Text style={styles.inputLabel}>SELECT EMPLOYEE</Text>
-                                <View style={styles.pickerContainer}>
-                                    {allEmployees
-                                        .filter(emp => !teamMembers.some(m => m.id === emp.id))
-                                        .map(emp => (
-                                            <TouchableOpacity
-                                                key={emp.id}
-                                                onPress={() => setSelectedExistingId(String(emp.id))}
-                                                style={[
-                                                    styles.employeeSelectItem,
-                                                    selectedExistingId === String(emp.id) && styles.employeeSelected
-                                                ]}
-                                            >
-                                                <View>
-                                                    <Text style={[styles.empSelectName, selectedExistingId === String(emp.id) && styles.empSelectedText]}>
-                                                        {emp.first_name} {emp.last_name}
-                                                    </Text>
-                                                    <Text style={styles.empSelectRole}>{emp.role}</Text>
-                                                </View>
-                                                {selectedExistingId === String(emp.id) && <Text style={styles.checkIcon}>✓</Text>}
-                                            </TouchableOpacity>
-                                        ))}
-                                    {allEmployees.filter(emp => !teamMembers.some(m => m.id === emp.id)).length === 0 && (
-                                        <Text style={styles.emptyText}>All available employees are already in your team.</Text>
-                                    )}
-                                </View>
-                            </View>
-
-                            <TouchableOpacity
-                                style={[styles.submitButton, (!selectedExistingId || isSubmitting) && { opacity: 0.5 }]}
-                                onPress={handleAddMember}
-                                disabled={!selectedExistingId || isSubmitting}
-                            >
-                                <Text style={styles.submitButtonText}>
-                                    {isSubmitting ? "Adding..." : "Add Member"}
-                                </Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
-
-            {/* Edit Member Modal */}
-            <Modal
-                visible={isEditModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={() => setIsEditModalVisible(false)}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.modalContent}>
-                        <View style={styles.modalHeader}>
-                            <Text style={styles.modalTitle}>Edit Member Details</Text>
-                            <TouchableOpacity onPress={() => setIsEditModalVisible(false)} style={styles.closeButton}>
-                                <Text style={styles.closeButtonText}>✕</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <ScrollView contentContainerStyle={styles.formContainer} showsVerticalScrollIndicator={false}>
-                            <View>
-                                <Text style={styles.inputLabel}>FULL NAME</Text>
-                                <TextInput
-                                    style={styles.modalInput}
-                                    value={editingMember?.name}
-                                    editable={false} // Name usually managed via profile/HR
-                                />
-
-                                <Text style={styles.inputLabel}>DESIGNATION / ROLE</Text>
-                                <TextInput
-                                    style={styles.modalInput}
-                                    value={editingMember?.role}
-                                    onChangeText={(text) => setEditingMember({ ...editingMember, role: text })}
-                                    placeholder="e.g. Senior Developer"
-                                />
-
-                                <Text style={styles.inputLabel}>OFFICE LOCATION</Text>
-                                <TextInput
-                                    style={styles.modalInput}
-                                    value={editingMember?.location}
-                                    onChangeText={(text) => setEditingMember({ ...editingMember, location: text })}
-                                    placeholder="e.g. Hyderabad"
-                                />
-                            </View>
-
-                            <TouchableOpacity
-                                style={[styles.submitButton, isSubmitting && { opacity: 0.5 }]}
-                                onPress={() => handleUpdateMember({
-                                    role: editingMember.role,
-                                    location: editingMember.location
-                                })}
-                                disabled={isSubmitting}
-                            >
-                                <Text style={styles.submitButtonText}>
-                                    {isSubmitting ? "Updating..." : "Update Details"}
-                                </Text>
-                            </TouchableOpacity>
-                        </ScrollView>
-                    </View>
-                </View>
-            </Modal>
 
             {/* Team Selector Modal */}
             <Modal

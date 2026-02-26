@@ -60,6 +60,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onOpenSupport, onOpe
         const trimmedPhone = phone.trim();
 
         // Validate phone number (must be exactly 10 digits)
+
         if (loginMethod === 'phone') {
             if (!trimmedPhone) {
                 setError('Please enter mobile number');
