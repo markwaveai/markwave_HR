@@ -7,7 +7,7 @@ import { fallbackEmployees } from '../data/fallbackEmployees';
 import EditProfileModal from '../components/EditProfileModal';
 import { normalize, wp, hp } from '../utils/responsive';
 
-const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () => void }) => {
+const SettingsScreen = ({ user: initialUser, onBack, onUserUpdate }: { user: any, onBack?: () => void, onUserUpdate?: (user: any) => void }) => {
     const [user, setUser] = useState(initialUser);
     const [loading, setLoading] = useState(false);
     const [editModalVisible, setEditModalVisible] = useState(false);
@@ -88,6 +88,9 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
             // Re-fetch profile to get updated image URL
             const updatedProfile = await authApi.getProfile(idToFetch);
             setUser(updatedProfile);
+            if (onUserUpdate) {
+                onUserUpdate(updatedProfile);
+            }
             Alert.alert("Success", "Profile picture updated successfully!");
         } catch (error: any) {
             console.error("Failed to upload image:", error);
@@ -301,34 +304,36 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 )}
             </View>
 
-            <View style={styles.section}>
-                <View style={styles.sectionHeader}>
-                    <View style={[styles.sectionIconBg, { backgroundColor: '#fee2e2' }]}>
-                        <Text style={{ fontSize: 18 }}>🛡️</Text>
-                    </View>
-                    <Text style={styles.sectionTitle}>Account Security</Text>
-                </View>
-                <View style={[styles.card, { padding: wp(4) }]}>
-                    <TouchableOpacity
-                        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: hp(1) }}
-                        onPress={() => {
-                            if (onBack) {
-                                onBack();
-                                Alert.alert(
-                                    "Disable Account",
-                                    "To disable an account, please open the side Menu and select 'Disable Account'.",
-                                    [{ text: "OK" }]
-                                );
-                            }
-                        }}
-                    >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(3) }}>
-                            <Text style={{ fontSize: normalize(15), fontWeight: '600', color: '#ef4444' }}>Disable Account</Text>
+            {user.is_admin && (
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <View style={[styles.sectionIconBg, { backgroundColor: '#fee2e2' }]}>
+                            <Text style={{ fontSize: 18 }}>🛡️</Text>
                         </View>
-                        <Text style={{ color: '#cbd5e1', fontSize: normalize(18) }}>›</Text>
-                    </TouchableOpacity>
+                        <Text style={styles.sectionTitle}>Account Security</Text>
+                    </View>
+                    <View style={[styles.card, { padding: wp(4) }]}>
+                        <TouchableOpacity
+                            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: hp(1) }}
+                            onPress={() => {
+                                if (onBack) {
+                                    onBack();
+                                    Alert.alert(
+                                        "Disable Account",
+                                        "To disable an account, please open the side Menu and select 'Delete User'.",
+                                        [{ text: "OK" }]
+                                    );
+                                }
+                            }}
+                        >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: wp(3) }}>
+                                <Text style={{ fontSize: normalize(15), fontWeight: '600', color: '#ef4444' }}>Disable Account</Text>
+                            </View>
+                            <Text style={{ color: '#cbd5e1', fontSize: normalize(18) }}>›</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
-            </View>
+            )}
 
             <View style={{ height: hp(12) }} />
 
@@ -336,7 +341,13 @@ const SettingsScreen = ({ user: initialUser, onBack }: { user: any, onBack?: () 
                 visible={editModalVisible}
                 onClose={() => setEditModalVisible(false)}
                 user={user}
-                onUpdate={(updatedUser) => setUser({ ...user, ...updatedUser })}
+                onUpdate={(updatedUser) => {
+                    const finalUser = { ...user, ...updatedUser };
+                    setUser(finalUser);
+                    if (onUserUpdate) {
+                        onUserUpdate(finalUser);
+                    }
+                }}
             />
         </ScrollView>
     );

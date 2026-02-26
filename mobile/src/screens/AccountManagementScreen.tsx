@@ -31,6 +31,12 @@ const AccountManagementScreen = ({ user, state, onBack }: { user: any, state?: a
     const handleSendOTP = async () => {
         if (!mobile) return; // Note: firstName/lastName not strictly required for OTP send if they are optional for actual update?
         // Actually, web version only requires mobile for OTP.
+
+        if (!isAdmin) {
+            Alert.alert('Unauthorized', 'Only administrators can perform this action.');
+            return;
+        }
+
         setIsSending(true);
         try {
             await authApi.sendOTP(mobile, action);
@@ -38,7 +44,14 @@ const AccountManagementScreen = ({ user, state, onBack }: { user: any, state?: a
             Alert.alert('Success', `OTP Sent successfully to ${mobile}!`);
         } catch (error: any) {
             console.error('Failed to send OTP:', error);
-            Alert.alert('Error', error.map ? error.map((e: any) => e.message).join('\n') : (error.message || 'Failed to send OTP. Please try again.'));
+            const errorMsg = error.map ? error.map((e: any) => e.message).join('\n') : (error.message || 'Failed to send OTP. Please try again.');
+
+            // Replicate the exact web message if the backend rejects it for non-admin privileges
+            if (error?.response?.status === 403 || errorMsg.includes('admin') || errorMsg.includes('Unauthorized')) {
+                Alert.alert('Unauthorized', 'Only administrators can perform this action.');
+            } else {
+                Alert.alert('Error', errorMsg);
+            }
         } finally {
             setIsSending(false);
         }

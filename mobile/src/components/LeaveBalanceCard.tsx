@@ -24,14 +24,13 @@ const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({ apiBalance, history
         const result: any[] = [];
         if (!apiBalance) return result;
 
-        Object.keys(LEAVE_CONFIG).forEach(code => {
+        ['cl', 'sl', 'bl'].forEach(code => {
             if (code === 'lwp') return;
 
             const config = LEAVE_CONFIG[code];
 
-            // Show if allocated OR if it's a standard leave type (CL, SL)
-            // Note: EL removed from default list per user request
-            if (apiBalance.hasOwnProperty(code) || ['cl', 'sl'].includes(code)) {
+            // Always show these 3 requested types
+            if (true) {
                 const consumed = history
                     .filter(log => log.type === code && (log.status === 'Approved' || log.status === 'Pending'))
                     .reduce((sum, log) => sum + (log.days || 0), 0);

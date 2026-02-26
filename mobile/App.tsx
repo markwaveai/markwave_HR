@@ -151,25 +151,42 @@ function App() {
     try {
       console.log('Fetching global data for user:', userId);
       // 1. Status (Critical)
-      const statusData = await attendanceApi.getStatus(userId, { retries: 2, timeout: 15000 });
-      setIsClockedIn(statusData.status === 'IN');
-      setIsPendingOverride(statusData.is_pending_override === true);
-      setCanClock(statusData.can_clock !== false);
-      setDisabledReason(statusData.disabled_reason || null);
-      storage.setItem(`attendance_status_${userId}`, JSON.stringify(statusData));
+      try {
+        const statusData = await attendanceApi.getStatus(userId, { retries: 2, timeout: 15000 });
+        setIsClockedIn(statusData.status === 'IN');
+        setIsPendingOverride(statusData.is_pending_override === true);
+        setCanClock(statusData.can_clock !== false);
+        setDisabledReason(statusData.disabled_reason || null);
+        storage.setItem(`attendance_status_${userId}`, JSON.stringify(statusData));
+      } catch (e: any) {
+        console.log('Status fetch failed:', e);
+        setApiErrors(prev => ({ ...prev, status: e.message || 'Failed' }));
+      }
 
       // 2. Parallel Secondary Data
       const loadStats = attendanceApi.getPersonalStats(userId)
         .then(data => {
           setPersonalStats(data);
           storage.setItem(`personal_stats_${userId}`, JSON.stringify(data));
+          setApiErrors(prev => ({ ...prev, stats: '' }));
         })
         .catch(err => setApiErrors(prev => ({ ...prev, stats: err.message || 'Failed' })));
 
       const loadBalance = leaveApi.getBalance(userId)
         .then(data => {
-          setLeaveBalance(data);
-          storage.setItem(`leave_balance_${userId}`, JSON.stringify(data));
+          const balanceObj: Record<string, number> = {};
+          if (Array.isArray(data)) {
+            data.forEach((item: any) => {
+              if (item && item.code) {
+                balanceObj[item.code] = item.available;
+              }
+            });
+          } else {
+            Object.assign(balanceObj, data);
+          }
+          setLeaveBalance(balanceObj);
+          storage.setItem(`leave_balance_${userId}`, JSON.stringify(balanceObj));
+          setApiErrors(prev => ({ ...prev, balance: '' }));
         })
         .catch(err => setApiErrors(prev => ({ ...prev, balance: err.message || 'Failed' })));
 
@@ -214,6 +231,16 @@ function App() {
     }
   };
 
+  const handleUserUpdate = async (newUserData: any) => {
+    try {
+      const updatedUser = { ...user, ...newUserData };
+      setUser(updatedUser);
+      await storage.setItem('user_session', JSON.stringify(updatedUser));
+    } catch (e) {
+      console.error('Failed to update session:', e);
+    }
+  };
+
   // Refresh user profile and global data in background when logged in
   useEffect(() => {
     if (isLoggedIn && user?.id) {
@@ -233,7 +260,7 @@ function App() {
           }
 
           // Fetch dashboard data
-          await fetchGlobalData(user.id, isAdmin);
+          await fetchGlobalData(user.employee_id || user.id.toString(), isAdmin);
         } catch (e) {
           console.log('Background refresh failed:', e);
         }
@@ -258,6 +285,11 @@ function App() {
       setIsLoggedIn(false);
       setUser(null);
       setActiveTab('Home');
+      setIsClockedIn(null);
+      setLeaveBalance(null);
+      setPersonalStats(null);
+      setDashboardStats(null);
+      setApiErrors({});
       setModalVisible(false);
     } catch (e) {
       console.error('Failed to remove session:', e);
@@ -413,7 +445,7 @@ function App() {
                     onPress={() => handleNavigate('Support')}
                   />
                   <DrawerItem
-                    title={isAdmin ? "Delete User" : "Deactivate"}
+                    title={isAdmin ? "Delete User" : "Deactivate Account"}
                     icon={<TrashIcon color={activeTab === 'AccountManagement' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'AccountManagement'}
                     onPress={() => handleNavigate('AccountManagement')}
@@ -467,7 +499,7 @@ function App() {
                     leaveHistory,
                     apiErrors
                   }}
-                  onRefresh={() => fetchGlobalData(user.id, isAdmin)}
+                  onRefresh={() => fetchGlobalData(user.employee_id || user.id.toString(), isAdmin)}
                 />
               </View>
             )}
@@ -478,7 +510,7 @@ function App() {
             {activeTab === 'AdminLeave' && <AdminLeaveScreen user={appUser} />}
             {activeTab === 'Teams' && <TeamManagementScreen />}
             {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => handleNavigate('Home')} />}
-            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => handleNavigate('Home')} />}
+            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => handleNavigate('Home')} onUserUpdate={handleUserUpdate} />}
             {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => handleNavigate('Home')} />}
             {activeTab === 'Support' && <SupportScreen onBack={() => handleNavigate('Home')} onNavigateTo={handleNavigate} />}
             {activeTab === 'AccountManagement' && <AccountManagementScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}

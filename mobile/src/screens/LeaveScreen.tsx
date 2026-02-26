@@ -66,7 +66,17 @@ const LeaveScreen = ({ user }: { user: any }) => {
     const fetchBalance = async () => {
         try {
             const data = await leaveApi.getBalance(EMPLOYEE_ID);
-            setApiBalance(data);
+            const balanceObj: any = {};
+            if (Array.isArray(data)) {
+                data.forEach((item: any) => {
+                    if (item && item.code) {
+                        balanceObj[item.code] = item.available;
+                    }
+                });
+            } else {
+                Object.assign(balanceObj, data);
+            }
+            setApiBalance(balanceObj);
         } catch (error) {
             console.log("Failed to fetch balance:", error);
         }
@@ -601,7 +611,7 @@ const LeaveScreen = ({ user }: { user: any }) => {
                             >
                                 <View style={styles.pickerContent}>
                                     {Object.values(LEAVE_CONFIG)
-                                        .filter((item: any) => apiBalance?.hasOwnProperty(item.code) || ['cl', 'sl', 'lwp'].includes(item.code))
+                                        .filter((item: any) => ['cl', 'sl', 'bl', 'lwp'].includes(item.code))
                                         .map((item: any) => {
                                             const isSelected = item.code === leaveType;
                                             return (
