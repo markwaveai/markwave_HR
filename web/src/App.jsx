@@ -56,7 +56,15 @@ const DeleteAccountRoute = ({ isAuthenticated, user, handleLogout }) => {
   const location = useLocation();
   const isFromPortal = location.state?.fromPortal === true;
 
-  if (isAuthenticated && isFromPortal) {
+  // Check if admin (robust check similar to Sidebar)
+  const isAdmin = user?.is_admin === true ||
+    ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Founder', 'Acting Admin'].includes(user?.role);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (isFromPortal) {
     return (
       <Layout user={user} handleLogout={handleLogout}>
         <DeleteAccount user={user} />
@@ -166,7 +174,7 @@ function App() {
             localStorage.setItem('user', JSON.stringify(updatedUser));
           }
         } catch (error) {
-          console.error("Profile sync failed:", error);
+          console.error("Profile sync failed. The backend server might be down or unreachable:", error);
         }
       }
     };

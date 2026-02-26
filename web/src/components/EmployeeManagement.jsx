@@ -262,10 +262,13 @@ function EmployeeManagement({ user }) {
             case 'Active': return 'bg-green-100 text-green-600';
             case 'On Leave': return 'bg-yellow-100 text-yellow-600';
             case 'Remote': return 'bg-blue-100 text-blue-600';
-            case 'Inactive': return 'bg-gray-100 text-gray-600';
+            case 'Inactive': return 'bg-gray-100 text-[#636e72]';
             default: return 'bg-gray-100 text-gray-600';
         }
     };
+
+    const isAdmin = user?.is_admin === true ||
+        ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Founder'].includes(user?.role);
 
     return (
         <div className="flex-1 p-3 mm:p-4 ml:p-5 tab:p-8 overflow-y-auto bg-[#f5f7fa]">
@@ -285,12 +288,14 @@ function EmployeeManagement({ user }) {
                             className="pl-9 pr-4 py-2 border border-[#dfe6e9] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#48327d]/20 w-48 lg:w-64"
                         />
                     </div>
-                    <button
-                        onClick={() => setIsModalOpen(true)}
-                        className="bg-[#48327d] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#3a2865] transition-all shadow-md whitespace-nowrap"
-                    >
-                        <UserPlus size={18} /> Register Employee
-                    </button>
+                    {isAdmin && (
+                        <button
+                            onClick={() => setIsModalOpen(true)}
+                            className="bg-[#48327d] text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-[#3a2865] transition-all shadow-md whitespace-nowrap"
+                        >
+                            <UserPlus size={18} /> Register Employee
+                        </button>
+                    )}
                     <div className="text-right hidden sm:block">
                         <div className="text-sm font-semibold text-[#48327d] whitespace-nowrap">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
                     </div>
@@ -455,35 +460,50 @@ function EmployeeManagement({ user }) {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-center">
-                                            {emp.status !== 'Inactive' && (
+                                            {isAdmin && (
                                                 <div className="flex items-center justify-center gap-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingEmployee(emp);
-                                                            setFormData({
-                                                                employeeId: emp.employee_id || '',
-                                                                firstName: emp.first_name || '',
-                                                                lastName: emp.last_name || '',
-                                                                email: emp.email || '',
-                                                                role: emp.role || '',
-                                                                contact: emp.contact || '',
-                                                                location: emp.location || '',
-                                                                aadhar: emp.aadhar || ''
-                                                            });
-                                                            setIsModalOpen(true);
-                                                        }}
-                                                        className="p-2 text-[#48327d] hover:bg-purple-50 rounded-lg transition-all hover:scale-110 active:scale-90"
-                                                        title="Edit Employee"
-                                                    >
-                                                        <Edit2 size={18} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => setDeleteConfirm({ isOpen: true, employee: emp })}
-                                                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all hover:scale-110 active:scale-90"
-                                                        title="Deactivate Employee"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
+                                                    {emp.status !== 'Inactive' ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => {
+                                                                    setEditingEmployee(emp);
+                                                                    setFormData({
+                                                                        employeeId: emp.employee_id || '',
+                                                                        firstName: emp.first_name || '',
+                                                                        lastName: emp.last_name || '',
+                                                                        email: emp.email || '',
+                                                                        role: emp.role || '',
+                                                                        contact: emp.contact || '',
+                                                                        location: emp.location || '',
+                                                                        aadhar: emp.aadhar || ''
+                                                                    });
+                                                                    setIsModalOpen(true);
+                                                                }}
+                                                                className="p-2 text-[#48327d] hover:bg-purple-50 rounded-lg transition-all hover:scale-110 active:scale-90"
+                                                                title="Edit Employee"
+                                                            >
+                                                                <Edit2 size={18} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setDeleteConfirm({ isOpen: true, employee: emp })}
+                                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-all hover:scale-110 active:scale-90"
+                                                                title="Deactivate Employee"
+                                                            >
+                                                                <Trash2 size={18} />
+                                                            </button>
+                                                        </>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => {
+                                                                // Redirect to Delete Account with the mobile number pre-filled or just navigate
+                                                                navigate('/delete-account', { state: { fromPortal: true, mobile: emp.contact, action: 'activate' } });
+                                                            }}
+                                                            className="px-3 py-1 bg-green-50 text-green-600 border border-green-200 rounded-lg font-bold hover:bg-green-100 transition-all text-[10px]"
+                                                            title="Reactivate Employee"
+                                                        >
+                                                            REACTIVATE
+                                                        </button>
+                                                    )}
                                                 </div>
                                             )}
                                         </td>

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { teamApi } from '../services/api';
 import { normalize, wp, hp } from '../utils/responsive';
-import { SearchIcon, UserIcon, PlusIcon, TrashIcon, EditIcon } from '../components/Icons';
+import { SearchIcon, UserIcon, PlusIcon, TrashIcon, EditIcon, ZapIcon } from '../components/Icons';
 
 interface Employee {
     id: number;
@@ -28,7 +28,7 @@ interface Employee {
     aadhar: string;
 }
 
-const EmployeeListScreen = ({ user }: { user: any }) => {
+const EmployeeListScreen = ({ user, onNavigateTo }: { user: any, onNavigateTo: (screen: string, state?: any) => void }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isModalVisible, setIsModalVisible] = useState(false);
@@ -245,6 +245,14 @@ const EmployeeListScreen = ({ user }: { user: any }) => {
             <Text style={[styles.cell, { width: COL_WIDTHS.aadhar, color: '#636e72' }]}>{item.aadhar || '-'}</Text>
             <Text style={[styles.cell, { width: COL_WIDTHS.loc, color: '#636e72' }]}>{item.location || '-'}</Text>
             <View style={[styles.cell, { width: wp(26), flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: wp(3) }]}>
+                {item.status === 'Inactive' && (
+                    <TouchableOpacity
+                        onPress={() => onNavigateTo('DeleteAccount', { mobile: item.contact, action: 'activate' })}
+                        style={{ padding: 4 }}
+                    >
+                        <ZapIcon color="#22c55e" size={normalize(18)} />
+                    </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => handleEdit(item)}>
                     <EditIcon color="#48327d" size={normalize(18)} />
                 </TouchableOpacity>

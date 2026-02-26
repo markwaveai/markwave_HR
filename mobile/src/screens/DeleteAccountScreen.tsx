@@ -1,26 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, StatusBar } from 'react-native';
 import { normalize, wp, hp } from '../utils/responsive';
 import { authApi } from '../services/api';
 
-const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
+const DeleteAccountScreen = ({ user, state, onBack }: { user: any, state?: any, onBack: () => void }) => {
     const [mobile, setMobile] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
+    const [action, setAction] = useState<'activate' | 'deactivate'>('deactivate');
     const [isSending, setIsSending] = useState(false);
 
     const [showOtpField, setShowOtpField] = useState(false);
     const [otp, setOtp] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
 
+    // Permission check
+    const isAdmin = user?.is_admin === true;
+
+    useEffect(() => {
+        if (state?.mobile) {
+            setMobile(state.mobile);
+        }
+        if (state?.action) {
+            setAction(state.action);
+        }
+    }, [state]);
+
+    if (!isAdmin) {
+        return (
+            <View style={styles.container}>
+                <StatusBar barStyle="dark-content" backgroundColor="#F5F7FA" />
+                <View style={styles.card}>
+                    <Text style={styles.mainTitle}>Unauthorized</Text>
+                    <Text style={styles.subTitle}>Only administrators can access the delete account tool.</Text>
+                    <TouchableOpacity style={styles.submitButton} onPress={onBack}>
+                        <Text style={styles.submitButtonText}>Return</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        );
+    }
+
     const handleSendOTP = async () => {
-        if (!mobile || !firstName || !lastName) return;
+        if (!mobile) return; // Note: firstName/lastName not strictly required for OTP send if they are optional for actual update?
+        // Actually, web version only requires mobile for OTP.
         setIsSending(true);
         try {
-            await authApi.sendOTP(mobile, 'deactivate');
+            await authApi.sendOTP(mobile, action);
             setShowOtpField(true);
-            Alert.alert('Success', 'OTP Sent successfully to your mobile number!');
+            Alert.alert('Success', `OTP Sent successfully to ${mobile}!`);
         } catch (error: any) {
             console.error('Failed to send OTP:', error);
             Alert.alert('Error', error.map ? error.map((e: any) => e.message).join('\n') : (error.message || 'Failed to send OTP. Please try again.'));
@@ -33,8 +62,8 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
         if (!otp || otp.length !== 6) return;
         setIsVerifying(true);
         try {
-            await authApi.updateAccountStatus(mobile, otp, 'deactivate');
-            Alert.alert('Success', 'Account deactivated successfully!');
+            await authApi.updateAccountStatus(mobile, otp, action);
+            Alert.alert('Success', `Account ${action === 'activate' ? 'activated' : 'deactivated'} successfully!`);
             onBack();
         } catch (error: any) {
             console.error('Failed to verify OTP:', error);
@@ -57,8 +86,26 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                                 Delete Account
                             </Text>
                             <Text style={styles.subTitle}>
-                                We're sorry to see you go.
+                                Admin Portal: Manage User Account Status
                             </Text>
+                        </View>
+
+                        {/* Action Toggle */}
+                        <View style={styles.toggleContainer}>
+                            <TouchableOpacity
+                                onPress={() => !showOtpField && setAction('deactivate')}
+                                style={[styles.toggleButton, action === 'deactivate' && styles.activeToggleDeactivate]}
+                                disabled={showOtpField}
+                            >
+                                <Text style={[styles.toggleButtonText, action === 'deactivate' ? { color: '#ef4444' } : { color: '#94a3b8' }]}>Deactivate</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => !showOtpField && setAction('activate')}
+                                style={[styles.toggleButton, action === 'activate' && styles.activeToggleActivate]}
+                                disabled={showOtpField}
+                            >
+                                <Text style={[styles.toggleButtonText, action === 'activate' ? { color: '#22c55e' } : { color: '#94a3b8' }]}>Activate</Text>
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.formContainer}>
@@ -69,7 +116,7 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                                 </View>
                                 <TextInput
                                     style={[styles.input, { paddingLeft: wp(12) }, showOtpField && styles.disabledInput]}
-                                    placeholder="Enter your registered mobile *"
+                                    placeholder="Target user mobile number *"
                                     placeholderTextColor="#94a3b8"
                                     keyboardType="phone-pad"
                                     value={mobile}
@@ -79,58 +126,30 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                                 />
                             </View>
 
-                            {/* Name Inputs Grid */}
-                            <View style={styles.row}>
-                                <TextInput
-                                    style={[styles.input, styles.halfInput, showOtpField && styles.disabledInput]}
-                                    placeholder="First Name *"
-                                    placeholderTextColor="#94a3b8"
-                                    value={firstName}
-                                    onChangeText={setFirstName}
-                                    editable={!showOtpField}
-                                />
-                                <TextInput
-                                    style={[styles.input, styles.halfInput, showOtpField && styles.disabledInput]}
-                                    placeholder="Last Name *"
-                                    placeholderTextColor="#94a3b8"
-                                    value={lastName}
-                                    onChangeText={setLastName}
-                                    editable={!showOtpField}
-                                />
-                            </View>
-
-                            {/* Email Input */}
-                            <TextInput
-                                style={[styles.input, showOtpField && styles.disabledInput]}
-                                placeholder="Email Address (Optional)"
-                                placeholderTextColor="#94a3b8"
-                                keyboardType="email-address"
-                                autoCapitalize="none"
-                                value={email}
-                                onChangeText={setEmail}
-                                editable={!showOtpField}
-                            />
-
                             {showOtpField && (
-                                <TextInput
-                                    style={[styles.input, { textAlign: 'center', letterSpacing: 8 }]}
-                                    placeholder="Enter 6-digit OTP *"
-                                    placeholderTextColor="#94a3b8"
-                                    keyboardType="number-pad"
-                                    value={otp}
-                                    onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
-                                    maxLength={6}
-                                />
+                                <View>
+                                    <Text style={styles.otpLabel}>Enter OTP sent to the user's mobile</Text>
+                                    <TextInput
+                                        style={[styles.input, { textAlign: 'center', letterSpacing: 8 }]}
+                                        placeholder="Enter 6-digit OTP *"
+                                        placeholderTextColor="#94a3b8"
+                                        keyboardType="number-pad"
+                                        value={otp}
+                                        onChangeText={(text) => setOtp(text.replace(/[^0-9]/g, ''))}
+                                        maxLength={6}
+                                    />
+                                </View>
                             )}
 
                             {/* Submit Button */}
                             <TouchableOpacity
                                 style={[
                                     styles.submitButton,
-                                    (isSending || isVerifying || (!showOtpField && (!mobile || !firstName || !lastName)) || (showOtpField && otp.length !== 6)) && styles.disabledButton
+                                    action === 'activate' && { backgroundColor: '#22c55e', shadowColor: '#22c55e' },
+                                    (isSending || isVerifying || (!showOtpField && !mobile) || (showOtpField && otp.length !== 6)) && styles.disabledButton
                                 ]}
                                 onPress={showOtpField ? handleVerifyOTP : handleSendOTP}
-                                disabled={isSending || isVerifying || (!showOtpField && (!mobile || !firstName || !lastName)) || (showOtpField && otp.length !== 6)}
+                                disabled={isSending || isVerifying || (!showOtpField && !mobile) || (showOtpField && otp.length !== 6)}
                             >
                                 {isSending || isVerifying ? (
                                     <View style={styles.loadingRow}>
@@ -138,7 +157,9 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                                         <Text style={styles.submitButtonText}>{isSending ? 'SENDING...' : 'VERIFYING...'}</Text>
                                     </View>
                                 ) : (
-                                    <Text style={styles.submitButtonText}>{showOtpField ? 'VERIFY & DEACTIVATE' : 'SEND OTP'}</Text>
+                                    <Text style={styles.submitButtonText}>
+                                        {showOtpField ? `VERIFY & ${action.toUpperCase()}` : `SEND OTP TO ${action.toUpperCase()}`}
+                                    </Text>
                                 )}
                             </TouchableOpacity>
 
@@ -149,7 +170,7 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
                         </View>
 
                         <View style={styles.footerContainer}>
-                            <TouchableOpacity onPress={() => {/* Handle policy navigation if needed */ }}>
+                            <TouchableOpacity onPress={() => {/* Handle policy navigation */ }}>
                                 <Text style={styles.footerText}>Terms and Policy</Text>
                             </TouchableOpacity>
                         </View>
@@ -159,6 +180,7 @@ const DeleteAccountScreen = ({ onBack }: { onBack: () => void }) => {
         </View>
     );
 };
+
 
 const styles = StyleSheet.create({
     container: {
@@ -202,6 +224,46 @@ const styles = StyleSheet.create({
     formContainer: {
         gap: hp(2),
     },
+    toggleContainer: {
+        flexDirection: 'row',
+        backgroundColor: '#f1f5f9',
+        padding: 4,
+        borderRadius: 16,
+        marginBottom: hp(3),
+    },
+    toggleButton: {
+        flex: 1,
+        paddingVertical: hp(1),
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    activeToggleDeactivate: {
+        backgroundColor: '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    activeToggleActivate: {
+        backgroundColor: '#ffffff',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    toggleButtonText: {
+        fontSize: normalize(14),
+        fontWeight: 'bold',
+    },
+    otpLabel: {
+        textAlign: 'center',
+        fontSize: normalize(13),
+        color: '#64748b',
+        marginBottom: hp(1),
+    },
     inputWrapper: {
         position: 'relative',
         justifyContent: 'center',
@@ -217,11 +279,6 @@ const styles = StyleSheet.create({
         color: '#64748b',
         fontSize: normalize(14),
     },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: wp(3),
-    },
     input: {
         backgroundColor: '#ffffff',
         borderWidth: 1,
@@ -236,9 +293,6 @@ const styles = StyleSheet.create({
     disabledInput: {
         backgroundColor: '#f8fafc',
         color: '#94a3b8',
-    },
-    halfInput: {
-        flex: 1,
     },
     submitButton: {
         backgroundColor: '#ef4444',

@@ -241,3 +241,10 @@ export const wfhApi = {
 export const adminApi = {
     getDashboardStats: () => apiFetch(`/admin/dashboard-stats/?_t=${new Date().getTime()}`)
 };
+
+export const supportApi = {
+    submitQuery: (data: any) => apiFetch('/support/submit/', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
+};

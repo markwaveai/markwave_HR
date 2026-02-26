@@ -2,15 +2,122 @@ import re
 import traceback
 import os
 from rest_framework.decorators import api_view
+from django.conf import settings
 from rest_framework.response import Response
 from rest_framework import status
 from core.models import Employees, Teams
 import random
 import requests
-from django.conf import settings
 from .models import OTPStore
 from django.utils import timezone
-from .utils import is_employee_admin
+from .utils import is_employee_admin, send_email_via_api
+import threading
+from django.db.models import Q
+from core.models import Employees, Teams, SupportQuery
+
+@api_view(['POST'])
+def submit_support_query(request):
+    try:
+        data = request.data
+        first_name = data.get('firstName')
+        last_name = data.get('lastName')
+        email = data.get('email')
+        phone = data.get('phone')
+        message = data.get('message')
+
+        if not all([first_name, last_name, email, phone, message]):
+            return Response({'error': 'All fields are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save to database
+        query = SupportQuery.objects.create(
+            first_name=first_name,
+            last_name=last_name,
+            email=email,
+            phone=phone,
+            message=message
+        )
+
+        # Notify admins in background
+        threading.Thread(target=notify_admins_of_support_query, args=(query.id,)).start()
+
+        return Response({'message': 'Your message has been received. We will get back to you soon.', 'id': query.id}, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+def notify_admins_of_support_query(query_id):
+    try:
+        query = SupportQuery.objects.get(pk=query_id)
+        
+        # Find all admins/managers
+        admins = Employees.objects.filter(
+            Q(role__icontains='Admin') | 
+            Q(role__icontains='Manager') | 
+            Q(role__icontains='Founder') |
+            Q(role__icontains='Advisor')
+        ).exclude(email__isnull=True).exclude(email='')
+
+        recipient_emails = list(set([admin.email.strip() for admin in admins if admin.email]))
+
+        if not recipient_emails:
+            print(f"DEBUG: No admin emails found to notify for support query {query_id}")
+            return
+
+        subject = f"New Support Message - {query.first_name} {query.last_name}"
+        
+        body = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 20px; font-family: Arial, sans-serif; background-color: #f5f5f5;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+        <tr>
+            <td style="background-color: #1e293b; padding: 30px; text-align: center;">
+                <h1 style="color: #ffffff; margin: 0; font-size: 24px;">New Support Inquiry</h1>
+            </td>
+        </tr>
+        <tr>
+            <td style="padding: 30px;">
+                <p style="font-size: 16px; color: #333333; margin: 0 0 20px 0;">Hello Admin,</p>
+                <p style="font-size: 15px; color: #333333; margin: 0 0 25px 0;">
+                    A new message has been received through the portal support form.
+                </p>
+                
+                <table width="100%" cellpadding="12" cellspacing="0" style="background-color: #f8f9fa; border-radius: 8px; margin: 20px 0; border: 1px solid #edf2f7;">
+                    <tr>
+                        <td style="color: #64748b; font-size: 13px; font-weight: bold; width: 120px;">NAME:</td>
+                        <td style="color: #1e293b; font-size: 14px; font-weight: bold;">{query.first_name} {query.last_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #64748b; font-size: 13px; font-weight: bold;">EMAIL:</td>
+                        <td style="color: #1e293b; font-size: 14px; font-weight: bold;">{query.email}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #64748b; font-size: 13px; font-weight: bold;">PHONE:</td>
+                        <td style="color: #1e293b; font-size: 14px; font-weight: bold;">{query.phone}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #64748b; font-size: 13px; font-weight: bold; vertical-align: top;">MESSAGE:</td>
+                        <td style="color: #1e293b; font-size: 14px; line-height: 1.5;">{query.message}</td>
+                    </tr>
+                </table>
+                
+                <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 30px 0 0 0; padding-top: 20px; border-top: 1px solid #edf2f7;">
+                    This is an automated alert from the Markwave HR Portal.
+                </p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>"""
+
+        for recipient in recipient_emails:
+            send_email_via_api(recipient, subject, body)
+            print(f"DEBUG: Sent support query notification to {recipient}")
+
+    except Exception as e:
+        print(f"ERROR in notify_admins_of_support_query: {str(e)}")
 
 def normalize_phone(phone_str):
     if not phone_str:
@@ -124,10 +231,11 @@ def send_otp(request):
                 return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
             # Check for inactive status
+            # Allow OTP for inactive accounts IF the purpose is 'activate' (requested by Admin)
             for emp in Employees.objects.all():
                 if normalize_phone(emp.contact) == normalized_input:
                     if emp.status == 'Inactive' and purpose != 'activate':
-                        return Response({'error': 'Your account is inactive. Please contact HR.'}, status=status.HTTP_403_FORBIDDEN)
+                        return Response({'error': 'Your account is inactive. Please contact HR for reactivation.'}, status=status.HTTP_403_FORBIDDEN)
                     elif emp.status == 'Active' and purpose == 'activate':
                         return Response({'error': 'Your account is already active.'}, status=status.HTTP_400_BAD_REQUEST)
                     break
@@ -490,9 +598,22 @@ def update_account_status(request):
     phone = request.data.get('phone')
     otp = request.data.get('otp')
     action = request.data.get('action') # 'activate' or 'deactivate'
+    acting_user_id = request.data.get('acting_user_id')
 
-    if not phone or not otp or not action:
-        return Response({'error': 'Phone, OTP, and action are required'}, status=status.HTTP_400_BAD_REQUEST)
+    if not phone or not otp or not action or not acting_user_id:
+        return Response({'error': 'Phone, OTP, action, and acting_user_id are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+    # Permission check: Only admins can activate/deactivate accounts
+    try:
+        if str(acting_user_id).isdigit():
+            acting_emp = Employees.objects.get(id=acting_user_id)
+        else:
+            acting_emp = Employees.objects.get(employee_id=acting_user_id)
+        
+        if not is_employee_admin(acting_emp):
+            return Response({'error': 'Unauthorized. Only administrators can change account status.'}, status=status.HTTP_403_FORBIDDEN)
+    except Employees.DoesNotExist:
+        return Response({'error': 'Acting user not found'}, status=status.HTTP_403_FORBIDDEN)
 
     normalized_input = normalize_phone(phone)
     target_phone = normalized_input if phone != 'admin' else 'admin'
@@ -501,6 +622,7 @@ def update_account_status(request):
         return Response({'error': 'Cannot modify admin account status'}, status=status.HTTP_403_FORBIDDEN)
 
     try:
+        # OTP verification for the target phone number
         otp_entry = OTPStore.objects.filter(phone=target_phone, is_verified=False).order_by('-created_at').first()
         if not otp_entry or otp_entry.otp != otp:
             return Response({'error': 'Invalid OTP'}, status=status.HTTP_401_UNAUTHORIZED)
@@ -518,8 +640,8 @@ def update_account_status(request):
                 break
 
         if not user_found:
-            return Response({'error': 'User not found'}, status=404)
+            return Response({'error': 'Target user not found'}, status=status.HTTP_404_NOT_FOUND)
 
         return Response({'success': True, 'message': f"Account {action}d successfully"})
     except Exception as e:
-        return Response({'error': str(e)}, status=500)
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

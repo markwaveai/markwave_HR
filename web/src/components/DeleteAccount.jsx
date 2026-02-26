@@ -1,26 +1,43 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '../services/api';
 
-const DeleteAccount = () => {
+const DeleteAccount = ({ user }) => {
     const navigate = useNavigate();
     const [mobile, setMobile] = useState('');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
+    const [action, setAction] = useState('deactivate'); // 'activate' or 'deactivate'
     const [isSending, setIsSending] = useState(false);
 
     const [showOtpField, setShowOtpField] = useState(false);
     const [otp, setOtp] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
 
+    // Permission check
+    const isAdmin = user?.is_admin === true ||
+        ['Admin', 'Administrator', 'Project Manager', 'Advisor-Technology & Operations', 'Founder', 'Acting Admin'].includes(user?.role);
+
+    if (!isAdmin) {
+        return (
+            <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center p-4">
+                <div className="bg-white p-8 rounded-3xl shadow-xl text-center max-w-sm">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-4">Unauthorized</h2>
+                    <p className="text-slate-600 mb-6">Only administrators can access the delete account tool.</p>
+                    <button onClick={() => navigate('/dashboard')} className="bg-[#48327d] text-white px-6 py-2 rounded-xl font-bold">Return to Dashboard</button>
+                </div>
+            </div>
+        );
+    }
+
     const handleSendOTP = async (e) => {
         e.preventDefault();
         setIsSending(true);
         try {
-            await authApi.sendOTP(mobile, 'deactivate');
+            await authApi.sendOTP(mobile, action);
             setShowOtpField(true);
-            alert('OTP Sent successfully to your mobile number!');
+            alert(`OTP Sent successfully to ${mobile}!`);
         } catch (error) {
             console.error('Failed to send OTP:', error);
             alert(error.response?.data?.error || error.message || 'Failed to send OTP. Please try again.');
@@ -33,16 +50,27 @@ const DeleteAccount = () => {
         e.preventDefault();
         setIsVerifying(true);
         try {
-            await authApi.updateAccountStatus(mobile, otp, 'deactivate');
-            alert(`Account deactivated successfully!`);
+            await authApi.updateAccountStatus(mobile, otp, action, user.id);
+            alert(`Account ${action === 'activate' ? 'activated' : 'deactivated'} successfully!`);
             navigate(-1);
         } catch (error) {
-            console.error('Failed to verify OTP:', error);
+            console.error('Failed to update status:', error);
             alert(error.response?.data?.error || error.message || 'Failed to verify OTP. Please try again.');
         } finally {
             setIsVerifying(false);
         }
     };
+
+    // Pre-fill if navigated from Employee Management
+    const location = useLocation();
+    useEffect(() => {
+        if (location.state?.mobile) {
+            setMobile(location.state.mobile);
+        }
+        if (location.state?.action) {
+            setAction(location.state.action);
+        }
+    }, [location]);
 
     return (
         <div className="min-h-screen bg-[#F5F7FA] flex flex-col lg:flex-row">
@@ -56,8 +84,26 @@ const DeleteAccount = () => {
                             Delete Account
                         </h1>
                         <p className="text-slate-900 font-bold text-[15px]">
-                            We're sorry to see you go.
+                            Admin Portal: Manage User Account Status
                         </p>
+                    </div>
+
+                    {/* Action Toggle */}
+                    <div className="flex bg-slate-100 p-1 rounded-2xl mb-6">
+                        <button
+                            onClick={() => !showOtpField && setAction('deactivate')}
+                            className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all ${action === 'deactivate' ? 'bg-white text-red-500 shadow-sm' : 'text-slate-500'}`}
+                            disabled={showOtpField}
+                        >
+                            Deactivate
+                        </button>
+                        <button
+                            onClick={() => !showOtpField && setAction('activate')}
+                            className={`flex-1 py-2 rounded-xl font-bold text-sm transition-all ${action === 'activate' ? 'bg-white text-green-600 shadow-sm' : 'text-slate-500'}`}
+                            disabled={showOtpField}
+                        >
+                            Activate
+                        </button>
                     </div>
 
                     <form onSubmit={showOtpField ? handleVerifyOTP : handleSendOTP} className="space-y-5">
@@ -69,7 +115,7 @@ const DeleteAccount = () => {
                             </div>
                             <input
                                 type="tel"
-                                placeholder="Enter your registered mobile *"
+                                placeholder="Target user mobile number *"
                                 value={mobile}
                                 onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
                                 required
@@ -79,57 +125,30 @@ const DeleteAccount = () => {
                             />
                         </div>
 
-                        {/* Name Inputs Grid */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <input
-                                type="text"
-                                placeholder="First Name *"
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                required
-                                disabled={showOtpField}
-                                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-[24px] text-slate-700 text-[15px] placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all font-serif disabled:bg-slate-50 disabled:text-slate-500"
-                            />
-                            <input
-                                type="text"
-                                placeholder="Last Name *"
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                required
-                                disabled={showOtpField}
-                                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-[24px] text-slate-700 text-[15px] placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all font-serif disabled:bg-slate-50 disabled:text-slate-500"
-                            />
-                        </div>
-
-                        {/* Email Input */}
-                        <input
-                            type="email"
-                            placeholder="Email Address (Optional)"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={showOtpField}
-                            className="w-full px-5 py-4 bg-white border border-slate-200 rounded-[24px] text-slate-700 text-[15px] placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all font-serif disabled:bg-slate-50 disabled:text-slate-500"
-                        />
-
                         {showOtpField && (
-                            <input
-                                type="text"
-                                placeholder="Enter 6-digit OTP *"
-                                value={otp}
-                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                                required
-                                maxLength={6}
-                                className="w-full px-5 py-4 bg-white border border-slate-200 rounded-[24px] text-slate-700 text-[15px] placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all font-serif text-center tracking-[0.5em]"
-                            />
+                            <div className="space-y-4">
+                                <p className="text-center text-sm text-slate-500">Enter OTP sent to the user's mobile</p>
+                                <input
+                                    type="text"
+                                    placeholder="Enter 6-digit OTP *"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                                    required
+                                    maxLength={6}
+                                    className="w-full px-5 py-4 bg-white border border-slate-200 rounded-[24px] text-slate-700 text-[15px] placeholder:text-slate-400 focus:outline-none focus:border-slate-300 focus:ring-4 focus:ring-slate-100 transition-all font-serif text-center tracking-[0.5em]"
+                                />
+                            </div>
                         )}
 
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={isSending || isVerifying || (!showOtpField && (!mobile || !firstName || !lastName)) || (showOtpField && otp.length !== 6)}
-                            className={`w-full mt-4 py-4 rounded-[24px] font-bold text-[15px] transition-all tracking-wider font-serif ${isSending || isVerifying || (!showOtpField && (!mobile || !firstName || !lastName)) || (showOtpField && otp.length !== 6)
+                            disabled={isSending || isVerifying || (!showOtpField && !mobile) || (showOtpField && otp.length !== 6)}
+                            className={`w-full mt-4 py-4 rounded-[24px] font-bold text-[15px] transition-all tracking-wider font-serif ${isSending || isVerifying || (!showOtpField && !mobile) || (showOtpField && otp.length !== 6)
                                 ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
-                                : 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-xl shadow-red-500/20 active:scale-[0.98]'
+                                : action === 'deactivate'
+                                    ? 'bg-[#ef4444] hover:bg-[#dc2626] text-white shadow-xl shadow-red-500/20 active:scale-[0.98]'
+                                    : 'bg-green-600 hover:bg-green-700 text-white shadow-xl shadow-green-500/20 active:scale-[0.98]'
                                 }`}
                         >
                             {isSending || isVerifying ? (
@@ -138,9 +157,9 @@ const DeleteAccount = () => {
                                     <span>{isSending ? 'SENDING...' : 'VERIFYING...'}</span>
                                 </div>
                             ) : showOtpField ? (
-                                `VERIFY & DEACTIVATE`
+                                `VERIFY & ${action.toUpperCase()}`
                             ) : (
-                                'SEND OTP'
+                                `SEND OTP TO ${action === 'deactivate' ? 'DEACTIVATE' : 'ACTIVATE'}`
                             )}
                         </button>
 

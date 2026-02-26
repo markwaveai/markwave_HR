@@ -64,5 +64,6 @@ urlpatterns = [
     path('wfh/requests/<str:employee_id>/', wfh_views.get_wfh_requests, name='get-wfh-requests'),
     path('wfh/<int:request_id>/action/', wfh_views.wfh_action, name='wfh-action'),
     path('wfh/email-action/<int:request_id>/<str:action>/', wfh_views.email_wfh_action, name='email-wfh-action'),
+    path('support/submit/', views.submit_support_query, name='submit-support-query'),
     path('api-ping/', lambda r: HttpResponse('api-pong')),
 ]

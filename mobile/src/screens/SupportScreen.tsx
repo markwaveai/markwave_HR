@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Linking, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { ChevronLeftIcon, HelpCircleIcon, MailIcon, PhoneIcon, ClockIcon, MessageSquareIcon, ChevronDownIcon, SendIcon } from '../components/Icons';
 import { normalize, wp, hp } from '../utils/responsive';
+import { supportApi } from '../services/api';
 
 const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigateTo?: (screen: string) => void }) => {
     const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+    const [loading, setLoading] = useState(false);
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
@@ -50,6 +52,38 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
 
     const toggleFaq = (index: number) => {
         setExpandedFaq(expandedFaq === index ? null : index);
+    };
+
+    const handleSubmit = async () => {
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.message) {
+            Alert.alert('Validation Error', 'Please fill in all fields before submitting.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await supportApi.submitQuery(formData);
+            Alert.alert(
+                'Success',
+                'Your message has been sent successfully! Our team will get back to you soon.',
+                [{
+                    text: 'OK', onPress: () => {
+                        setFormData({
+                            firstName: '',
+                            lastName: '',
+                            email: '',
+                            phone: '',
+                            message: ''
+                        });
+                    }
+                }]
+            );
+        } catch (error: any) {
+            console.error('Mobile Support Error:', error);
+            Alert.alert('Submission Error', error.message || 'Failed to send message. Please try again later.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -111,6 +145,7 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         <TextInput
                             style={styles.input}
                             placeholder="John"
+                            placeholderTextColor="#94a3b8"
                             value={formData.firstName}
                             onChangeText={(text) => setFormData({ ...formData, firstName: text })}
                         />
@@ -121,6 +156,7 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         <TextInput
                             style={styles.input}
                             placeholder="Doe"
+                            placeholderTextColor="#94a3b8"
                             value={formData.lastName}
                             onChangeText={(text) => setFormData({ ...formData, lastName: text })}
                         />
@@ -131,7 +167,9 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         <TextInput
                             style={styles.input}
                             placeholder="john@example.com"
+                            placeholderTextColor="#94a3b8"
                             keyboardType="email-address"
+                            autoCapitalize="none"
                             value={formData.email}
                             onChangeText={(text) => setFormData({ ...formData, email: text })}
                         />
@@ -141,7 +179,8 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         <Text style={styles.inputLabel}>Phone Number</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="+1 (555) 000-0000"
+                            placeholder="+91 98765 43210"
+                            placeholderTextColor="#94a3b8"
                             keyboardType="phone-pad"
                             value={formData.phone}
                             onChangeText={(text) => setFormData({ ...formData, phone: text })}
@@ -153,6 +192,7 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         <TextInput
                             style={[styles.input, styles.textArea]}
                             placeholder="How can we help you?"
+                            placeholderTextColor="#94a3b8"
                             multiline
                             numberOfLines={4}
                             value={formData.message}
@@ -160,9 +200,19 @@ const SupportScreen = ({ onBack, onNavigateTo }: { onBack: () => void, onNavigat
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.submitBtn}>
-                        <SendIcon color="#ffffff" size={20} />
-                        <Text style={styles.submitBtnText}>Send Message</Text>
+                    <TouchableOpacity
+                        style={[styles.submitBtn, loading && styles.disabledBtn]}
+                        onPress={handleSubmit}
+                        disabled={loading}
+                    >
+                        {loading ? (
+                            <ActivityIndicator color="#ffffff" size="small" />
+                        ) : (
+                            <>
+                                <SendIcon color="#ffffff" size={20} />
+                                <Text style={styles.submitBtnText}>Send Message</Text>
+                            </>
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -330,6 +380,9 @@ const styles = StyleSheet.create({
         color: '#ffffff',
         fontSize: normalize(16),
         fontWeight: '700',
+    },
+    disabledBtn: {
+        backgroundColor: '#94a3b8',
     },
     footer: {
         marginTop: hp(6),

@@ -41,9 +41,9 @@ export const authApi = {
         method: 'POST',
         body: JSON.stringify({ phone, otp })
     }),
-    updateAccountStatus: (phone, otp, action) => apiFetch('/auth/update-status/', {
+    updateAccountStatus: (phone, otp, action, acting_user_id) => apiFetch('/auth/update-status/', {
         method: 'POST',
-        body: JSON.stringify({ phone, otp, action })
+        body: JSON.stringify({ phone, otp, action, acting_user_id })
     }),
     sendEmailOTP: (email) => apiFetch('/auth/send-email-otp/', {
         method: 'POST',
@@ -180,4 +180,11 @@ export const wfhApi = {
 
 export const adminApi = {
     getDashboardStats: () => apiFetch(`/admin/dashboard-stats/?_t=${new Date().getTime()}`)
+};
+
+export const supportApi = {
+    submitQuery: (data) => apiFetch('/support/submit/', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    })
 };

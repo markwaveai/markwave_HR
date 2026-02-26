@@ -29,7 +29,7 @@ const TeamMemberCard = ({ member, onRemove }) => {
                         <div className="min-w-0">
                             <p className="text-[10px] text-[#94a3b8] uppercase font-black tracking-widest mb-1.5 text-left">STATUS</p>
                             <div className="flex items-center gap-2">
-                                <div className={`w-1.5 h-1.5 rounded-full ${member.status === 'Active' ? 'bg-[#10b981]' : 'bg-[#f59e0b]'}`}></div>
+                                <div className={`w-1.5 h-1.5 rounded-full ${member.status === 'Active' ? 'bg-[#10b981]' : member.status === 'Remote' ? 'bg-[#3b82f6]' : member.status === 'Leave' ? 'bg-[#f59e0b]' : 'bg-[#94a3b8]'}`}></div>
                                 <span className="text-xs font-bold text-[#334155]">{member.status || 'Active'}</span>
                             </div>
                         </div>

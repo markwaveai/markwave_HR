@@ -81,6 +81,13 @@ function App() {
   const [isAppLoading, setIsAppLoading] = useState(true);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
+  const [navigationState, setNavigationState] = useState<any>(null);
+
+  const handleNavigate = (tab: string, state: any = null) => {
+    setActiveTab(tab);
+    setNavigationState(state);
+    setIsDrawerVisible(false);
+  };
 
   // Global Attendance/Dashboard State
   const [isClockedIn, setIsClockedIn] = useState<boolean | null>(null);
@@ -263,6 +270,8 @@ function App() {
     user?.role === 'Admin' ||
     user?.role === 'Administrator' ||
     user?.role === 'Project Manager' ||
+    user?.role === 'Founder' ||
+    user?.role === 'Acting Admin' ||
     user?.role === 'Advisor-Technology & Operations';
 
   const getInitials = () => {
@@ -298,16 +307,16 @@ function App() {
               <View style={{ width: 36 }} />
             </View>
             <View style={styles.mainContent}>
-              {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => setActiveTab('Home')} />}
-              {activeTab === 'Support' && <SupportScreen onBack={() => setActiveTab('Home')} onNavigateTo={(screen) => setActiveTab(screen)} />}
-              {activeTab === 'DeleteAccount' && <DeleteAccountScreen onBack={() => setActiveTab('Support')} />}
+              {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => handleNavigate('Home')} />}
+              {activeTab === 'Support' && <SupportScreen onBack={() => handleNavigate('Home')} onNavigateTo={handleNavigate} />}
+              {activeTab === 'DeleteAccount' && <DeleteAccountScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}
             </View>
           </SafeAreaView>
         ) : (
           <LoginScreen
             onLogin={handleLogin}
-            onOpenSupport={() => setActiveTab('Support')}
-            onOpenPrivacy={() => setActiveTab('PrivacyPolicy')}
+            onOpenSupport={() => handleNavigate('Support')}
+            onOpenPrivacy={() => handleNavigate('PrivacyPolicy')}
           />
         )
       ) : (
@@ -339,20 +348,20 @@ function App() {
                     title="Dashboard"
                     icon={<LayoutGridIcon color={activeTab === 'Home' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Home'}
-                    onPress={() => { setActiveTab('Home'); setIsDrawerVisible(false); }}
+                    onPress={() => handleNavigate('Home')}
                   />
                   <DrawerItem
                     title="Me"
                     icon={<UserIcon color={activeTab === 'Me' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Me'}
-                    onPress={() => { setActiveTab('Me'); setIsDrawerVisible(false); }}
+                    onPress={() => handleNavigate('Me')}
                   />
                   {isAdmin && (
                     <DrawerItem
                       title="Employee Management"
                       icon={<UserPlusIcon color={activeTab === 'Employees' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Employees'}
-                      onPress={() => { setActiveTab('Employees'); setIsDrawerVisible(false); }}
+                      onPress={() => handleNavigate('Employees')}
                     />
                   )}
                   {isAdmin ? (
@@ -360,14 +369,14 @@ function App() {
                       title="Team Management"
                       icon={<UsersIcon color={activeTab === 'Teams' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Teams'}
-                      onPress={() => { setActiveTab('Teams'); setIsDrawerVisible(false); }}
+                      onPress={() => handleNavigate('Teams')}
                     />
                   ) : (
                     <DrawerItem
                       title="My Team"
                       icon={<UsersIcon color={activeTab === 'Team' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Team'}
-                      onPress={() => { setActiveTab('Team'); setIsDrawerVisible(false); }}
+                      onPress={() => handleNavigate('Team')}
                     />
                   )}
                   {isAdmin ? (
@@ -375,39 +384,39 @@ function App() {
                       title="Leave Management"
                       icon={<CalendarIcon color={activeTab === 'AdminLeave' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'AdminLeave'}
-                      onPress={() => { setActiveTab('AdminLeave'); setIsDrawerVisible(false); }}
+                      onPress={() => handleNavigate('AdminLeave')}
                     />
                   ) : (
                     <DrawerItem
                       title="Leave & Attendance"
                       icon={<CalendarIcon color={activeTab === 'Menu' ? '#ffffff' : '#cbd5e1'} size={24} />}
                       isActive={activeTab === 'Menu'}
-                      onPress={() => { setActiveTab('Menu'); setIsDrawerVisible(false); }}
+                      onPress={() => handleNavigate('Menu')}
                     />
                   )}
                   <DrawerItem
                     title="Settings"
                     icon={<SettingsIcon color={activeTab === 'Settings' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Settings'}
-                    onPress={() => { setActiveTab('Settings'); setIsDrawerVisible(false); }}
+                    onPress={() => handleNavigate('Settings')}
                   />
                   <DrawerItem
                     title="Privacy Policy"
                     icon={<ShieldIcon color={activeTab === 'PrivacyPolicy' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'PrivacyPolicy'}
-                    onPress={() => { setActiveTab('PrivacyPolicy'); setIsDrawerVisible(false); }}
+                    onPress={() => handleNavigate('PrivacyPolicy')}
                   />
                   <DrawerItem
                     title="Support"
                     icon={<HelpCircleIcon color={activeTab === 'Support' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'Support'}
-                    onPress={() => { setActiveTab('Support'); setIsDrawerVisible(false); }}
+                    onPress={() => handleNavigate('Support')}
                   />
                   <DrawerItem
                     title="Delete Account"
                     icon={<LogOutIcon color={activeTab === 'DeleteAccount' ? '#ffffff' : '#cbd5e1'} size={24} />}
                     isActive={activeTab === 'DeleteAccount'}
-                    onPress={() => { setActiveTab('DeleteAccount'); setIsDrawerVisible(false); }}
+                    onPress={() => handleNavigate('DeleteAccount')}
                   />
                 </ScrollView>
 
@@ -463,16 +472,16 @@ function App() {
               </View>
             )}
             {activeTab === 'Team' && <MyTeamScreen user={appUser} />}
-            {activeTab === 'Me' && <MeScreen user={appUser} setActiveTabToSettings={() => setActiveTab('Settings')} />}
+            {activeTab === 'Me' && <MeScreen user={appUser} setActiveTabToSettings={() => handleNavigate('Settings')} />}
             {activeTab === 'Menu' && <LeaveScreen user={appUser} />}
-            {activeTab === 'Employees' && <EmployeeListScreen user={appUser} />}
+            {activeTab === 'Employees' && <EmployeeListScreen user={appUser} onNavigateTo={handleNavigate} />}
             {activeTab === 'AdminLeave' && <AdminLeaveScreen user={appUser} />}
             {activeTab === 'Teams' && <TeamManagementScreen />}
-            {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => setActiveTab('Home')} />}
-            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => setActiveTab('Home')} />}
-            {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => setActiveTab('Home')} />}
-            {activeTab === 'Support' && <SupportScreen onBack={() => setActiveTab('Home')} onNavigateTo={(screen) => setActiveTab(screen)} />}
-            {activeTab === 'DeleteAccount' && <DeleteAccountScreen onBack={() => setActiveTab('Support')} />}
+            {activeTab === 'Profile' && <ProfileScreen user={appUser} onBack={() => handleNavigate('Home')} />}
+            {activeTab === 'Settings' && <SettingsScreen user={appUser} onBack={() => handleNavigate('Home')} />}
+            {activeTab === 'PrivacyPolicy' && <PrivacyPolicyScreen onBack={() => handleNavigate('Home')} />}
+            {activeTab === 'Support' && <SupportScreen onBack={() => handleNavigate('Home')} onNavigateTo={handleNavigate} />}
+            {activeTab === 'DeleteAccount' && <DeleteAccountScreen user={appUser} state={navigationState} onBack={() => handleNavigate('Support')} />}
           </View>
 
           <ProfileModal

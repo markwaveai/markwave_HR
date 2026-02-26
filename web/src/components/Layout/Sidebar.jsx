@@ -39,8 +39,9 @@ function Sidebar({ user, onLogout, isOpen, onClose }) {
         user?.role === 'Admin' ||
         user?.role === 'Administrator' ||
         user?.role === 'Project Manager' ||
-        user?.role === 'Advisor-Technology & Operations' ||
-        user?.role === 'Founder';
+        user?.role === 'Founder' ||
+        user?.role === 'Acting Admin' ||
+        user?.role === 'Advisor-Technology & Operations';
 
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/dashboard', roles: ['All'] },

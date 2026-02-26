@@ -150,7 +150,7 @@ function MyTeam({ user }) {
                         total: teamMembers.length,
                         active: teamMembers.filter(m => m.status === 'Active').length,
                         onLeave: teamMembers.filter(m => m.status === 'Leave').length,
-                        remote: teamMembers.filter(m => m.status === 'Remote' || m.location?.includes('Remote')).length
+                        remote: teamMembers.filter(m => m.status === 'Remote' || (m.location && m.location.toLowerCase().includes('remote'))).length
                     }} />
                 </div>
 

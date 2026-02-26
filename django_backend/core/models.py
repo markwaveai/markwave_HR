@@ -184,3 +184,18 @@ class LeaveOverrideRequest(models.Model):
         db_table = 'core_leaveoverriderequest'
         unique_together = (('employee', 'date'),)
 
+
+class SupportQuery(models.Model):
+    first_name = models.CharField(max_length=100)
+    last_name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        managed = True
+        db_table = 'core_supportquery'
+
+    def __str__(self):
+        return f"Support from {self.first_name} {self.last_name} ({self.email})"

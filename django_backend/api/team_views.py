@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, parser_classes
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.response import Response
-from core.models import Teams, Employees, Attendance, Leaves
+from core.models import Teams, Employees, Attendance, Leaves, WorkFromHome
 from .serializers import TeamsSerializer, EmployeesSerializer
 from datetime import datetime, timedelta
 
@@ -148,6 +148,14 @@ def member_list(request):
             to_date__gte=current_date_str
         ).values_list('employee_id', flat=True))
 
+        # Get approved WFH for today for these members (Remote status)
+        on_wfh_ids = set(WorkFromHome.objects.filter(
+            employee_id__in=member_ids,
+            status__iexact='Approved',
+            from_date__lte=current_date_str,
+            to_date__gte=current_date_str
+        ).values_list('employee_id', flat=True))
+
         # Get today's attendance records to determine who is "Present" (Active Now)
         attendance_map = {
             a['employee_id']: a['status'] 
@@ -171,7 +179,7 @@ def member_list(request):
             'employee_id': m.employee_id,
             'name': f"{m.first_name} {m.last_name}",
             'role': m.role,
-            'status': 'Leave' if m.employee_id in on_leave_ids else ('Active' if attendance_map.get(m.employee_id) == 'Present' else 'Absent'),
+            'status': 'Leave' if m.employee_id in on_leave_ids else ('Remote' if m.employee_id in on_wfh_ids else ('Active' if attendance_map.get(m.employee_id) == 'Present' else 'Absent')),
             'location': m.location,
             'email': m.email,
             'is_manager': m.employee_id == team_manager_id,
@@ -527,7 +535,16 @@ def team_stats(request):
         
         avg_working_hours = f"{avg_h}h {avg_m}m"
         on_time_arrival = f"{int((on_time_count / present_count) * 100)}%" if present_count > 0 else "0%"
-        remote = query.filter(status='Remote').count()
+        
+        # Remote count = Employees with status 'Remote' OR approved WFH today
+        wfh_count = WorkFromHome.objects.filter(
+            employee__employee_id__in=member_ids,
+            status__iexact='Approved',
+            from_date__lte=today_date,
+            to_date__gte=today_date
+        ).values('employee').distinct().count()
+        
+        remote = query.filter(status='Remote').count() + wfh_count
 
         return Response({
             'total': total,

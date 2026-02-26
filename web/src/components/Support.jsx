@@ -1,10 +1,21 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ChevronDown, Send, MessageCircle } from 'lucide-react';
+import { ArrowLeft, ChevronDown, Send, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { supportApi } from '../services/api';
+import Toast from './Common/Toast';
 
 const Support = () => {
     const navigate = useNavigate();
     const [openFaq, setOpenFaq] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [toast, setToast] = useState(null);
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        message: ''
+    });
 
     const faqs = [
         {
@@ -47,6 +58,50 @@ const Support = () => {
 
     const toggleFaq = (index) => {
         setOpenFaq(openFaq === index ? null : index);
+    };
+
+    const handleChange = (e) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        // Basic validation
+        if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone || !formData.message) {
+            setToast({
+                type: 'error',
+                message: 'Please fill in all fields before submitting.'
+            });
+            return;
+        }
+
+        setLoading(true);
+        try {
+            await supportApi.submitQuery(formData);
+            setToast({
+                type: 'success',
+                message: 'Your message has been sent successfully!'
+            });
+            setFormData({
+                firstName: '',
+                lastName: '',
+                email: '',
+                phone: '',
+                message: ''
+            });
+        } catch (error) {
+            console.error('Support submission error:', error);
+            setToast({
+                type: 'error',
+                message: error.message || 'Failed to send message. Please try again later.'
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -113,12 +168,15 @@ const Support = () => {
                     <div className="lg:w-[450px] w-full bg-white rounded-[32px] p-10 shadow-xl shadow-blue-900/5 border border-gray-50">
                         <h2 className="text-2xl font-bold text-[#1e293b] mb-8">Send us a message</h2>
 
-                        <form className="space-y-6">
+                        <form className="space-y-6" onSubmit={handleSubmit}>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-500">First Name</label>
                                     <input
                                         type="text"
+                                        name="firstName"
+                                        value={formData.firstName}
+                                        onChange={handleChange}
                                         placeholder="John"
                                         className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-100 rounded-xl focus:outline-none focus:border-[#0da487] focus:ring-1 focus:ring-[#0da487] transition-all text-gray-700"
                                     />
@@ -127,6 +185,9 @@ const Support = () => {
                                     <label className="text-sm font-semibold text-gray-500">Last Name</label>
                                     <input
                                         type="text"
+                                        name="lastName"
+                                        value={formData.lastName}
+                                        onChange={handleChange}
                                         placeholder="Doe"
                                         className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-100 rounded-xl focus:outline-none focus:border-[#0da487] focus:ring-1 focus:ring-[#0da487] transition-all text-gray-700"
                                     />
@@ -137,6 +198,9 @@ const Support = () => {
                                 <label className="text-sm font-semibold text-gray-500">Email Address</label>
                                 <input
                                     type="email"
+                                    name="email"
+                                    value={formData.email}
+                                    onChange={handleChange}
                                     placeholder="john@example.com"
                                     className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-100 rounded-xl focus:outline-none focus:border-[#0da487] focus:ring-1 focus:ring-[#0da487] transition-all text-gray-700"
                                 />
@@ -146,6 +210,9 @@ const Support = () => {
                                 <label className="text-sm font-semibold text-gray-500">Phone Number</label>
                                 <input
                                     type="tel"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
                                     placeholder="+91 98765 43210"
                                     className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-100 rounded-xl focus:outline-none focus:border-[#0da487] focus:ring-1 focus:ring-[#0da487] transition-all text-gray-700"
                                 />
@@ -154,6 +221,9 @@ const Support = () => {
                             <div className="space-y-2">
                                 <label className="text-sm font-semibold text-gray-500">How can we help you?</label>
                                 <textarea
+                                    name="message"
+                                    value={formData.message}
+                                    onChange={handleChange}
                                     rows="4"
                                     placeholder="Tell us more about your issue..."
                                     className="w-full px-4 py-3.5 bg-[#F8FAFC] border border-gray-100 rounded-xl focus:outline-none focus:border-[#0da487] focus:ring-1 focus:ring-[#0da487] transition-all text-gray-700 resize-none"
@@ -161,14 +231,19 @@ const Support = () => {
                             </div>
 
                             <button
-                                type="button"
-                                className="w-full py-4 bg-[#1e293b] text-white font-bold rounded-2xl hover:bg-[#2d3a4f] transition-all transform active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2 mt-4"
+                                type="submit"
+                                disabled={loading}
+                                className={`w-full py-4 ${loading ? 'bg-gray-400' : 'bg-[#1e293b] hover:bg-[#2d3a4f]'} text-white font-bold rounded-2xl transition-all transform active:scale-[0.98] shadow-lg shadow-gray-200 flex items-center justify-center gap-2 mt-4`}
                             >
-                                <Send size={18} />
-                                <span>Submit Message</span>
+                                {loading ? (
+                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                ) : (
+                                    <>
+                                        <Send size={18} />
+                                        <span>Submit Message</span>
+                                    </>
+                                )}
                             </button>
-
-
                         </form>
                     </div>
                 </div>
@@ -178,6 +253,14 @@ const Support = () => {
                     <p>© 2026 Markwave HR Portal. Professional Support Services.</p>
                 </div>
             </main>
+
+            {toast && (
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    onClose={() => setToast(null)}
+                />
+            )}
         </div>
     );
 };
