@@ -194,7 +194,7 @@ def login(request):
                 'is_admin': is_employee_admin(emp),
                 'project_manager_name': manager_names,
                 'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
-                'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
+                'profile_picture': request.build_absolute_uri(emp.profile_picture.url).replace('http://', 'https://') if emp.profile_picture and request.is_secure() else (request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None)
             }
         })
 
@@ -408,7 +408,7 @@ def verify_otp(request):
                         'is_admin': is_employee_admin(emp),
                         'project_manager_name': manager_names,
                         'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
-                        'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
+                        'profile_picture': request.build_absolute_uri(emp.profile_picture.url).replace('http://', 'https://') if emp.profile_picture and request.is_secure() else (request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None)
                     }
                 })
         return Response({'error': 'User not found'}, status=404)
@@ -486,7 +486,7 @@ def get_profile(request, employee_id):
             'is_admin': is_employee_admin(emp),
             'project_manager_name': manager_names,
             'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
-            'profile_picture': request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None
+            'profile_picture': request.build_absolute_uri(emp.profile_picture.url).replace('http://', 'https://') if emp.profile_picture and request.is_secure() else (request.build_absolute_uri(emp.profile_picture.url) if emp.profile_picture else None)
         })
     except Exception as e:
         error_msg = str(e)
@@ -659,7 +659,7 @@ def verify_email_otp(request):
                 'is_admin': is_employee_admin(employee),
                 'project_manager_name': manager_names,
                 'advisor_name': f"{advisor.first_name} {advisor.last_name or ''}".strip() if advisor else None,
-                'profile_picture': request.build_absolute_uri(employee.profile_picture.url) if employee.profile_picture else None
+                'profile_picture': request.build_absolute_uri(employee.profile_picture.url).replace('http://', 'https://') if employee.profile_picture and request.is_secure() else (request.build_absolute_uri(employee.profile_picture.url) if employee.profile_picture else None)
             }
         })
     except Exception as e:

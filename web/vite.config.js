@@ -14,6 +14,11 @@ export default defineConfig(({ mode }) => {
         'localhost',
         '127.0.0.1'
       ],
+      hmr: {
+        host: 'hr.markwave.ai',
+        clientPort: 443,
+        protocol: 'wss'
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:8000',

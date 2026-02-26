@@ -59,13 +59,24 @@ class TeamsSerializer(serializers.ModelSerializer):
 
 class EmployeesSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField()
-
+    profile_picture = serializers.SerializerMethodField()
     class Meta:
         model = Employees
         fields = ['id', 'employee_id', 'first_name', 'last_name', 'name', 'role', 'status', 'location', 'email', 'contact', 'aadhar', 'qualification', 'teams', 'profile_picture']
 
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}"
+
+    def get_profile_picture(self, obj):
+        if not obj.profile_picture:
+            return None
+        request = self.context.get('request')
+        if request:
+            url = request.build_absolute_uri(obj.profile_picture.url)
+            if request.is_secure() or request.META.get('HTTP_X_FORWARDED_PROTO') == 'https':
+                return url.replace('http://', 'https://')
+            return url
+        return obj.profile_picture.url
 
 class LeavesSerializer(serializers.ModelSerializer):
     employee_name = serializers.SerializerMethodField()

@@ -224,7 +224,7 @@ def member_list(request):
             'location': m.location,
             'email': m.email,
             'is_manager': m.employee_id == team_manager_id,
-            'profile_picture': request.build_absolute_uri(m.profile_picture.url) if m.profile_picture else None
+            'profile_picture': request.build_absolute_uri(m.profile_picture.url).replace('http://', 'https://') if m.profile_picture and request.is_secure() else (request.build_absolute_uri(m.profile_picture.url) if m.profile_picture else None)
         } for m in members])
 
     elif request.method == 'POST':

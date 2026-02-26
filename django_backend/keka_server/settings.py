@@ -162,6 +162,7 @@ CSRF_TRUSTED_ORIGINS = [
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 from corsheaders.defaults import default_headers
 
@@ -185,7 +186,7 @@ CORS_ALLOW_METHODS = [
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-APPEND_SLASH = False
+# APPEND_SLASH = True (default)
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
