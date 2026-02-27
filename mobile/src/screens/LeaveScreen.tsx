@@ -325,35 +325,37 @@ const LeaveScreen = ({ user }: { user: any }) => {
                     <Text style={styles.headerTitle}>Leave & Attendance</Text>
                     <Text style={styles.headerSubtitle}>{!user?.is_admin ? 'View your leave balance' : 'Manage your time off'}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: wp(1.5) }}>
-                    <Pressable
-                        onPress={() => {
+                {String(user?.employee_id) !== 'EMP-DEMO' && String(user?.employee_id) !== '9999' && (
+                    <View style={{ flexDirection: 'row', gap: wp(1.5) }}>
+                        <Pressable
+                            onPress={() => {
 
-                            setActiveTab('leave');
-                            setIsModalVisible(true);
-                        }}
-                        style={({ pressed }) => [
-                            styles.addButton,
-                            pressed && { opacity: 0.7 },
-                            { paddingHorizontal: wp(3) }
-                        ]}
-                    >
-                        <Text style={styles.addButtonText}>+ LEAVE</Text>
-                    </Pressable>
-                    <Pressable
-                        onPress={() => {
-                            setActiveTab('wfh');
-                            setWfhModalVisible(true);
-                        }}
-                        style={({ pressed }) => [
-                            styles.addButton,
-                            pressed && { opacity: 0.7 },
-                            { paddingHorizontal: wp(3), backgroundColor: '#636e72' }
-                        ]}
-                    >
-                        <Text style={styles.addButtonText}>+ WFH</Text>
-                    </Pressable>
-                </View>
+                                setActiveTab('leave');
+                                setIsModalVisible(true);
+                            }}
+                            style={({ pressed }) => [
+                                styles.addButton,
+                                pressed && { opacity: 0.7 },
+                                { paddingHorizontal: wp(3) }
+                            ]}
+                        >
+                            <Text style={styles.addButtonText}>+ LEAVE</Text>
+                        </Pressable>
+                        <Pressable
+                            onPress={() => {
+                                setActiveTab('wfh');
+                                setWfhModalVisible(true);
+                            }}
+                            style={({ pressed }) => [
+                                styles.addButton,
+                                pressed && { opacity: 0.7 },
+                                { paddingHorizontal: wp(3), backgroundColor: '#636e72' }
+                            ]}
+                        >
+                            <Text style={styles.addButtonText}>+ WFH</Text>
+                        </Pressable>
+                    </View>
+                )}
             </View>
 
 

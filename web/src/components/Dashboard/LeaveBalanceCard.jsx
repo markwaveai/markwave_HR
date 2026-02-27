@@ -32,16 +32,16 @@ const LeaveBalanceCard = ({ user }) => {
         }
     };
 
-    // Show ALL leave types in dashboard, display zero for non-allocated
+    // Show ALL leave types; only cl, sl, bl have colored progress rings
     const allLeaveTypes = [
-        { key: 'cl', label: 'Casual', max: 12, color: '#48327d' },
-        { key: 'sl', label: 'Sick', max: 12, color: '#48327d' },
-        { key: 'el', label: 'Earned', max: 15, color: '#48327d' },
-        { key: 'scl', label: 'Special', max: 3, color: '#48327d' },
-        { key: 'bl', label: 'Bereavement', max: 5, color: '#48327d' },
-        { key: 'pl', label: 'Paternity', max: 3, color: '#48327d' },
-        { key: 'll', label: 'Long', max: 21, color: '#48327d' },
-        { key: 'co', label: 'Comp Off', max: 2, color: '#48327d' }
+        { key: 'cl', label: 'Casual', max: 12, color: '#48327d', filled: true },
+        { key: 'sl', label: 'Sick', max: 12, color: '#48327d', filled: true },
+        { key: 'el', label: 'Earned', max: 15, color: '#48327d', filled: false },
+        { key: 'scl', label: 'Special', max: 3, color: '#48327d', filled: false },
+        { key: 'bl', label: 'Bereavement', max: 5, color: '#48327d', filled: true },
+        { key: 'pl', label: 'Paternity', max: 3, color: '#48327d', filled: false },
+        { key: 'll', label: 'Long', max: 21, color: '#48327d', filled: false },
+        { key: 'co', label: 'Comp Off', max: 2, color: '#48327d', filled: false }
     ];
 
     return (
@@ -55,20 +55,22 @@ const LeaveBalanceCard = ({ user }) => {
             </div>
 
             <div className="grid grid-cols-4 gap-2 mm:gap-2.5">
-                {allLeaveTypes.map(({ key, label, max, color }) => (
+                {allLeaveTypes.map(({ key, label, max, color, filled }) => (
                     <div key={key} className="flex flex-col items-center gap-1">
                         <div className="relative w-9 h-9 mm:w-10 mm:h-10">
                             <svg viewBox="0 0 32 32" className="w-full h-full transform -rotate-90">
                                 <circle cx="16" cy="16" r="14" fill="transparent" stroke="#f1f2f6" strokeWidth="3" />
-                                <circle
-                                    cx="16" cy="16" r="14"
-                                    fill="transparent"
-                                    stroke={color}
-                                    strokeWidth="3"
-                                    strokeDasharray={`${((balance[key] || 0) / max) * 100} 100`}
-                                    pathLength="100"
-                                    className="transition-all duration-500 ease-out"
-                                />
+                                {filled && (
+                                    <circle
+                                        cx="16" cy="16" r="14"
+                                        fill="transparent"
+                                        stroke={color}
+                                        strokeWidth="3"
+                                        strokeDasharray={`${((balance[key] || 0) / max) * 100} 100`}
+                                        pathLength="100"
+                                        className="transition-all duration-500 ease-out"
+                                    />
+                                )}
                             </svg>
                             <div className="absolute inset-0 flex items-center justify-center">
                                 <span className="text-[10px] mm:text-[11px] font-bold text-[#2d3436]">

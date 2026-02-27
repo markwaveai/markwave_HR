@@ -491,8 +491,8 @@ const TeamManagementScreen = () => {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 onPress={handleSave}
-                                style={[styles.modalBtn, styles.saveBtn, (!formData.name.trim() || isSubmitting) && { opacity: 0.5 }]}
-                                disabled={!formData.name.trim() || isSubmitting}
+                                style={[styles.modalBtn, styles.saveBtn, (!formData.name?.trim() || !formData.description?.trim() || !formData.manager_id || isSubmitting) && { opacity: 0.5 }]}
+                                disabled={!formData.name?.trim() || !formData.description?.trim() || !formData.manager_id || isSubmitting}
                             >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     {isSubmitting && <ActivityIndicator size="small" color="white" />}

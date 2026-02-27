@@ -16,22 +16,28 @@ At Markwave HR, we value your privacy and are committed to protecting your perso
 
 1. Information We Collect
 To provide a comprehensive HR management experience, we collect various types of information:
-- Personal Identity Information: Legal name, gender, date of birth, nationality, and government-issued identification numbers.
+- Personal Identity Information: Legal name (as per certificates), gender, date of birth, nationality, and government-issued identification numbers.
 - Employment Details: Professional role, department, employee ID, work location, date of joining, reporting hierarchy, and work history.
 - Contact Information: Professional and personal email addresses, registered mobile number for OTP verification, and emergency contact details.
 - Payroll & Financial Data: Bank account details, tax identification numbers, and compensation structure.
 
-2. How We Use Your Information
-The information collected is utilized strictly for legitimate business and HR administration purposes:
-- Operational Management: Facilitating attendance tracking, leave applications, performance reviews, and employee life-cycle events.
-- Security & Authentication: Utilizing your contact info for secure Two-Factor Authentication (2FA) and detecting unauthorized portal access.
-- Legal Compliance: Ensuring adherence to local labor laws, tax regulations, and statutory reporting requirements.
+2. How We Use Information
+The collected information is used to manage employee attendance, leave and WFH requests, payroll processing, employee communication, reporting, and compliance with company policies.
 
-3. Data Sharing & Disclosure
-We do not sell your personal data. Information is shared only with authorized personnel within the organization (HR, Finance, IT) and trusted third-party service providers (e.g., payroll processors, insurance providers) under strict confidentiality agreements.
+3. Data Security
+Markwave HR protects employee information using secure authentication, role-based access control, and encrypted communication. Only authorized administrators can access sensitive employee data.
 
-4. Data Security & Storage
-Your data is stored securely using advanced encryption standards both in transit and at rest. We conduct regular security audits and implement strict access control policies to prevent data breaches.
+4. Data Sharing
+Employee information is not sold or shared with third parties. Data may only be accessed by authorized HR personnel or shared when required by law.
+
+5. User Rights
+Employees may view their profile information and request corrections through HR administrators if any information is inaccurate.
+
+6. Data Retention
+Employee data is retained during employment and for required legal or administrative purposes after account deactivation.
+
+7. Cookies and Sessions
+The portal uses secure session cookies to maintain login authentication and improve system functionality.
 
 Terms and Conditions
 By accessing and using the Markwave HR Portal, you agree to comply with and be bound by the following terms and conditions.
@@ -107,7 +113,7 @@ All content, design, software, and logic within the HR Portal are the intellectu
                             <View style={styles.listItem}>
                                 <View style={styles.bullet} />
                                 <Text style={styles.listText}>
-                                    <Text style={styles.bold}>Personal Identity Information:</Text> Legal name, gender, date of birth, nationality, and government-issued identification numbers.
+                                    <Text style={styles.bold}>Personal Identity Information:</Text> Legal name (as per certificates), gender, date of birth, nationality, and government-issued identification numbers.
                                 </Text>
                             </View>
 
@@ -134,42 +140,42 @@ All content, design, software, and logic within the HR Portal are the intellectu
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.subTitle}>2. How We Use Your Information</Text>
-                            <Text style={styles.paragraph}>The information collected is utilized strictly for legitimate business and HR administration purposes:</Text>
-
-                            <View style={styles.listItem}>
-                                <View style={styles.bullet} />
-                                <Text style={styles.listText}>
-                                    <Text style={styles.bold}>Operational Management:</Text> Facilitating attendance tracking, leave applications, performance reviews, and employee life-cycle events.
-                                </Text>
-                            </View>
-
-                            <View style={styles.listItem}>
-                                <View style={styles.bullet} />
-                                <Text style={styles.listText}>
-                                    <Text style={styles.bold}>Security & Authentication:</Text> Utilizing contact info for secure Two-Factor Authentication (2FA) and detecting unauthorized portal access.
-                                </Text>
-                            </View>
-
-                            <View style={styles.listItem}>
-                                <View style={styles.bullet} />
-                                <Text style={styles.listText}>
-                                    <Text style={styles.bold}>Legal Compliance:</Text> Ensuring adherence to local labor laws, tax regulations, and statutory reporting requirements.
-                                </Text>
-                            </View>
+                            <Text style={styles.subTitle}>2. How We Use Information</Text>
+                            <Text style={styles.paragraph}>The collected information is used to manage employee attendance, leave and WFH requests, payroll processing, employee communication, reporting, and compliance with company policies.</Text>
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.subTitle}>3. Data Sharing & Disclosure</Text>
+                            <Text style={styles.subTitle}>3. Data Security</Text>
                             <Text style={styles.paragraph}>
-                                We do not sell your personal data. Information is shared only with authorized personnel within the organization (HR, Finance, IT) and trusted third-party service providers (e.g., payroll processors, insurance providers) under strict confidentiality agreements.
+                                Markwave HR protects employee information using secure authentication, role-based access control, and encrypted communication. Only authorized administrators can access sensitive employee data.
                             </Text>
                         </View>
 
                         <View style={styles.section}>
-                            <Text style={styles.subTitle}>4. Data Security & Storage</Text>
+                            <Text style={styles.subTitle}>4. Data Sharing</Text>
                             <Text style={styles.paragraph}>
-                                Your data is stored securely using advanced encryption standards both in transit and at rest. We conduct regular security audits and implement strict access control policies to prevent data breaches.
+                                Employee information is not sold or shared with third parties. Data may only be accessed by authorized HR personnel or shared when required by law.
+                            </Text>
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.subTitle}>5. User Rights</Text>
+                            <Text style={styles.paragraph}>
+                                Employees may view their profile information and request corrections through HR administrators if any information is inaccurate.
+                            </Text>
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.subTitle}>6. Data Retention</Text>
+                            <Text style={styles.paragraph}>
+                                Employee data is retained during employment and for required legal or administrative purposes after account deactivation.
+                            </Text>
+                        </View>
+
+                        <View style={styles.section}>
+                            <Text style={styles.subTitle}>7. Cookies and Sessions</Text>
+                            <Text style={styles.paragraph}>
+                                The portal uses secure session cookies to maintain login authentication and improve system functionality.
                             </Text>
                         </View>
 

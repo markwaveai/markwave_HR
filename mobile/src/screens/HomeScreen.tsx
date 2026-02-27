@@ -462,12 +462,7 @@ const HomeScreen = ({ user, setActiveTabToSettings, attendanceState, onRefresh }
                                 {[
                                     { key: 'cl', label: 'Casual', max: 12 },
                                     { key: 'sl', label: 'Sick', max: 12 },
-                                    { key: 'el', label: 'Earned', max: 15 },
-                                    { key: 'scl', label: 'Special', max: 3 },
-                                    { key: 'bl', label: 'Bereavement', max: 5 },
-                                    { key: 'pl', label: 'Paternity', max: 3 },
-                                    { key: 'll', label: 'Long', max: 21 },
-                                    { key: 'co', label: 'Comp Off', max: 2 }
+                                    { key: 'bl', label: 'Bereavement', max: 5 }
                                 ].map(({ key, label, max }) => (
                                     <View key={key} style={styles.chartItem}>
                                         <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#48327d" size={46} strokeWidth={3} />
@@ -677,7 +672,11 @@ const HomeScreen = ({ user, setActiveTabToSettings, attendanceState, onRefresh }
                                         </View>
                                     )}
                                     <View style={styles.postActions}>
-                                        <TouchableOpacity style={styles.postActionBtn} onPress={() => handleToggleLike(post.id)}>
+                                        <TouchableOpacity
+                                            style={styles.postActionBtn}
+                                            onPress={() => handleToggleLike(post.id)}
+                                            disabled={String(user?.employee_id) === 'EMP-DEMO' || String(user?.id) === '9999'}
+                                        >
                                             <HeartIcon
                                                 color={isLikedByMe ? '#ef4444' : '#64748b'}
                                                 fill={isLikedByMe ? '#ef4444' : 'none'}
@@ -713,12 +712,14 @@ const HomeScreen = ({ user, setActiveTabToSettings, attendanceState, onRefresh }
                                                     </View>
                                                 );
                                             })}
-                                            <View style={styles.commentInputRow}>
-                                                <TextInput style={styles.commentInput} placeholder="Add a comment..." value={newComment} onChangeText={setNewComment} />
-                                                <TouchableOpacity onPress={() => handleAddComment(post.id)} disabled={!newComment.trim()}>
-                                                    <Text style={[styles.sendBtn, !newComment.trim() && { opacity: 0.3 }]}>Send</Text>
-                                                </TouchableOpacity>
-                                            </View>
+                                            {String(user?.employee_id) !== 'EMP-DEMO' && String(user?.id) !== '9999' && (
+                                                <View style={styles.commentInputRow}>
+                                                    <TextInput style={styles.commentInput} placeholder="Add a comment..." value={newComment} onChangeText={setNewComment} />
+                                                    <TouchableOpacity onPress={() => handleAddComment(post.id)} disabled={!newComment.trim()}>
+                                                        <Text style={[styles.sendBtn, !newComment.trim() && { opacity: 0.3 }]}>Send</Text>
+                                                    </TouchableOpacity>
+                                                </View>
+                                            )}
                                         </View>
                                     )}
                                 </View>
