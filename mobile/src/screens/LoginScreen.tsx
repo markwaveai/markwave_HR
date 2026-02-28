@@ -57,6 +57,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin, onOpenSupport, onOpe
     }, [step, resendTimer]);
 
     const handleSendOTP = async () => {
+        []
         const trimmedPhone = phone.trim();
 
         // Validate phone number (must be exactly 10 digits)

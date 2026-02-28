@@ -24,27 +24,30 @@ const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({ apiBalance, history
         const result: any[] = [];
         if (!apiBalance) return result;
 
-        ['cl', 'sl', 'bl'].forEach(code => {
-            if (code === 'lwp') return;
+        const ALL_LEAVE_TYPES = [
+            { code: 'cl', filled: true },
+            { code: 'sl', filled: true },
+            { code: 'bl', filled: true },
+        ];
 
+        ALL_LEAVE_TYPES.forEach(({ code, filled }) => {
             const config = LEAVE_CONFIG[code];
+            if (!config) return;
 
-            // Always show these 3 requested types
-            if (true) {
-                const consumed = history
-                    .filter(log => log.type === code && (log.status === 'Approved' || log.status === 'Pending'))
-                    .reduce((sum, log) => sum + (log.days || 0), 0);
+            const consumed = history
+                .filter(log => log.type === code && (log.status === 'Approved' || log.status === 'Pending'))
+                .reduce((sum, log) => sum + (log.days || 0), 0);
 
-                const available = apiBalance[code] || 0;
-                const total = available + consumed;
+            const available = apiBalance[code] || 0;
+            const total = available + consumed;
 
-                result.push({
-                    ...config,
-                    consumed,
-                    available,
-                    total
-                });
-            }
+            result.push({
+                ...config,
+                consumed,
+                available,
+                total,
+                filled
+            });
         });
         return result;
     }, [apiBalance, history]);
@@ -74,7 +77,9 @@ const LeaveBalanceCard: React.FC<LeaveBalanceCardProps> = ({ apiBalance, history
                                 <Text style={styles.progressText}>Total: {item.total}</Text>
                             </View>
                             <View style={styles.track}>
-                                <View style={[styles.fill, { width: `${item.total > 0 ? (item.consumed / item.total) * 100 : 0}%`, backgroundColor: '#48327d' }]} />
+                                {item.filled && (
+                                    <View style={[styles.fill, { width: `${item.total > 0 ? (item.consumed / item.total) * 100 : 0}%`, backgroundColor: '#48327d' }]} />
+                                )}
                             </View>
                         </View>
                     </View>

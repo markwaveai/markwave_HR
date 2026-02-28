@@ -465,8 +465,22 @@ const HomeScreen = ({ user, setActiveTabToSettings, attendanceState, onRefresh }
                                     { key: 'bl', label: 'Bereavement', max: 5 }
                                 ].map(({ key, label, max }) => (
                                     <View key={key} style={styles.chartItem}>
-                                        <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#48327d" size={46} strokeWidth={3} />
+                                        <CircularProgress value={leaveBalance?.[key] || 0} total={max} color="#2563eb" size={46} strokeWidth={3} />
                                         <Text style={styles.chartLabel}>{label}</Text>
+                                    </View>
+                                ))}
+                                {[
+                                    { key: 'empty1', label: 'Annual' },
+                                    { key: 'empty2', label: 'Maternity' },
+                                    { key: 'empty3', label: 'Paternity' },
+                                    { key: 'empty4', label: 'Comp Off' },
+                                    { key: 'empty5', label: 'LWP' },
+                                ].map(({ key, label }) => (
+                                    <View key={key} style={styles.chartItem}>
+                                        <View style={{ width: 46, height: 46, borderRadius: 23, borderWidth: 3, borderColor: '#e2e8f0', backgroundColor: '#f8fafc', justifyContent: 'center', alignItems: 'center' }}>
+                                            <Text style={{ fontSize: 14, fontWeight: '700', color: '#cbd5e1' }}>–</Text>
+                                        </View>
+                                        <Text style={[styles.chartLabel, { color: '#cbd5e1' }]}>{label}</Text>
                                     </View>
                                 ))}
                             </View>

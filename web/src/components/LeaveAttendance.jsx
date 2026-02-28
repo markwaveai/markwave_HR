@@ -118,7 +118,7 @@ function LeaveAttendance({ user }) {
 
     const calculateBalances = () => {
         const balances = [];
-        Object.keys(LEAVE_TYPES).forEach(code => {
+        ['cl', 'sl', 'bl'].forEach(code => {
             if (code === 'lwp') return;
             const config = LEAVE_TYPES[code];
             const consumed = history

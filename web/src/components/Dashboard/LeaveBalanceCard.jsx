@@ -32,7 +32,7 @@ const LeaveBalanceCard = ({ user }) => {
         }
     };
 
-    // Show ALL leave types; only cl, sl, bl have colored progress rings
+    // Show all 8 circles; only cl, sl, bl have colored arc
     const allLeaveTypes = [
         { key: 'cl', label: 'Casual', max: 12, color: '#48327d', filled: true },
         { key: 'sl', label: 'Sick', max: 12, color: '#48327d', filled: true },
